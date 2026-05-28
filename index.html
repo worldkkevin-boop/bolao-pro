@@ -201,6 +201,20 @@
         </div>
       </div>
 
+      <!-- Install App PWA Banner -->
+      <div id="pwa-install-banner" class="hidden bg-brand-green/10 border border-brand-green/20 text-brand-green rounded-2xl p-4 mb-6 flex items-start justify-between gap-3 relative">
+        <div onclick="abrirModal('modal-instalar-app')" class="flex items-start gap-3 cursor-pointer flex-1">
+          <span class="text-xl flex-shrink-0">📲</span>
+          <div class="text-[13px] leading-relaxed font-medium">
+            <span class="font-bold text-white block mb-0.5">Instalar no Celular</span>
+            Salve o app na tela inicial para jogar igual a um aplicativo real! <span class="underline font-bold text-white">Como fazer?</span>
+          </div>
+        </div>
+        <button onclick="fecharBannerPWA()" class="w-6 h-6 rounded-full bg-black/20 flex items-center justify-center text-brand-green hover:text-white transition-colors flex-shrink-0 active:scale-90">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
       <!-- Ações -->
       <div class="grid grid-cols-2 gap-3 mb-7">
         <button onclick="abrirModal('modal-criar-grupo')" class="bg-brand-green text-black font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:opacity-90 transition-opacity active:scale-95">

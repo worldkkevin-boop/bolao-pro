@@ -1251,3 +1251,28 @@ function abrirSuporteWhatsapp() {
   }
 }
 
+function verificarBannerPWA() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (!banner) return;
+
+  // Verifica se já está rodando standalone (salvo na tela inicial)
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  
+  // Verifica se o usuário já fechou o banner
+  const jaDispensou = localStorage.getItem('pwa_banner_dismissed') === 'true';
+
+  if (!isStandalone && !jaDispensou) {
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function fecharBannerPWA() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) {
+    banner.classList.add('hidden');
+  }
+  localStorage.setItem('pwa_banner_dismissed', 'true');
+}
+
