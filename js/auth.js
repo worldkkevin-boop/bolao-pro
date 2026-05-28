@@ -191,7 +191,7 @@ async function processarConvitePendente() {
       .upsert([{ group_id: grupo.id, user_id: user.id }]);
 
     localStorage.removeItem('pending_invite_code');
-    if (typeof entrarNoGrupo === 'function') entrarNoGrupo(grupo.id, grupo.name, grupo.invite_code, grupo.owner_id);
+    if (typeof entrarNoGrupo === 'function') entrarNoGrupo(grupo.id, grupo.name, grupo.invite_code, grupo.owner_id, grupo.league_id || 1);
     if (typeof carregarGrupos === 'function') carregarGrupos();
 
   } catch (err) {
