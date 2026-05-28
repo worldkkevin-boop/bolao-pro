@@ -8,8 +8,9 @@ function fecharModal(id) {
 }
 
 function switchView(targetViewId) {
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel'];
   const navBar = document.getElementById('bottom-nav');
+  const gmNavBar = document.getElementById('gm-bottom-nav');
 
   if (targetViewId !== 'view-grupo-home' && countdownInterval) {
     clearInterval(countdownInterval);
@@ -26,10 +27,18 @@ function switchView(targetViewId) {
 
   document.getElementById(targetViewId).classList.remove('hidden');
 
-  if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite') {
-    navBar.classList.add('hidden');
+  // Controle de menus inferiores (Navegação)
+  if (targetViewId === 'view-gm-panel') {
+    if (navBar) navBar.classList.add('hidden');
+    if (gmNavBar) gmNavBar.classList.remove('hidden');
   } else {
-    navBar.classList.remove('hidden');
+    if (gmNavBar) gmNavBar.classList.add('hidden');
+    
+    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite') {
+      if (navBar) navBar.classList.add('hidden');
+    } else {
+      if (navBar) navBar.classList.remove('hidden');
+    }
   }
 
   if (document.getElementById('nav-' + targetViewId)) {

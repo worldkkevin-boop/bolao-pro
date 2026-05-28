@@ -605,61 +605,106 @@
   </div>
 
     <!-- View: Painel do Game Master (GM) -->
-    <div id="view-gm-panel" class="fade-in hidden p-4 pb-24">
+    <div id="view-gm-panel" class="fade-in hidden p-4 pb-28">
       <div class="flex items-center gap-4 mb-6 mt-2">
         <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
         </button>
-        <h1 class="text-xl font-black tracking-tight uppercase">Painel do GM 👑</h1>
+        <h1 class="text-xl font-black tracking-tight uppercase text-purple-400">Painel do GM 👑</h1>
       </div>
 
-      <!-- Card: Criar Desafio -->
-      <div class="bg-card-bg rounded-2xl p-5 border border-purple-500/20 mb-6 shadow-xl relative overflow-hidden">
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
-        <h3 class="font-bold mb-4 text-[13px] text-purple-400 uppercase tracking-wider">Lançar Novo Desafio</h3>
+      <!-- SEÇÃO 1: DESAFIOS (Ativa por padrão) -->
+      <div id="gm-section-desafios" class="space-y-6">
+        <!-- Card: Criar Desafio -->
+        <div class="bg-card-bg rounded-2xl p-5 border border-purple-500/20 mb-6 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+          <h3 class="font-bold mb-4 text-[13px] text-purple-400 uppercase tracking-wider">Lançar Novo Desafio</h3>
 
-        <div class="space-y-4">
-          <div>
-            <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Selecione a Partida</label>
-            <select id="select-gm-jogo" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
-              <option value="">Selecione uma partida...</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-4">
             <div>
-              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Regra do Desafio</label>
-              <select id="select-gm-evento" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
-                <option value="Goal">Fazer Gol ⚽</option>
-                <option value="Assist">Dar Assistência 🎯</option>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Selecione a Partida</label>
+              <select id="select-gm-jogo" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                <option value="">Selecione uma partida...</option>
               </select>
             </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Regra do Desafio</label>
+                <select id="select-gm-evento" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                  <option value="Goal">Fazer Gol ⚽</option>
+                  <option value="Assist">Dar Assistência 🎯</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Pontos Extras</label>
+                <input type="number" id="input-gm-pontos" value="50" min="5" max="200" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-purple-500 transition-colors">
+              </div>
+            </div>
+
             <div>
-              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Pontos Extras</label>
-              <input type="number" id="input-gm-pontos" value="50" min="5" max="200" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-purple-500 transition-colors">
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Opções de Jogadores (Mínimo 2)</label>
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="input-gm-player-1" placeholder="Jogador 1" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-2" placeholder="Jogador 2" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-3" placeholder="Jogador 3 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-4" placeholder="Jogador 4 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Opções de Jogadores (Mínimo 2)</label>
-            <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="input-gm-player-1" placeholder="Jogador 1" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
-              <input type="text" id="input-gm-player-2" placeholder="Jogador 2" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
-              <input type="text" id="input-gm-player-3" placeholder="Jogador 3 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
-              <input type="text" id="input-gm-player-4" placeholder="Jogador 4 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
-            </div>
+            <button onclick="criarDesafioReal()" id="btn-gm-criar-desafio" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-wider shadow-lg shadow-purple-600/20">
+              Lançar Desafio
+            </button>
           </div>
+        </div>
 
-          <button onclick="criarDesafioReal()" id="btn-gm-criar-desafio" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-wider shadow-lg shadow-purple-600/20">
-            Lançar Desafio
-          </button>
+        <!-- Seção: Gerenciar Desafios -->
+        <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Histórico de Desafios</h3>
+        <div id="lista-desafios-gm" class="space-y-3 pb-8">
+          <!-- Renderizado dinamicamente -->
         </div>
       </div>
 
-      <!-- Seção: Gerenciar Desafios -->
-      <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Histórico de Desafios</h3>
-      <div id="lista-desafios-gm" class="space-y-3 pb-8">
-        <!-- Renderizado dinamicamente -->
+      <!-- SEÇÃO 2: ACOMPANHAR GRUPOS -->
+      <div id="gm-section-grupos" class="space-y-4 hidden">
+        <h3 class="font-bold mb-3 text-sm text-purple-400 uppercase tracking-wider">Grupos Criados</h3>
+        <div id="lista-grupos-gm" class="space-y-3 pb-8">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </div>
+
+      <!-- SEÇÃO 3: METRICAS E STATS -->
+      <div id="gm-section-stats" class="space-y-4 hidden">
+        <h3 class="font-bold mb-3 text-sm text-purple-400 uppercase tracking-wider">Métricas da Plataforma</h3>
+        
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Grupos</span>
+            <span id="stat-total-grupos" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Membros em Grupos</span>
+            <span id="stat-total-membros" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Usuários</span>
+            <span id="stat-total-perfis" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Palpites</span>
+            <span id="stat-total-palpites" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+        </div>
+
+        <div class="bg-card-bg border border-white/5 rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-purple-500/20"></div>
+          <h4 class="font-bold text-[13px] text-purple-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <span>👤</span> Últimos Perfis Registrados
+          </h4>
+          <div id="lista-perfis-gm" class="space-y-3">
+            <!-- Listagem dinâmica de usuários -->
+          </div>
+        </div>
       </div>
     </div>
 
@@ -763,6 +808,22 @@
       <button onclick="switchView('view-regras')" id="nav-view-regras" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         <span class="text-[10px] font-bold">Regras</span>
+      </button>
+    </div>
+
+    <!-- Menu inferior exclusivo do GM (Painel Administrativo) -->
+    <div id="gm-bottom-nav" class="nav-fixed hidden bg-app-bg/95 backdrop-blur-md border-t border-purple-500/10 pt-3 pb-6 px-4 flex justify-around items-center z-50">
+      <button onclick="switchGMTab('desafios')" id="nav-gm-desafios" class="flex flex-col items-center justify-center gap-1 text-purple-400 bg-purple-500/10 px-4 py-2 rounded-xl transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span class="text-[10px] font-bold font-black">Desafios</span>
+      </button>
+      <button onclick="switchGMTab('grupos')" id="nav-gm-grupos" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+        <span class="text-[10px] font-bold">Grupos</span>
+      </button>
+      <button onclick="switchGMTab('stats')" id="nav-gm-stats" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[10px] font-bold">Métricas</span>
       </button>
     </div>
 
