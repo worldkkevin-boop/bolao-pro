@@ -82,17 +82,25 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
   const container = document.getElementById('lista-jogos');
   container.innerHTML = '';
 
-  // Mapeia quais jogos já foram palpitados
-  const listaPalpitados = palpitesDoUsuario.map(p => p.match_id);
+  const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+  const terminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
 
-  // Ordena: Quem NÃO foi palpitado vem primeiro, palpitados por último
+  function obterStatusAgrupado(statusShort) {
+    if (aoVivo.includes(statusShort)) return 'LIVE';
+    if (terminados.includes(statusShort)) return 'MATCH_FINISHED';
+    return 'NOT_STARTED';
+  }
+
+  const ordemStatus = { 'LIVE': 1, 'NOT_STARTED': 2, 'MATCH_FINISHED': 3 };
+
+  // Ordena: LIVE primeiro, depois NOT_STARTED, por fim MATCH_FINISHED. Subordenados por data.
   const jogosOrdenados = [...jogos].sort((a, b) => {
-    const aPalpitado = listaPalpitados.includes(a.fixture.id);
-    const bPalpitado = listaPalpitados.includes(b.fixture.id);
+    const statusA = obterStatusAgrupado(a.fixture.status.short);
+    const statusB = obterStatusAgrupado(b.fixture.status.short);
     
-    if (aPalpitado !== bPalpitado) {
-      return aPalpitado - bPalpitado; // Joga palpitados para o final
-    }
+    const diffStatus = ordemStatus[statusA] - ordemStatus[statusB];
+    if (diffStatus !== 0) return diffStatus;
+    
     return new Date(a.fixture.date) - new Date(b.fixture.date);
   });
 
@@ -111,42 +119,108 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
     const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
     const isLocked = agora > dezMinutosAntes;
 
+    const statusShort = jogo.fixture.status.short;
+    const isLive = aoVivo.includes(statusShort);
+    const isFinished = terminados.includes(statusShort);
+
     // Verifica se o usuário já tem palpite para essa partida
     const meuPalpite = palpitesDoUsuario.find(p => p.match_id === id);
 
-    let btnHtml = '';
-    let placarSalvoClass = 'hidden';
-    let placarSalvoText = '0 x 0';
+    let centerHtml = '';
     let cardBorderClass = 'border-white/5';
     let cardBgClass = '';
     let cardOpacityClass = '';
 
-    if (meuPalpite) {
-      // Já palpitou! Mostra placar, esconde botão e apaga/reduz opacidade do card
-      btnHtml = `
-        <button id="btn-palpite-${id}" class="hidden border border-brand-green text-brand-green px-4 py-1.5 rounded-xl text-[13px] font-bold">
-          Palpitar
-        </button>
+    if (isFinished) {
+      const realHome = jogo.goals.home ?? 0;
+      const realAway = jogo.goals.away ?? 0;
+      let guessText = '';
+      let ptsHtml = '';
+
+      if (meuPalpite) {
+        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway);
+        guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
+        if (pts > 0) {
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-gold/20 text-gold mt-1 tracking-wide uppercase">+${pts} PTS</span>`;
+        } else {
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-500 mt-1 tracking-wide uppercase">0 PTS</span>`;
+        }
+        cardBorderClass = 'border-white/10';
+      } else {
+        guessText = 'Sem palpite';
+        ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-600 mt-1 tracking-wide uppercase">0 PTS</span>`;
+        cardBorderClass = 'border-red-500/10';
+      }
+
+      centerHtml = `
+        <div class="flex flex-col items-center justify-center">
+          <span class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider mb-1 border border-white/5">ENCERRADO</span>
+          <div class="text-xl font-black tracking-widest text-white/80">${realHome} x ${realAway}</div>
+          <div class="text-[11px] text-text-muted mt-1 font-semibold">${guessText}</div>
+          ${ptsHtml}
+        </div>
       `;
-      placarSalvoClass = 'flex';
-      placarSalvoText = `${meuPalpite.score_home} x ${meuPalpite.score_away}`;
-      cardBorderClass = 'border-brand-green/40';
-      cardBgClass = 'bg-brand-green/5';
-      cardOpacityClass = 'opacity-50 grayscale';
-    } else if (isLocked) {
-      // Bloqueado
-      btnHtml = `
-        <button id="btn-palpite-${id}" disabled class="border border-zinc-700 text-zinc-500 px-4 py-1.5 rounded-xl text-[13px] font-bold cursor-not-allowed">
-          Bloqueado
-        </button>
+      cardOpacityClass = 'opacity-70';
+
+    } else if (isLive) {
+      const realHome = jogo.goals.home ?? 0;
+      const realAway = jogo.goals.away ?? 0;
+      const elapsed = jogo.fixture.status.elapsed ? `${jogo.fixture.status.elapsed}'` : '';
+      let guessText = '';
+      let ptsHtml = '';
+
+      if (meuPalpite) {
+        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway);
+        guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
+        if (pts > 0) {
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-brand-green/20 text-brand-green mt-1 tracking-wide uppercase animate-pulse">Parcial: +${pts} pts</span>`;
+        } else {
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 mt-1 tracking-wide uppercase">Parcial: 0 pts</span>`;
+        }
+        cardBorderClass = 'border-brand-green/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+        cardBgClass = 'bg-brand-green/5';
+      } else {
+        guessText = 'Sem palpite';
+        ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-850 text-zinc-500 mt-1 tracking-wide uppercase">0 PTS</span>`;
+      }
+
+      centerHtml = `
+        <div class="flex flex-col items-center justify-center">
+          <span class="inline-flex items-center gap-1 bg-red-500/15 text-red-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider mb-1 animate-pulse border border-red-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            AO VIVO ${elapsed}
+          </span>
+          <div class="text-xl font-black tracking-widest text-white">${realHome} x ${realAway}</div>
+          <div class="text-[11px] text-text-muted mt-1 font-semibold">${guessText}</div>
+          ${ptsHtml}
+        </div>
       `;
+
     } else {
-      // Aberto para palpitar
-      btnHtml = `
-        <button id="btn-palpite-${id}" class="border border-brand-green text-brand-green px-4 py-1.5 rounded-xl text-[13px] font-bold hover:bg-brand-green hover:text-black transition-all">
-          Palpitar
-        </button>
-      `;
+      // NÃO INICIADO
+      if (meuPalpite) {
+        centerHtml = `
+          <div id="placar-salvo-${id}" class="flex flex-col items-center">
+            <div class="text-xl font-black tracking-widest text-white" id="lbl-placar-${id}">${meuPalpite.score_home} x ${meuPalpite.score_away}</div>
+            <span class="text-brand-green text-[11px] font-bold mt-1">Palpitado</span>
+          </div>
+        `;
+        cardBorderClass = 'border-brand-green/40';
+        cardBgClass = 'bg-brand-green/5';
+        cardOpacityClass = 'opacity-90';
+      } else if (isLocked) {
+        centerHtml = `
+          <button id="btn-palpite-${id}" disabled class="border border-zinc-700 text-zinc-500 px-4 py-1.5 rounded-xl text-[13px] font-bold cursor-not-allowed bg-zinc-800/10">
+            Bloqueado
+          </button>
+        `;
+      } else {
+        centerHtml = `
+          <button id="btn-palpite-${id}" class="border border-brand-green text-brand-green px-4 py-1.5 rounded-xl text-[13px] font-bold hover:bg-brand-green hover:text-black transition-all">
+            Palpitar
+          </button>
+        `;
+      }
     }
 
     container.innerHTML += `
@@ -160,11 +234,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
             <span class="text-[13px] font-bold text-center">${homeNome}</span>
           </div>
           <div class="w-1/3 flex flex-col items-center justify-center min-h-[60px]">
-            ${btnHtml}
-            <div id="placar-salvo-${id}" class="${placarSalvoClass} flex-col items-center">
-              <div class="text-xl font-black tracking-widest text-white" id="lbl-placar-${id}">${placarSalvoText}</div>
-              <span class="text-brand-green text-[11px] font-bold mt-1">Palpitado</span>
-            </div>
+            ${centerHtml}
           </div>
           <div class="flex flex-col items-center w-1/3">
             <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
@@ -811,11 +881,15 @@ async function abrirTelaPalpite(id) {
   document.getElementById('d-palpitadores-fotos').innerHTML = "";
   document.getElementById('lista-palpites-amigos').innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Carregando palpites...</p>';
 
-  // Verifica bloqueio de tempo (10 minutos antes do kickoff)
+  // Verifica bloqueio de tempo (10 minutos antes do kickoff) ou se o jogo já iniciou/terminou
+  const statusShort = jogoAtual.fixture.status.short;
+  const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+  const terminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
+
   const kickoff = new Date(jogoAtual.fixture.date);
   const agora = new Date();
   const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
-  const isLocked = agora > dezMinutosAntes;
+  const isLocked = (agora > dezMinutosAntes) || aoVivo.includes(statusShort) || terminados.includes(statusShort);
 
   // 1. Verificação SÍNCRONA no cache local para evitar piscadas
   const meuPalpiteLocal = palpitesUsuario.find(p => p.match_id === id);
