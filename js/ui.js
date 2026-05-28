@@ -1,0 +1,1165 @@
+// ============ INTERFACE DO USUÁRIO (UI) ============
+
+function abrirModal(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+function fecharModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+function switchView(targetViewId) {
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras'];
+  const navBar = document.getElementById('bottom-nav');
+
+  if (targetViewId !== 'view-grupo-home' && countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  views.forEach(vId => {
+    document.getElementById(vId).classList.add('hidden');
+    if (document.getElementById('nav-' + vId)) {
+      document.getElementById('nav-' + vId).classList.remove('text-brand-green', 'bg-brand-green/10', 'px-3', 'py-2', 'rounded-xl');
+      document.getElementById('nav-' + vId).classList.add('text-text-muted');
+    }
+  });
+
+  document.getElementById(targetViewId).classList.remove('hidden');
+
+  if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite') {
+    navBar.classList.add('hidden');
+  } else {
+    navBar.classList.remove('hidden');
+  }
+
+  if (document.getElementById('nav-' + targetViewId)) {
+    document.getElementById('nav-' + targetViewId).classList.add('text-brand-green', 'bg-brand-green/10', 'px-3', 'py-2', 'rounded-xl');
+    document.getElementById('nav-' + targetViewId).classList.remove('text-text-muted');
+  }
+
+  if (targetViewId === 'view-grupo-home') {
+    if (todosOsJogos.length === 0) {
+      if (typeof carregarJogos === 'function') carregarJogos();
+    } else {
+      if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
+    }
+  } else if (targetViewId === 'view-jogos' && todosOsJogos.length === 0) {
+    if (typeof carregarJogos === 'function') carregarJogos();
+  } else if (targetViewId === 'view-jogos' && todosOsJogos.length > 0) {
+    gerarFiltrosRodadas();
+    filtrarPorRodada(rodadaSelecionada);
+  } else if (targetViewId === 'view-ranking') {
+    if (grupoAtual) {
+      document.getElementById('nome-grupo-ranking').innerText = grupoAtual.nome;
+      atualizarSeletorRanking();
+      exibirRankingSelecionado();
+    } else {
+      document.getElementById('nome-grupo-ranking').innerText = '—';
+      document.getElementById('lista-ranking').innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Selecione um grupo para ver o ranking...</p>';
+    }
+  } else if (targetViewId === 'view-painel') {
+    const adminSettings = document.getElementById('admin-settings-section');
+    if (adminSettings) {
+      if (grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id) {
+        adminSettings.classList.remove('hidden');
+      } else {
+        adminSettings.classList.add('hidden');
+      }
+    }
+  }
+}
+
+function formatarData(dateStr) {
+  const data = new Date(dateStr);
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const dia  = data.getDate();
+  const mes  = meses[data.getMonth()];
+  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return dia + ' de ' + mes + ' às ' + hora;
+}
+
+function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
+  const container = document.getElementById('lista-jogos');
+  container.innerHTML = '';
+
+  // Mapeia quais jogos já foram palpitados
+  const listaPalpitados = palpitesDoUsuario.map(p => p.match_id);
+
+  // Ordena: Quem NÃO foi palpitado vem primeiro, palpitados por último
+  const jogosOrdenados = [...jogos].sort((a, b) => {
+    const aPalpitado = listaPalpitados.includes(a.fixture.id);
+    const bPalpitado = listaPalpitados.includes(b.fixture.id);
+    
+    if (aPalpitado !== bPalpitado) {
+      return aPalpitado - bPalpitado; // Joga palpitados para o final
+    }
+    return new Date(a.fixture.date) - new Date(b.fixture.date);
+  });
+
+  jogosOrdenados.forEach(function(jogo) {
+    const id          = jogo.fixture.id;
+    const data        = formatarData(jogo.fixture.date);
+    const homeNome    = jogo.teams.home.name;
+    const awayNome    = jogo.teams.away.name;
+    const homeLogo    = getFlagUrl(jogo.teams.home.id) || jogo.teams.home.logo || '';
+    const awayLogo    = getFlagUrl(jogo.teams.away.id) || jogo.teams.away.logo || '';
+    const homeFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(homeNome) + '&background=047857&color=fff';
+    const awayFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(awayNome) + '&background=b45309&color=fff';
+
+    const kickoff = new Date(jogo.fixture.date);
+    const agora = new Date();
+    const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
+    const isLocked = agora > dezMinutosAntes;
+
+    // Verifica se o usuário já tem palpite para essa partida
+    const meuPalpite = palpitesDoUsuario.find(p => p.match_id === id);
+
+    let btnHtml = '';
+    let placarSalvoClass = 'hidden';
+    let placarSalvoText = '0 x 0';
+    let cardBorderClass = 'border-white/5';
+    let cardBgClass = '';
+    let cardOpacityClass = '';
+
+    if (meuPalpite) {
+      // Já palpitou! Mostra placar, esconde botão e apaga/reduz opacidade do card
+      btnHtml = `
+        <button id="btn-palpite-${id}" class="hidden border border-brand-green text-brand-green px-4 py-1.5 rounded-xl text-[13px] font-bold">
+          Palpitar
+        </button>
+      `;
+      placarSalvoClass = 'flex';
+      placarSalvoText = `${meuPalpite.score_home} x ${meuPalpite.score_away}`;
+      cardBorderClass = 'border-brand-green/40';
+      cardBgClass = 'bg-brand-green/5';
+      cardOpacityClass = 'opacity-50 grayscale';
+    } else if (isLocked) {
+      // Bloqueado
+      btnHtml = `
+        <button id="btn-palpite-${id}" disabled class="border border-zinc-700 text-zinc-500 px-4 py-1.5 rounded-xl text-[13px] font-bold cursor-not-allowed">
+          Bloqueado
+        </button>
+      `;
+    } else {
+      // Aberto para palpitar
+      btnHtml = `
+        <button id="btn-palpite-${id}" class="border border-brand-green text-brand-green px-4 py-1.5 rounded-xl text-[13px] font-bold hover:bg-brand-green hover:text-black transition-all">
+          Palpitar
+        </button>
+      `;
+    }
+
+    container.innerHTML += `
+      <div id="card-jogo-${id}" onclick="abrirTelaPalpite(${id})" class="app-card bg-card-bg w-full p-4 border ${cardBorderClass} ${cardBgClass} ${cardOpacityClass} mb-4 transition-all cursor-pointer hover:border-brand-green/30">
+        <div class="text-text-muted text-xs font-semibold tracking-wide mb-4">${data}</div>
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col items-center w-1/3">
+            <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
+              <img src="${homeLogo}" onerror="this.onerror=null; this.src='${homeFallback}'" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[13px] font-bold text-center">${homeNome}</span>
+          </div>
+          <div class="w-1/3 flex flex-col items-center justify-center min-h-[60px]">
+            ${btnHtml}
+            <div id="placar-salvo-${id}" class="${placarSalvoClass} flex-col items-center">
+              <div class="text-xl font-black tracking-widest text-white" id="lbl-placar-${id}">${placarSalvoText}</div>
+              <span class="text-brand-green text-[11px] font-bold mt-1">Palpitado</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center w-1/3">
+            <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
+              <img src="${awayLogo}" onerror="this.onerror=null; this.src='${awayFallback}'" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[13px] font-bold text-center">${awayNome}</span>
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+function mudarGols(time, valor) {
+  if (!jogoAtual) return;
+  const id = jogoAtual.fixture.id;
+  
+  const kickoff = new Date(jogoAtual.fixture.date);
+  const agora = new Date();
+  const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
+  const isLocked = agora > dezMinutosAntes;
+  
+  if (isLocked) {
+    return; // Não permite alterar gols se o jogo estiver bloqueado por tempo
+  }
+
+  if (time === 'd-home') {
+    golsHome += valor;
+    if (golsHome < 0) golsHome = 0;
+    document.getElementById('d-home-score').innerText = golsHome;
+  } else if (time === 'd-away') {
+    golsAway += valor;
+    if (golsAway < 0) golsAway = 0;
+    document.getElementById('d-away-score').innerText = golsAway;
+  }
+
+  // Reage dinamicamente habilitando ou desabilitando o botão
+  const confirmBtn = document.getElementById("btn-confirmar-palpite");
+  const meuPalpiteLocal = palpitesUsuario.find(p => p.match_id === id);
+
+  if (meuPalpiteLocal) {
+    // Se já existe palpite anterior no banco/cache local
+    const houveMudanca = (golsHome !== palpiteOriginal.home || golsAway !== palpiteOriginal.away);
+    if (confirmBtn) {
+      confirmBtn.disabled = !houveMudanca;
+      confirmBtn.innerText = "ATUALIZAR PALPITE";
+      if (houveMudanca) {
+        confirmBtn.className = "w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 hover:opacity-90 active:scale-95 transition-all uppercase tracking-wide cursor-pointer";
+        confirmBtn.style.opacity = '1';
+        confirmBtn.style.pointerEvents = 'auto';
+      } else {
+        confirmBtn.className = "w-full bg-zinc-800 text-zinc-500 font-black text-[14px] py-4 rounded-2xl uppercase tracking-wide border border-white/5";
+        confirmBtn.style.opacity = '0.5';
+        confirmBtn.style.pointerEvents = 'none';
+      }
+    }
+  } else {
+    // Novo palpite
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerText = "CONFIRMAR PALPITE";
+      confirmBtn.className = "w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 hover:opacity-90 active:scale-95 transition-all uppercase tracking-wide cursor-pointer";
+      confirmBtn.style.opacity = '1';
+      confirmBtn.style.pointerEvents = 'auto';
+    }
+  }
+}
+
+function atualizarInterfacePalpiteExistente(scoreHome, scoreAway, isTimeLocked) {
+  golsHome = scoreHome;
+  golsAway = scoreAway;
+  document.getElementById('d-home-score').innerText = golsHome;
+  document.getElementById('d-away-score').innerText = golsAway;
+
+  // Define palpite original para controle de mudanças
+  palpiteOriginal.home = scoreHome;
+  palpiteOriginal.away = scoreAway;
+
+  const confirmBtn = document.getElementById("btn-confirmar-palpite");
+  const scoreControlButtons = document.querySelectorAll("#view-palpite .bg-black\\/30 button");
+
+  if (isTimeLocked) {
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerText = "BLOQUEADO (PRAZO ENCERRADO)";
+      confirmBtn.className = "w-full bg-zinc-800 text-zinc-500 font-black text-[14px] py-4 rounded-2xl cursor-not-allowed uppercase tracking-wide border border-white/5";
+      confirmBtn.style.opacity = '1';
+      confirmBtn.style.pointerEvents = 'auto';
+    }
+    scoreControlButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.classList.add('opacity-30', 'cursor-not-allowed');
+    });
+  } else {
+    // HABILITADO para edição mas o botão de salvar começa desabilitado/apagado até haver mudança!
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerText = "ATUALIZAR PALPITE";
+      confirmBtn.className = "w-full bg-zinc-800 text-zinc-500 font-black text-[14px] py-4 rounded-2xl uppercase tracking-wide border border-white/5";
+      confirmBtn.style.opacity = '0.5';
+      confirmBtn.style.pointerEvents = 'none';
+    }
+    scoreControlButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('opacity-30', 'cursor-not-allowed');
+    });
+  }
+}
+
+function liberarInterfacePalpite() {
+  // Como é novo palpite, o original é 0x0
+  palpiteOriginal.home = 0;
+  palpiteOriginal.away = 0;
+
+  const confirmBtn = document.getElementById("btn-confirmar-palpite");
+  const scoreControlButtons = document.querySelectorAll("#view-palpite .bg-black\\/30 button");
+
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerText = "CONFIRMAR PALPITE";
+    confirmBtn.className = "w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 hover:opacity-90 active:scale-95 transition-all uppercase tracking-wide cursor-pointer";
+    confirmBtn.style.opacity = '1';
+    confirmBtn.style.pointerEvents = 'auto';
+  }
+  scoreControlButtons.forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('opacity-30', 'cursor-not-allowed');
+  });
+}
+
+function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
+  const pHome = parseInt(palpiteHome);
+  const pAway = parseInt(palpiteAway);
+  const rHome = parseInt(realHome);
+  const rAway = parseInt(realAway);
+
+  if (isNaN(pHome) || isNaN(pAway) || isNaN(rHome) || isNaN(rAway)) {
+    return 0;
+  }
+
+  if (pHome === rHome && pAway === rAway) {
+    return 30; // Placar Exato
+  }
+
+  const vencedorPalpite = pHome > pAway ? 'home' : (pHome < pAway ? 'away' : 'empate');
+  const vencedorReal = rHome > rAway ? 'home' : (rHome < rAway ? 'away' : 'empate');
+  const acertouVencedor = vencedorPalpite === vencedorReal;
+
+  if (acertouVencedor) {
+    if (vencedorReal === 'empate') {
+      return 18; // Empate
+    }
+
+    const saldoPalpite = pHome - pAway;
+    const saldoReal = rHome - rAway;
+
+    const acertouGolsHome = pHome === rHome;
+    const acertouGolsAway = pAway === rAway;
+    if (acertouGolsHome || acertouGolsAway) {
+      return 18; // Vencedor e gols de um time
+    }
+
+    if (saldoPalpite === saldoReal) {
+      return 15; // Vencedor e saldo
+    }
+
+    const golsPerdedorPalpite = vencedorReal === 'home' ? pAway : pHome;
+    const golsPerdedorReal = vencedorReal === 'home' ? rAway : rHome;
+    if (golsPerdedorPalpite === golsPerdedorReal) {
+      return 12; // Vencedor e gols do perdedor
+    }
+
+    return 4; // Vencedor
+  } else {
+    const acertouGolsHome = pHome === rHome;
+    const acertouGolsAway = pAway === rAway;
+    if (acertouGolsHome || acertouGolsAway) {
+      return 3; // Placar de algum time
+    }
+  }
+
+  return 0;
+}
+
+function gerarFiltrosRodadas() {
+  const container = document.getElementById('filtros-rodada');
+  if (!container || todosOsJogos.length === 0) return;
+  container.innerHTML = '';
+
+  // Pega rodadas únicas de todosOsJogos
+  const rodadas = [...new Set(todosOsJogos.map(j => j.league.round))];
+  rodadas.sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''));
+    const numB = parseInt(b.replace(/\D/g, ''));
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
+
+  if (!rodadaSelecionada && rodadas.length > 0) {
+    // Detecta a rodada atual pelo PRÓXIMO JOGO cronologicamente (ignora adiados de rodadas antigas)
+    const agora = new Date();
+
+    // 1. Pega todos os jogos futuros e ordena por data
+    const jogosFuturos = todosOsJogos
+      .filter(j => new Date(j.fixture.date) > agora)
+      .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    if (jogosFuturos.length > 0) {
+      // A rodada do próximo jogo mais perto de agora
+      rodadaSelecionada = jogosFuturos[0].league.round;
+    } else {
+      // Se não tem jogos futuros, pega a última rodada que teve jogos finalizados
+      const jogosFinalizados = todosOsJogos
+        .filter(j => ['FT', 'AET', 'PEN'].includes(j.fixture.status.short))
+        .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+
+      rodadaSelecionada = jogosFinalizados.length > 0
+        ? jogosFinalizados[0].league.round
+        : rodadas[rodadas.length - 1];
+    }
+  }
+
+  rodadas.forEach(rodada => {
+    let nomeExibido = rodada;
+    
+    // Mapeamento amigável para Copa do Mundo e ligas comuns
+    if (rodada.includes('Group Stage - ')) {
+      nomeExibido = 'Rodada ' + rodada.split('Group Stage - ')[1];
+    } else if (rodada.includes('Regular Season - ')) {
+      nomeExibido = 'Rodada ' + rodada.split('Regular Season - ')[1];
+    } else if (rodada === 'Round of 32') {
+      nomeExibido = '16 avos';
+    } else if (rodada === 'Round of 16') {
+      nomeExibido = 'Oitavas';
+    } else if (rodada === 'Quarter-finals') {
+      nomeExibido = 'Quartas';
+    } else if (rodada === 'Semi-finals') {
+      nomeExibido = 'Semifinal';
+    } else if (rodada === 'Match for 3rd place') {
+      nomeExibido = '3º Lugar';
+    } else if (rodada === 'Final') {
+      nomeExibido = 'Final';
+    }
+
+    const isActive = rodada === rodadaSelecionada;
+    const btnClass = isActive 
+      ? "px-4 py-2 bg-brand-green text-black font-bold rounded-lg text-sm whitespace-nowrap" 
+      : "px-4 py-2 bg-card-bg text-white font-bold rounded-lg text-sm whitespace-nowrap border border-white/5";
+    const activeId = isActive ? 'id="btn-rodada-ativa"' : '';
+
+    container.innerHTML += `
+      <button ${activeId} onclick="filtrarPorRodada('${rodada.replace(/'/g, "\\'")}')" class="${btnClass}">
+        ${nomeExibido}
+      </button>
+    `;
+  });
+
+  // Scroll automático para a rodada ativa ficar visível
+  setTimeout(() => {
+    const btnAtivo = document.getElementById('btn-rodada-ativa');
+    if (btnAtivo) {
+      btnAtivo.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, 50);
+}
+
+function filtrarPorRodada(rodadaName) {
+  rodadaSelecionada = rodadaName;
+  gerarFiltrosRodadas();
+  
+  const jogosFiltrados = todosOsJogos.filter(j => j.league.round === rodadaName);
+  desenharCardsNaTela(jogosFiltrados);
+}
+
+function atualizarSeletorRanking() {
+  const seletor = document.getElementById('seletor-ranking');
+  if (!seletor || todosOsJogos.length === 0) return;
+  
+  const valorAtual = seletor.value; // Salva a rodada selecionada anteriormente para não resetar se trocar de tela
+  
+  seletor.innerHTML = '<option value="geral">Ranking Geral</option>';
+  
+  const rodadas = [...new Set(todosOsJogos.map(j => j.league.round))];
+  rodadas.sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''));
+    const numB = parseInt(b.replace(/\D/g, ''));
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
+
+  rodadas.forEach(rodada => {
+    let nomeExibido = rodada;
+    
+    if (rodada.includes('Group Stage - ')) {
+      nomeExibido = 'Rodada ' + rodada.split('Group Stage - ')[1];
+    } else if (rodada.includes('Regular Season - ')) {
+      nomeExibido = 'Rodada ' + rodada.split('Regular Season - ')[1];
+    } else if (rodada === 'Round of 32') {
+      nomeExibido = '16 avos';
+    } else if (rodada === 'Round of 16') {
+      nomeExibido = 'Oitavas';
+    } else if (rodada === 'Quarter-finals') {
+      nomeExibido = 'Quartas';
+    } else if (rodada === 'Semi-finals') {
+      nomeExibido = 'Semifinal';
+    } else if (rodada === 'Match for 3rd place') {
+      nomeExibido = '3º Lugar';
+    } else if (rodada === 'Final') {
+      nomeExibido = 'Final';
+    }
+    
+    seletor.innerHTML += `<option value="${rodada.replace(/"/g, '&quot;')}">Campeão da ${nomeExibido}</option>`;
+  });
+  
+  // Restaura a seleção anterior se ela ainda for válida
+  if (valorAtual && [...seletor.options].some(opt => opt.value === valorAtual)) {
+    seletor.value = valorAtual;
+  }
+}
+
+async function exibirRankingSelecionado() {
+  const container = document.getElementById('lista-ranking');
+  if (!container) return;
+  
+  const seletor = document.getElementById('seletor-ranking');
+  const tipo = seletor ? seletor.value : 'geral';
+
+  container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>';
+
+  if (!sbClient || !grupoAtual) {
+    container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Selecione um grupo para visualizar o ranking.</p>';
+    return;
+  }
+
+  try {
+    // 1. Busca todos os palpites do grupo ativo
+    const { data: rawGuesses, error: errGuesses } = await sbClient
+      .from('guesses')
+      .select('user_id, match_id, score_home, score_away')
+      .eq('group_id', grupoAtual.id);
+
+    if (errGuesses) {
+      console.error("Erro ao carregar palpites para ranking:", errGuesses.message);
+      container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao buscar palpites.</p>';
+      return;
+    }
+
+    // 2. Busca todos os membros do grupo
+    const { data: members, error: errMembers } = await sbClient
+      .from('group_members')
+      .select('user_id, role')
+      .eq('group_id', grupoAtual.id);
+
+    if (errMembers) {
+      console.error("Erro ao carregar membros:", errMembers.message);
+      container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao buscar participantes.</p>';
+      return;
+    }
+
+    if (!members || members.length === 0) {
+      container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum membro neste grupo.</p>';
+      return;
+    }
+
+    const userIds = members.map(m => m.user_id);
+
+    // 3. Busca perfis dos membros (nome, avatar)
+    const { data: profiles, error: errProfiles } = await sbClient
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds);
+
+    if (errProfiles) console.error("Erro ao carregar perfis:", errProfiles.message);
+
+    // 4. Estrutura o objeto de pontuação
+    const scores = {};
+    userIds.forEach(uid => {
+      const profile = profiles ? profiles.find(p => p.id === uid) : null;
+      const memberMeta = members.find(m => m.user_id === uid);
+      scores[uid] = {
+        id: uid,
+        nome: profile ? profile.full_name : 'Participante',
+        foto: profile && profile.avatar_url ? profile.avatar_url : null,
+        pontos: 0,
+        acertosExatos: 0,
+        isAdmin: memberMeta && memberMeta.role === 'owner'
+      };
+    });
+
+    // 5. Calcula os pontos
+    if (rawGuesses && rawGuesses.length > 0) {
+      rawGuesses.forEach(g => {
+        // Ignora palpites de usuários que não estão no grupo
+        if (!scores[g.user_id]) return;
+
+        const jogo = todosOsJogos.find(j => j.fixture.id === g.match_id);
+        if (!jogo) return;
+
+        // Se for ranking de rodada específica, filtra pelo round correspondente
+        if (tipo !== 'geral' && jogo.league.round !== tipo) {
+          return;
+        }
+
+        // Apenas calcula jogos finalizados
+        const statusTerminado = ['FT', 'AET', 'PEN'].includes(jogo.fixture.status.short);
+        if (statusTerminado && jogo.goals.home !== null && jogo.goals.away !== null) {
+          const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away);
+          scores[g.user_id].pontos += pts;
+          if (pts === 30) {
+            scores[g.user_id].acertosExatos += 1;
+          }
+        }
+      });
+    }
+
+    // Ordena o ranking:
+    // 1. Mais pontos descrescente.
+    // 2. Critério de desempate: mais acertos exatos.
+    const rankingList = Object.values(scores).sort((a, b) => {
+      if (b.pontos !== a.pontos) {
+        return b.pontos - a.pontos;
+      }
+      return b.acertosExatos - a.acertosExatos;
+    });
+
+    // 6. Injeta na lista
+    container.innerHTML = '';
+    rankingList.forEach((user, index) => {
+      const posicao = index + 1;
+      
+      let medalhaClass = 'text-white/60 text-sm font-bold';
+      let borderGold = 'border-white/5';
+      let bgGlow = '';
+      let badgePosicao = `${posicao}º`;
+
+      if (posicao === 1) {
+        medalhaClass = 'text-gold text-lg font-black';
+        borderGold = 'glow-gold border-gold/30';
+        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-gold"></div>';
+      } else if (posicao === 2) {
+        medalhaClass = 'text-silver text-lg font-bold';
+        borderGold = 'border-silver/20';
+        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-silver"></div>';
+      } else if (posicao === 3) {
+        medalhaClass = 'text-bronze text-lg font-bold';
+        borderGold = 'border-bronze/20';
+        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-bronze"></div>';
+      }
+
+      const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
+      const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
+
+      container.innerHTML += `
+        <div class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3">
+          ${bgGlow}
+          <div class="flex items-center gap-4 pl-2">
+            <div class="w-6 flex flex-col items-center"><span class="${medalhaClass}">${badgePosicao}</span></div>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a35]">
+                <img src="${fotoUrl}" class="w-full h-full object-cover">
+              </div>
+              <div>
+                <h3 class="font-bold text-[14px] text-white">${user.nome} ${adminBadge}</h3>
+                <p class="text-[10px] text-text-muted mt-0.5">${user.acertosExatos} placares exatos</p>
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-black text-white">${user.pontos}</div>
+            <div class="text-[9px] text-text-muted font-bold uppercase tracking-wider">Pts</div>
+          </div>
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.error("Erro inesperado ao renderizar ranking:", err);
+    container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao carregar o ranking.</p>';
+  }
+}
+
+function alternarAba(abaNome) {
+  const btnDetalhes = document.getElementById('btn-aba-detalhes');
+  const btnPalpites = document.getElementById('btn-aba-palpites');
+  const contentDetalhes = document.getElementById('tab-content-detalhes');
+  const contentPalpites = document.getElementById('tab-content-palpites');
+
+  if (abaNome === 'palpites') {
+    if (jogoAtual) {
+      carregarPalpitesDosAmigos(jogoAtual.fixture.id);
+    }
+    btnPalpites.className = "flex-1 py-3 border-b-2 border-brand-green font-bold text-brand-green transition-all";
+    btnDetalhes.className = "flex-1 py-3 text-text-muted hover:text-white transition-all";
+    contentDetalhes.classList.add('hidden');
+    contentDetalhes.classList.remove('block');
+    contentPalpites.classList.remove('hidden');
+    contentPalpites.classList.add('block');
+  } else {
+    btnDetalhes.className = "flex-1 py-3 border-b-2 border-brand-green font-bold text-brand-green transition-all";
+    btnPalpites.className = "flex-1 py-3 text-text-muted hover:text-white transition-all";
+    contentDetalhes.classList.remove('hidden');
+    contentDetalhes.classList.add('block');
+    contentPalpites.classList.add('hidden');
+    contentPalpites.classList.remove('block');
+  }
+}
+
+async function carregarPalpitesDosAmigos(matchId) {
+  const listaContainer = document.getElementById('lista-palpites-amigos');
+  if (!sbClient || !grupoAtual) return;
+
+  listaContainer.innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Carregando palpites...</p>';
+
+  const kickoff = new Date(jogoAtual.fixture.date);
+  const agora = new Date();
+  const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
+  const isLocked = agora > dezMinutosAntes;
+
+  try {
+    const { data: rawGuesses, error: errGuesses } = await sbClient
+      .from('guesses')
+      .select('user_id, score_home, score_away')
+      .eq('match_id', matchId)
+      .eq('group_id', grupoAtual.id);
+
+    if (errGuesses) {
+      console.error("Erro ao buscar palpites dos amigos:", errGuesses.message);
+      listaContainer.innerHTML = '<p class="text-red-400 text-[13px] text-center py-4">Erro ao carregar palpites.</p>';
+      return;
+    }
+
+    let guesses = [];
+    if (rawGuesses && rawGuesses.length > 0) {
+      const userIds = rawGuesses.map(g => g.user_id);
+      const { data: profiles, error: errProfiles } = await sbClient
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+
+      if (errProfiles) console.error("Erro ao buscar perfis:", errProfiles.message);
+
+      guesses = rawGuesses.map(g => {
+        const p = profiles ? profiles.find(prof => prof.id === g.user_id) : null;
+        return {
+          ...g,
+          profiles: p
+        };
+      });
+    }
+
+    if (isLocked) {
+      if (!guesses || guesses.length === 0) {
+        listaContainer.innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Nenhum palpite enviado para este jogo.</p>';
+        return;
+      }
+
+      listaContainer.innerHTML = '';
+      guesses.forEach(guess => {
+        const name = guess.profiles ? guess.profiles.full_name : 'Participante';
+        const avatar = guess.profiles && guess.profiles.avatar_url 
+          ? guess.profiles.avatar_url 
+          : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
+        
+        listaContainer.innerHTML += `
+          <div class="bg-zinc-800/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
+            <div class="flex items-center gap-3">
+              <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
+              <span class="font-bold text-[14px] text-white">${name}</span>
+            </div>
+            <div class="bg-black/40 px-3 py-1 rounded-lg font-black text-brand-green text-[14px]">
+              ${guess.score_home} x ${guess.score_away}
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      // Jogo ativo: os palpites dos outros permanecem secretos por RLS
+      listaContainer.innerHTML = `
+        <div class="bg-zinc-800/20 p-5 rounded-2xl border border-white/5 text-center fade-in">
+          <p class="text-brand-green font-bold text-[14px] mb-2">🔒 Palpites Ocultos</p>
+          <p class="text-text-muted text-[12px] leading-relaxed">
+            Para manter a disputa justa, os palpites dos outros participantes ficarão visíveis a partir de 10 minutos antes do início do jogo.
+          </p>
+        </div>
+      `;
+
+      // Listamos quem já palpitou para instigar a participação, mas sem revelar o placar!
+      if (guesses && guesses.length > 0) {
+        listaContainer.innerHTML += `
+          <h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3>
+          <div class="space-y-2">
+        `;
+        guesses.forEach(guess => {
+          const name = guess.profiles ? guess.profiles.full_name : 'Participante';
+          const avatar = guess.profiles && guess.profiles.avatar_url 
+            ? guess.profiles.avatar_url 
+            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
+          
+          listaContainer.innerHTML += `
+            <div class="bg-zinc-900/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
+              <div class="flex items-center gap-3">
+                <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
+                <span class="font-bold text-[13px] text-white">${name}</span>
+              </div>
+              <span class="text-brand-green text-[11px] font-bold">Palpitou</span>
+            </div>
+          `;
+        });
+        listaContainer.innerHTML += `</div>`;
+      }
+    }
+  } catch (err) {
+    console.error("Erro inesperado ao carregar palpites:", err);
+    listaContainer.innerHTML = '<p class="text-red-400 text-[13px] text-center py-4">Erro ao carregar palpites.</p>';
+  }
+}
+
+async function abrirTelaPalpite(id) {
+  jogoAtual = todosOsJogos.find(j => j.fixture.id === id);
+  if (!jogoAtual) return;
+
+  const homeNome     = jogoAtual.teams.home.name;
+  const awayNome     = jogoAtual.teams.away.name;
+  const homeLogo     = getFlagUrl(jogoAtual.teams.home.id) || jogoAtual.teams.home.logo || '';
+  const awayLogo     = getFlagUrl(jogoAtual.teams.away.id) || jogoAtual.teams.away.logo || '';
+  const homeFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(homeNome) + '&background=047857&color=fff';
+  const awayFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(awayNome) + '&background=b45309&color=fff';
+
+  // Reset tabs and set default view to 'detalhes'
+  alternarAba('detalhes');
+
+  // Preenche os detalhes da partida
+  document.getElementById('d-home-nome').innerText = homeNome;
+  document.getElementById('d-away-nome').innerText = awayNome;
+  document.getElementById('d-home-logo').src       = homeLogo;
+  document.getElementById('d-home-logo').onerror  = function() { this.src = homeFallback; };
+  document.getElementById('d-away-logo').src       = awayLogo;
+  document.getElementById('d-away-logo').onerror  = function() { this.src = awayFallback; };
+  
+  // Formata e exibe a data do jogo
+  document.getElementById('d-jogo-data').innerText = formatarData(jogoAtual.fixture.date);
+
+  // Limpa dados de palpitadores anteriores antes de carregar os novos
+  document.getElementById('d-contador-palpites').innerText = "Carregando...";
+  document.getElementById('d-palpitadores-fotos').innerHTML = "";
+  document.getElementById('lista-palpites-amigos').innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Carregando palpites...</p>';
+
+  // Verifica bloqueio de tempo (10 minutos antes do kickoff)
+  const kickoff = new Date(jogoAtual.fixture.date);
+  const agora = new Date();
+  const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
+  const isLocked = agora > dezMinutosAntes;
+
+  // 1. Verificação SÍNCRONA no cache local para evitar piscadas
+  const meuPalpiteLocal = palpitesUsuario.find(p => p.match_id === id);
+
+  if (meuPalpiteLocal) {
+    atualizarInterfacePalpiteExistente(meuPalpiteLocal.score_home, meuPalpiteLocal.score_away, isLocked);
+  } else {
+    if (isLocked) {
+      atualizarInterfacePalpiteExistente(0, 0, true);
+    } else {
+      golsHome = 0;
+      golsAway = 0;
+      document.getElementById('d-home-score').innerText = 0;
+      document.getElementById('d-away-score').innerText = 0;
+      liberarInterfacePalpite();
+    }
+  }
+
+  // Abre a tela de palpites imediatamente com o layout correto
+  switchView('view-palpite');
+
+  // 2. Consulta rápida silenciosa no Supabase para garantir consistência
+  if (sbClient && grupoAtual) {
+    sbClient.auth.getUser().then(function(result) {
+      const user = result.data.user;
+      if (user) {
+        sbClient
+          .from('guesses')
+          .select('score_home, score_away')
+          .eq('match_id', id)
+          .eq('user_id', user.id)
+          .eq('group_id', grupoAtual.id)
+          .maybeSingle()
+          .then(function(res) {
+            if (res.data) {
+              const dbPalpite = res.data;
+              // Se o palpite local não existia ou difere do banco, atualiza
+              if (!meuPalpiteLocal || meuPalpiteLocal.score_home !== dbPalpite.score_home || meuPalpiteLocal.score_away !== dbPalpite.score_away) {
+                atualizarInterfacePalpiteExistente(dbPalpite.score_home, dbPalpite.score_away, isLocked);
+                
+                // Atualiza cache local
+                const idx = palpitesUsuario.findIndex(p => p.match_id === id);
+                if (idx !== -1) {
+                  palpitesUsuario[idx].score_home = dbPalpite.score_home;
+                  palpitesUsuario[idx].score_away = dbPalpite.score_away;
+                } else {
+                  palpitesUsuario.push({
+                    match_id: id,
+                    score_home: dbPalpite.score_home,
+                    score_away: dbPalpite.score_away
+                  });
+                }
+              }
+            }
+          });
+      }
+    });
+  }
+
+  // 3. Carrega informações dinâmicas do grupo (membros e palpites dos amigos)
+  if (sbClient && grupoAtual) {
+    try {
+      // Busca total de membros do grupo
+      const { count: totalMembers, error: errMembers } = await sbClient
+        .from('group_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', grupoAtual.id);
+
+      if (errMembers) console.error("Erro ao buscar membros:", errMembers.message);
+
+      // Busca palpites deste jogo neste grupo
+      const { data: rawGuesses, error: errGuesses } = await sbClient
+        .from('guesses')
+        .select('user_id, score_home, score_away')
+        .eq('match_id', id)
+        .eq('group_id', grupoAtual.id);
+
+      if (errGuesses) console.error("Erro ao buscar palpites:", errGuesses.message);
+
+      let guesses = [];
+      if (rawGuesses && rawGuesses.length > 0) {
+        const userIds = rawGuesses.map(g => g.user_id);
+        const { data: profiles, error: errProfiles } = await sbClient
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (errProfiles) console.error("Erro ao buscar perfis:", errProfiles.message);
+
+        guesses = rawGuesses.map(g => {
+          const p = profiles ? profiles.find(prof => prof.id === g.user_id) : null;
+          return {
+            ...g,
+            profiles: p
+          };
+        });
+      }
+      const totalGuesses = guesses.length;
+
+      // ... e o resto de carregar dados dinâmicos da partida
+      const countVal = totalGuesses || 0;
+      const membersVal = totalMembers || 0;
+      document.getElementById('d-contador-palpites').innerText = `${countVal} de ${membersVal} palpitaram`;
+
+      const fotosContainer = document.getElementById('d-palpitadores-fotos');
+      fotosContainer.innerHTML = "";
+      
+      if (guesses && guesses.length > 0) {
+        guesses.slice(0, 5).forEach(guess => {
+          const name = guess.profiles ? guess.profiles.full_name : 'Participante';
+          const avatar = guess.profiles && guess.profiles.avatar_url 
+            ? guess.profiles.avatar_url 
+            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
+          
+          fotosContainer.innerHTML += `
+            <img src="${avatar}" title="${name}" class="w-6 h-6 rounded-full border border-card-bg object-cover flex-shrink-0">
+          `;
+        });
+        if (guesses.length > 5) {
+          fotosContainer.innerHTML += `
+            <div class="w-6 h-6 rounded-full border border-card-bg bg-zinc-800 text-[10px] font-black flex items-center justify-center flex-shrink-0 text-white">+${guesses.length - 5}</div>
+          `;
+        }
+      }
+
+      const listaContainer = document.getElementById('lista-palpites-amigos');
+      if (isLocked) {
+        if (!guesses || guesses.length === 0) {
+          listaContainer.innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Nenhum palpite enviado ainda.</p>';
+        } else {
+          listaContainer.innerHTML = '';
+          guesses.forEach(guess => {
+            const name = guess.profiles ? guess.profiles.full_name : 'Participante';
+            const avatar = guess.profiles && guess.profiles.avatar_url 
+              ? guess.profiles.avatar_url 
+              : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
+            
+            listaContainer.innerHTML += `
+              <div class="bg-zinc-800/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
+                <div class="flex items-center gap-3">
+                  <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
+                  <span class="font-bold text-[14px] text-white">${name}</span>
+                </div>
+                <div class="bg-black/40 px-3 py-1 rounded-lg font-black text-brand-green text-[14px]">
+                  ${guess.score_home} x ${guess.score_away}
+                </div>
+              </div>
+            `;
+          });
+        }
+      } else {
+        listaContainer.innerHTML = `
+          <div class="bg-zinc-800/20 p-5 rounded-2xl border border-white/5 text-center fade-in">
+            <p class="text-brand-green font-bold text-[14px] mb-2">🔒 Palpites Ocultos</p>
+            <p class="text-text-muted text-[12px] leading-relaxed">
+              Para manter a disputa justa, os palpites dos outros participantes ficarão visíveis a partir de 10 minutos antes do início do jogo.
+            </p>
+          </div>
+        `;
+
+        if (guesses && guesses.length > 0) {
+          listaContainer.innerHTML += `
+            <h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3>
+            <div class="space-y-2">
+          `;
+          guesses.forEach(guess => {
+            const name = guess.profiles ? guess.profiles.full_name : 'Participante';
+            const avatar = guess.profiles && guess.profiles.avatar_url 
+              ? guess.profiles.avatar_url 
+              : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
+            
+            listaContainer.innerHTML += `
+              <div class="bg-zinc-900/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
+                <div class="flex items-center gap-3">
+                  <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
+                  <span class="font-bold text-[13px] text-white">${name}</span>
+                </div>
+                <span class="text-brand-green text-[11px] font-bold">Palpitou</span>
+              </div>
+            `;
+          });
+          listaContainer.innerHTML += `</div>`;
+        }
+      }
+
+    } catch (e) {
+      console.error("Erro ao carregar dados dinâmicos da partida:", e);
+    }
+  }
+}
+
+async function salvarPalpite() {
+  if (!sbClient) {
+    alert("Supabase não está inicializado.");
+    return;
+  }
+  if (!grupoAtual) {
+    alert("Nenhum grupo ativo selecionado.");
+    return;
+  }
+
+  const confirmBtn = document.getElementById("btn-confirmar-palpite");
+  const originalText = confirmBtn ? confirmBtn.innerHTML : "Confirmar Palpite";
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Salvando...';
+  }
+
+  try {
+    const { data: { user } } = await sbClient.auth.getUser();
+    if (!user) {
+      alert("Você precisa estar logado para palpitar!");
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+      }
+      return;
+    }
+
+    const id = jogoAtual.fixture.id;
+
+    // 1. Garante que o jogo existe na tabela matches (exigido pela FK constraint)
+    const { error: matchError } = await sbClient.from('matches').upsert([{
+      id:           jogoAtual.fixture.id,
+      league_id:    jogoAtual.league.id,
+      season:       jogoAtual.league.season,
+      home_team:    jogoAtual.teams.home.name,
+      home_team_id: jogoAtual.teams.home.id,
+      home_logo:    getFlagUrl(jogoAtual.teams.home.id) || jogoAtual.teams.home.logo || '',
+      away_team:    jogoAtual.teams.away.name,
+      away_team_id: jogoAtual.teams.away.id,
+      away_logo:    getFlagUrl(jogoAtual.teams.away.id) || jogoAtual.teams.away.logo || '',
+      kickoff:      jogoAtual.fixture.date,
+      status:       jogoAtual.fixture.status.short,
+      score_home:   jogoAtual.goals.home,
+      score_away:   jogoAtual.goals.away,
+      minute:       jogoAtual.fixture.status.elapsed != null ? String(jogoAtual.fixture.status.elapsed) : null,
+      round:        jogoAtual.league.round
+    }], { onConflict: 'id' });
+
+    if (matchError) {
+      console.error("Erro ao salvar partida:", matchError.message);
+      alert("Erro ao preparar dados da partida. Tente novamente.");
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+      }
+      return;
+    }
+
+    // 2. Envia o palpite para o guesses (com group_id do grupo ativo)
+    const { error: guessError } = await sbClient
+      .from('guesses')
+      .upsert([{
+        user_id:    user.id,
+        match_id:   id,
+        score_home: golsHome,
+        score_away: golsAway,
+        group_id:   grupoAtual.id
+      }], { onConflict: 'user_id,group_id,match_id' });
+
+    if (guessError) {
+      console.error("Erro ao salvar palpite:", guessError.message);
+      alert("Não foi possível salvar seu palpite. Tente novamente.");
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+      }
+      return;
+    }
+
+    // 3. Atualiza a UI se salvou com sucesso
+    const idx = palpitesUsuario.findIndex(p => p.match_id === id);
+    if (idx !== -1) {
+      palpitesUsuario[idx].score_home = golsHome;
+      palpitesUsuario[idx].score_away = golsAway;
+    } else {
+      palpitesUsuario.push({
+        match_id: id,
+        score_home: golsHome,
+        score_away: golsAway
+      });
+    }
+
+    // Redefine o original para que a interface reflita o estado salvo
+    palpiteOriginal.home = golsHome;
+    palpiteOriginal.away = golsAway;
+
+    switchView('view-jogos');
+    gerarFiltrosRodadas();
+    filtrarPorRodada(rodadaSelecionada);
+
+  } catch (e) {
+    console.error("Erro inesperado:", e);
+    alert("Ocorreu um erro inesperado. Tente novamente.");
+  } finally {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalText;
+    }
+  }
+}
+
+// ============ SIMULADOR DE PONTUAÇÃO (TESTE VIA CONSOLE) ============
+
+/**
+ * Uso no console do navegador (F12):
+ *   simularPontuacaoLocal('2x1', '2x1')  → Placar Exato = 30 pts
+ *   simularPontuacaoLocal('3x1', '2x0')  → Vencedor + saldo = 15 pts
+ *   simularPontuacaoLocal('1x0', '3x2')  → Só vencedor = 4 pts
+ *   simularPontuacaoLocal('0x0', '1x1')  → Empate (não exato) = 18 pts
+ */
+window.simularPontuacaoLocal = function(palpiteStr, resultadoStr) {
+  const parsePlacar = (str) => {
+    const partes = str.toLowerCase().split('x');
+    return { home: parseInt(partes[0]), away: parseInt(partes[1]) };
+  };
+
+  const p = parsePlacar(palpiteStr);
+  const r = parsePlacar(resultadoStr);
+
+  if (isNaN(p.home) || isNaN(p.away) || isNaN(r.home) || isNaN(r.away)) {
+    console.error('❌ Formato inválido. Use: simularPontuacaoLocal("2x1", "3x2")');
+    return;
+  }
+
+  const pts = calcularPontosPalpite(p.home, p.away, r.home, r.away);
+
+  const tabela = {
+    30: '🏆 Placar Exato',
+    18: '🎯 Empate / Vencedor + gols de um time',
+    15: '📊 Vencedor + saldo de gols',
+    12: '⚽ Vencedor + gols do perdedor',
+    4:  '✅ Acertou o vencedor',
+    3:  '🔢 Acertou placar de algum time',
+    0:  '❌ Nenhum acerto'
+  };
+
+  console.log(`\n📋 SIMULAÇÃO DE PONTUAÇÃO`);
+  console.log(`   Palpite:   ${p.home} x ${p.away}`);
+  console.log(`   Resultado: ${r.home} x ${r.away}`);
+  console.log(`   ─────────────────────`);
+  console.log(`   Pontos: ${pts}  →  ${tabela[pts] || '?'}`);
+  console.log(``);
+
+  return pts;
+};
