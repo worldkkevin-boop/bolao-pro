@@ -1241,3 +1241,13 @@ window.simularPontuacaoLocal = function(palpiteStr, resultadoStr) {
 
   return pts;
 };
+
+function abrirSuporteWhatsapp() {
+  if (typeof SUPORTE_WHATSAPP !== 'undefined' && SUPORTE_WHATSAPP && SUPORTE_WHATSAPP !== '5500000000000') {
+    const url = `https://wa.me/${SUPORTE_WHATSAPP}`;
+    window.open(url, '_blank');
+  } else {
+    alert("O administrador ainda não configurou o número de suporte!");
+  }
+}
+
