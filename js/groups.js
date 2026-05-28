@@ -426,3 +426,58 @@ async function uploadIcone(event) {
     alert("Ocorreu um erro no processamento do upload.");
   }
 }
+
+async function alterarNomeGrupoReal() {
+  if (!grupoAtual || !sbClient) return;
+
+  const inputNome = document.getElementById('input-novo-nome-grupo');
+  const btn = document.getElementById('btn-alterar-nome-grupo');
+  
+  if (!inputNome || !btn) return;
+  
+  const novoNome = inputNome.value.trim();
+  
+  if (!novoNome) {
+    alert("O nome do grupo não pode ser vazio!");
+    return;
+  }
+  
+  if (novoNome === grupoAtual.nome) {
+    alert("O nome do grupo é o mesmo atual.");
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerText = "Salvando...";
+  
+  try {
+    const { error } = await sbClient
+      .from('groups')
+      .update({ name: novoNome })
+      .eq('id', grupoAtual.id);
+      
+    if (error) {
+      console.error("Erro ao alterar nome do grupo:", error.message);
+      alert("Erro ao alterar nome do grupo. Tente novamente.");
+      return;
+    }
+    
+    // Atualiza o estado local
+    grupoAtual.nome = novoNome;
+    
+    // Atualiza o header do grupo e outros textos na tela
+    document.getElementById('nome-grupo').innerText = novoNome;
+    const rankingHeader = document.getElementById('nome-grupo-ranking');
+    if (rankingHeader) rankingHeader.innerText = novoNome;
+    
+    alert("Nome do grupo alterado com sucesso!");
+    
+    // Atualiza a lista geral de grupos em background
+    carregarGrupos();
+  } catch (err) {
+    console.error("Erro:", err);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Salvar";
+  }
+}

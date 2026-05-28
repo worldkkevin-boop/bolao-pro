@@ -405,8 +405,16 @@
 
       <!-- Configurações de Admin (Visível apenas para o dono do grupo) -->
       <div id="admin-settings-section" class="mt-6 p-4 border border-zinc-800 rounded-xl hidden">
-          <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Configurações do Admin</h3>
+          <h3 class="font-bold mb-4 text-sm text-text-muted uppercase tracking-wider">Configurações do Admin</h3>
           
+          <div class="mb-5">
+              <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Alterar Nome do Grupo</label>
+              <div class="flex gap-2">
+                  <input type="text" id="input-novo-nome-grupo" placeholder="Novo nome do grupo" class="flex-1 bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green">
+                  <button onclick="alterarNomeGrupoReal()" id="btn-alterar-nome-grupo" class="bg-brand-green text-black font-black px-4 py-2.5 rounded-xl text-xs uppercase tracking-wide hover:opacity-90 active:scale-95 transition-all">Salvar</button>
+              </div>
+          </div>
+
           <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
               <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
                   <svg id="icon-upload-normal" class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>

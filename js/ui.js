@@ -62,6 +62,10 @@ function switchView(targetViewId) {
     if (adminSettings) {
       if (grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id) {
         adminSettings.classList.remove('hidden');
+        const nameInput = document.getElementById('input-novo-nome-grupo');
+        if (nameInput) {
+          nameInput.value = grupoAtual.nome || '';
+        }
       } else {
         adminSettings.classList.add('hidden');
       }
