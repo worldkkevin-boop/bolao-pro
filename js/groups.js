@@ -339,23 +339,38 @@ function copiarCodigo() {
   });
 }
 
-function compartilharGrupo() {
+async function compartilharGrupo() {
   if (!grupoAtual || !grupoAtual.invite_code) return;
-  const link = window.location.origin + window.location.pathname + "?code=" + grupoAtual.invite_code;
-  const text = `Participe do nosso bolão "${grupoAtual.nome}" da Copa 2026!`;
   
+  const grupoNome = grupoAtual.nome;
+  const codigo = grupoAtual.invite_code;
+  
+  // Se for local, mantém a URL local; se for produção, usa a URL oficial do Vercel
+  const origin = window.location.origin + window.location.pathname;
+  const linkApp = origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("192.168.")
+    ? origin + "?code=" + codigo
+    : "https://bolao-pro.vercel.app/?code=" + codigo;
+
+  const textoShare = `⚽ BOLÃO PRO - ${grupoNome} ⚽\n\nFala, craque! 🏟️\nCriei um bolão pra gente competir. Prova que você entende de futebol e entra no meu grupo!\n\n👉 Use o código: ${codigo}\n🔗 ${linkApp}\n\nBora ver quem manja mais? 😏`;
+
   if (navigator.share) {
-    navigator.share({
-      title: `Vem pro Bolão ${grupoAtual.nome}!`,
-      text: text,
-      url: link,
-    }).catch(err => console.error("Erro ao compartilhar:", err));
+    try {
+      await navigator.share({
+        title: 'Bolão Pro',
+        text: textoShare,
+        url: linkApp
+      });
+    } catch (err) {
+      console.log('Erro ao compartilhar:', err);
+    }
   } else {
-    navigator.clipboard.writeText(link).then(() => {
-      alert(`Link de convite copiado para a área de transferência:\n${link}`);
-    }).catch(err => {
-      alert(`Código do grupo: ${grupoAtual.invite_code}`);
-    });
+    try {
+      await navigator.clipboard.writeText(textoShare);
+      alert("Link e código copiados! Agora é só colar no WhatsApp.");
+    } catch (err) {
+      console.error('Erro ao copiar:', err);
+      alert(`Código do grupo: ${codigo}\nCopie o link: ${linkApp}`);
+    }
   }
 }
 
