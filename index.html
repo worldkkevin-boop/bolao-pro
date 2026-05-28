@@ -219,10 +219,14 @@
         <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
       </div>
 
-      <!-- Small start footer with support quick link -->
-      <div class="text-center mt-8 pb-4">
+      <!-- Small start footer with support and install quick links -->
+      <div class="text-center mt-8 pb-4 flex flex-col items-center gap-1">
         <p class="text-[11px] text-text-muted">Bolão Pro Beta v1.2</p>
-        <button onclick="abrirSuporteWhatsapp()" class="text-[11px] text-brand-green hover:underline mt-1 font-bold">Precisa de ajuda? Falar com Suporte</button>
+        <div class="flex items-center justify-center gap-3">
+          <button onclick="abrirSuporteWhatsapp()" class="text-[11px] text-brand-green hover:underline font-bold">Suporte no WhatsApp</button>
+          <span class="text-zinc-700 text-[10px]">•</span>
+          <button onclick="abrirModal('modal-instalar-app')" class="text-[11px] text-brand-green hover:underline font-bold flex items-center gap-1">Instalar no Celular 📲</button>
+        </div>
       </div>
 
     </div>
@@ -561,6 +565,46 @@
         <button onclick="entrarPorCodigoApp()" id="btn-entrar-grupo" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">
           Buscar Grupo
         </button>
+      </div>
+    </div>
+
+    <!-- Modal: Como Instalar App -->
+    <div id="modal-instalar-app" class="hidden fixed inset-0 bg-black/70 z-[100] flex items-end justify-center" onclick="fecharModal('modal-instalar-app')">
+      <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-white/5 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-black uppercase tracking-tight">Instalar no Celular</h3>
+          <button onclick="fecharModal('modal-instalar-app')" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        
+        <p class="text-[13px] text-text-muted mb-5">Adicione o <b>Bolão Pro</b> à tela inicial para abrir em tela cheia como se fosse um app instalado!</p>
+
+        <!-- Aba iPhone -->
+        <div class="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 mb-4">
+          <h4 class="text-xs font-black text-brand-green uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <span>🍎</span> no iPhone (Navegador Safari)
+          </h4>
+          <ol class="text-[13px] space-y-2.5 text-zinc-300 list-decimal pl-4 leading-relaxed font-semibold">
+            <li>Abra o site no navegador <span class="text-white font-bold">Safari</span>.</li>
+            <li>Toque no botão de <span class="text-white font-bold">Compartilhar</span> (ícone de quadrado com uma seta para cima <svg class="inline-block w-4 h-4 -mt-1 mx-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg> no rodapé).</li>
+            <li>Role as opções para baixo e toque em <span class="text-white font-bold">"Adicionar à Tela de Início"</span>.</li>
+            <li>Confirme tocando em <span class="text-brand-green font-bold">"Adicionar"</span> no canto superior direito.</li>
+          </ol>
+        </div>
+
+        <!-- Aba Android -->
+        <div class="bg-zinc-900/60 p-4 rounded-2xl border border-white/5">
+          <h4 class="text-xs font-black text-brand-green uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <span>🤖</span> no Android (Navegador Chrome)
+          </h4>
+          <ol class="text-[13px] space-y-2.5 text-zinc-300 list-decimal pl-4 leading-relaxed font-semibold">
+            <li>Abra o site no navegador <span class="text-white font-bold">Chrome</span>.</li>
+            <li>Toque nos <span class="text-white font-bold">três pontinhos</span> no canto superior direito.</li>
+            <li>Selecione <span class="text-white font-bold">"Adicionar à tela inicial"</span> ou <span class="text-white font-bold">"Instalar aplicativo"</span>.</li>
+            <li>Confirme e o app será adicionado à sua tela de aplicativos.</li>
+          </ol>
+        </div>
       </div>
     </div>
 
