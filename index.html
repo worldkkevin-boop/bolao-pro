@@ -253,16 +253,22 @@
       </div>
 
       <div class="grid grid-cols-1 gap-3 mb-8">
-        <div class="bg-gradient-to-r from-brand-green/20 to-transparent p-4 rounded-2xl border border-brand-green/30">
+        <div id="prox-jogo-card" class="bg-gradient-to-r from-brand-green/20 to-transparent p-4 rounded-2xl border border-brand-green/30 transition-all hover:border-brand-green/50">
           <p class="text-[9px] font-black uppercase text-brand-green tracking-widest mb-1">Próximo Jogo</p>
           <h3 id="prox-jogo-nome" class="font-bold text-[14px]">Carregando...</h3>
-          <p id="prox-jogo-tempo" class="text-[11px] text-white/70 mt-1">...</p>
+          <div class="flex items-center justify-between mt-1 min-h-[20px]">
+            <p id="prox-jogo-tempo" class="text-[11px] text-white/70">...</p>
+            <span id="prox-jogo-palpite" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+          </div>
         </div>
         
-        <div class="bg-card-bg p-4 rounded-2xl border border-white/5">
+        <div id="ultimo-jogo-card" class="bg-card-bg p-4 rounded-2xl border border-white/5 transition-all hover:border-brand-green/20">
           <p class="text-[9px] font-black uppercase text-text-muted tracking-widest mb-1">Último Resultado</p>
           <h3 id="ultimo-jogo-nome" class="font-bold text-[14px]">...</h3>
-          <p id="ultimo-jogo-placar" class="text-[11px] text-text-muted mt-1">...</p>
+          <div class="flex items-center justify-between mt-1 min-h-[20px]">
+            <p id="ultimo-jogo-placar" class="text-[11px] text-text-muted">...</p>
+            <span id="ultimo-jogo-palpite" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+          </div>
         </div>
       </div>
     </div>

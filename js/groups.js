@@ -224,11 +224,33 @@ function atualizarDestaquesHomeGrupo() {
   jogosFuturos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
 
   const proximoJogo = jogosFuturos[0];
+  const proxCard = document.getElementById('prox-jogo-card');
+  const proxPalpiteEl = document.getElementById('prox-jogo-palpite');
 
   if (proximoJogo) {
     const homeNome = proximoJogo.teams.home.name;
     const awayNome = proximoJogo.teams.away.name;
     document.getElementById('prox-jogo-nome').innerText = `${homeNome} vs ${awayNome}`;
+
+    // Adiciona interatividade: clique para ir direto palpitar
+    if (proxCard) {
+      proxCard.style.cursor = 'pointer';
+      proxCard.onclick = () => {
+        if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(proximoJogo.fixture.id);
+      };
+    }
+
+    // Exibe se já palpitou ou pendente
+    if (proxPalpiteEl) {
+      const meuPalpiteProx = palpitesUsuario.find(p => p.match_id === proximoJogo.fixture.id);
+      if (meuPalpiteProx) {
+        proxPalpiteEl.innerText = `Palpite: ${meuPalpiteProx.score_home} x ${meuPalpiteProx.score_away}`;
+        proxPalpiteEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/20 text-brand-green";
+      } else {
+        proxPalpiteEl.innerText = "⚠️ Você ainda não palpitou!";
+        proxPalpiteEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 animate-pulse";
+      }
+    }
 
     // Função interna para atualizar contagem regressiva
     const atualizarTimer = () => {
@@ -264,6 +286,14 @@ function atualizarDestaquesHomeGrupo() {
   } else {
     document.getElementById('prox-jogo-nome').innerText = 'Nenhum jogo agendado';
     document.getElementById('prox-jogo-tempo').innerText = '—';
+    if (proxPalpiteEl) {
+      proxPalpiteEl.innerText = '';
+      proxPalpiteEl.className = 'hidden';
+    }
+    if (proxCard) {
+      proxCard.style.cursor = 'default';
+      proxCard.onclick = null;
+    }
     if (countdownInterval) {
       clearInterval(countdownInterval);
       countdownInterval = null;
@@ -282,6 +312,8 @@ function atualizarDestaquesHomeGrupo() {
   jogosEncerrados.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
 
   const ultimoJogo = jogosEncerrados[0];
+  const ultimoCard = document.getElementById('ultimo-jogo-card');
+  const ultimoPalpiteEl = document.getElementById('ultimo-jogo-palpite');
 
   if (ultimoJogo) {
     const homeNome = ultimoJogo.teams.home.name;
@@ -289,6 +321,14 @@ function atualizarDestaquesHomeGrupo() {
     const homeGols = ultimoJogo.goals.home;
     const awayGols = ultimoJogo.goals.away;
     document.getElementById('ultimo-jogo-nome').innerText = `${homeNome} ${homeGols} x ${awayGols} ${awayNome}`;
+
+    // Adiciona interatividade: clique para ir direto ver os palpites dos amigos
+    if (ultimoCard) {
+      ultimoCard.style.cursor = 'pointer';
+      ultimoCard.onclick = () => {
+        if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(ultimoJogo.fixture.id);
+      };
+    }
 
     // Mapear rodada de forma amigável
     let rodada = ultimoJogo.league.round;
@@ -312,9 +352,32 @@ function atualizarDestaquesHomeGrupo() {
     }
 
     document.getElementById('ultimo-jogo-placar').innerText = rodadaAmigavel;
+
+    // Exibe palpite do último jogo e pontos conquistados
+    if (ultimoPalpiteEl) {
+      const meuPalpiteUltimo = palpitesUsuario.find(p => p.match_id === ultimoJogo.fixture.id);
+      if (meuPalpiteUltimo) {
+        const pts = (typeof calcularPontosPalpite === 'function')
+          ? calcularPontosPalpite(meuPalpiteUltimo.score_home, meuPalpiteUltimo.score_away, ultimoJogo.goals.home, ultimoJogo.goals.away)
+          : 0;
+        ultimoPalpiteEl.innerText = `Palpite: ${meuPalpiteUltimo.score_home}x${meuPalpiteUltimo.score_away} (+${pts} pts)`;
+        ultimoPalpiteEl.className = `text-[10px] font-bold px-2.5 py-0.5 rounded-full ${pts > 0 ? 'bg-gold/20 text-gold' : 'bg-zinc-800 text-zinc-500'}`;
+      } else {
+        ultimoPalpiteEl.innerText = "Sem palpite (0 pts)";
+        ultimoPalpiteEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-600";
+      }
+    }
   } else {
     document.getElementById('ultimo-jogo-nome').innerText = 'Nenhum jogo encerrado';
     document.getElementById('ultimo-jogo-placar').innerText = '—';
+    if (ultimoPalpiteEl) {
+      ultimoPalpiteEl.innerText = '';
+      ultimoPalpiteEl.className = 'hidden';
+    }
+    if (ultimoCard) {
+      ultimoCard.style.cursor = 'default';
+      ultimoCard.onclick = null;
+    }
   }
 }
 
