@@ -425,8 +425,15 @@
             <p id="painel-email-usuario" class="text-[12px] text-text-muted">—</p>
           </div>
         </div>
-        <span class="border border-brand-green/50 text-brand-green text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10">Admin</span>
+        <span id="painel-badge-admin" class="border border-brand-green/50 text-brand-green text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10 hidden">Admin</span>
       </div>
+
+      <!-- Lista de Participantes (Galera) -->
+      <h3 class="font-bold mt-6 mb-3 text-sm text-text-muted uppercase tracking-wider">Membros do Bolão</h3>
+      <div id="lista-participantes-grupo" class="space-y-3">
+        <!-- Renderizado dinamicamente -->
+      </div>
+
 
       <!-- Configurações de Admin (Visível apenas para o dono do grupo) -->
       <div id="admin-settings-section" class="mt-6 p-4 border border-zinc-800 rounded-xl hidden">
@@ -440,17 +447,63 @@
               </div>
           </div>
 
-          <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
-              <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
-                  <svg id="icon-upload-normal" class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                  Alterar Ícone do Grupo
-              </span>
-              <input type="file" id="upload-icone" accept="image/*" class="hidden" onchange="uploadIcone(event)">
-              <div id="upload-spinner" class="absolute inset-0 bg-brand-green text-black flex items-center justify-center font-bold text-sm hidden transition-all">
-                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                Enviando...
+          <div class="mb-5 border-t border-zinc-800 pt-4">
+              <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Regras de Pontuação</label>
+              
+              <!-- Placar Exato -->
+              <div class="flex items-center justify-between mb-3 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" id="chk-regra-placar-exato" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
+                  <div>
+                    <p class="text-[13px] font-bold text-white leading-tight">Placar Exato</p>
+                    <p class="text-[10px] text-text-muted">Cravou o placar do jogo</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pontos-placar-exato" value="30" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
               </div>
-          </label>
+
+              <!-- Vencedor -->
+              <div class="flex items-center justify-between mb-3 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" id="chk-regra-vencedor" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
+                  <div>
+                    <p class="text-[13px] font-bold text-white leading-tight">Acertar Vencedor</p>
+                    <p class="text-[10px] text-text-muted">Acertou vencedor ou empate</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pontos-vencedor" value="4" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- Saldo -->
+              <div class="flex items-center justify-between mb-4 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" id="chk-regra-saldo" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
+                  <div>
+                    <p class="text-[13px] font-bold text-white leading-tight">Acertar Saldo</p>
+                    <p class="text-[10px] text-text-muted">Acertou o saldo de gols</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pontos-saldo" value="2" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-zinc-800 border border-white/5 text-zinc-400 hover:text-white font-black text-xs py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wide">
+                Salvar Regras
+              </button>
+          </div>
+
+          <div class="border-t border-zinc-800 pt-4">
+            <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
+                <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
+                    <svg id="icon-upload-normal" class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Alterar Ícone do Grupo
+                </span>
+                <input type="file" id="upload-icone" accept="image/*" class="hidden" onchange="uploadIcone(event)">
+                <div id="upload-spinner" class="absolute inset-0 bg-brand-green text-black flex items-center justify-center font-bold text-sm hidden transition-all">
+                  <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Enviando...
+                </div>
+            </label>
+          </div>
       </div>
 
       <!-- Suporte por WhatsApp -->

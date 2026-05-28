@@ -547,3 +547,88 @@ async function alterarNomeGrupoReal() {
     btn.innerText = "Salvar";
   }
 }
+
+function salvarRegrasGrupoReal() {
+  alert("Funcionalidade em testes, disponível em breve!");
+}
+
+async function carregarParticipantesGrupo() {
+  const container = document.getElementById('lista-participantes-grupo');
+  if (!container) return;
+
+  container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-6">Carregando participantes...</p>';
+
+  if (!sbClient || !grupoAtual) {
+    container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-6">Nenhum grupo ativo.</p>';
+    return;
+  }
+
+  try {
+    // 1. Busca todos os membros do grupo
+    const { data: members, error: errMembers } = await sbClient
+      .from('group_members')
+      .select('user_id, role')
+      .eq('group_id', grupoAtual.id);
+
+    if (errMembers) {
+      console.error("Erro ao buscar membros:", errMembers.message);
+      container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro ao carregar participantes.</p>';
+      return;
+    }
+
+    if (!members || members.length === 0) {
+      container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-6">Nenhum participante encontrado.</p>';
+      return;
+    }
+
+    const userIds = members.map(m => m.user_id);
+
+    // 2. Busca os perfis
+    const { data: profiles, error: errProfiles } = await sbClient
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds);
+
+    if (errProfiles) {
+      console.error("Erro ao buscar perfis:", errProfiles.message);
+    }
+
+    // Renderiza a lista
+    container.innerHTML = '';
+    
+    // Ordena para que o dono/admin apareça primeiro
+    members.sort((a, b) => {
+      if (a.role === 'owner' && b.role !== 'owner') return -1;
+      if (a.role !== 'owner' && b.role === 'owner') return 1;
+      return 0;
+    });
+
+    members.forEach(member => {
+      const profile = profiles ? profiles.find(p => p.id === member.user_id) : null;
+      const nome = profile ? profile.full_name : 'Participante';
+      const foto = (profile && profile.avatar_url) ? profile.avatar_url : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=10b981&color=fff';
+      const isAdmin = member.role === 'owner';
+
+      container.innerHTML += `
+        <div class="bg-card-bg/60 rounded-xl p-3 flex items-center justify-between border border-white/5 mb-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
+            <div class="min-w-0">
+              <h4 class="font-bold text-[14px] text-white truncate">${nome}</h4>
+              <p class="text-[11px] text-text-muted truncate">${isAdmin ? 'Organizador do Bolão' : 'Participante'}</p>
+            </div>
+          </div>
+          ${isAdmin ? `
+            <span class="border border-brand-green/30 text-brand-green text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/5 flex-shrink-0">Admin</span>
+          ` : ''}
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.error("Erro em carregarParticipantesGrupo:", err);
+    container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro no processamento.</p>';
+  }
+}
+
+

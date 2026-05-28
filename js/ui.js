@@ -59,8 +59,19 @@ function switchView(targetViewId) {
     }
   } else if (targetViewId === 'view-painel') {
     const adminSettings = document.getElementById('admin-settings-section');
+    const isOwner = grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id;
+    
+    const badgeAdmin = document.getElementById('painel-badge-admin');
+    if (badgeAdmin) {
+      if (isOwner) {
+        badgeAdmin.classList.remove('hidden');
+      } else {
+        badgeAdmin.classList.add('hidden');
+      }
+    }
+
     if (adminSettings) {
-      if (grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id) {
+      if (isOwner) {
         adminSettings.classList.remove('hidden');
         const nameInput = document.getElementById('input-novo-nome-grupo');
         if (nameInput) {
@@ -69,6 +80,10 @@ function switchView(targetViewId) {
       } else {
         adminSettings.classList.add('hidden');
       }
+    }
+
+    if (typeof carregarParticipantesGrupo === 'function') {
+      carregarParticipantesGrupo();
     }
   }
 }
