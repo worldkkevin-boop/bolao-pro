@@ -408,20 +408,23 @@ async function compartilharGrupo() {
   const grupoNome = grupoAtual.nome;
   const codigo = grupoAtual.invite_code;
   
-  // Se for local, mantém a URL local; se for produção, usa a URL oficial do Vercel
+  // Pega dinamicamente a URL de onde o site está rodando
   const origin = window.location.origin + window.location.pathname;
-  const linkApp = origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("192.168.")
-    ? origin + "?code=" + codigo
-    : "https://bolao-pro.vercel.app/?code=" + codigo;
+  
+  // Se estiver abrindo o arquivo local via file://, usa o domínio de produção como fallback, caso contrário usa a URL atual dinâmica do servidor/Vercel
+  const linkApp = origin.startsWith("file://")
+    ? "https://bolao-pro.vercel.app/?code=" + codigo
+    : origin + "?code=" + codigo;
 
   const textoShare = `⚽ BOLÃO PRO - ${grupoNome} ⚽\n\nFala, craque! 🏟️\nCriei um bolão pra gente competir. Prova que você entende de futebol e entra no meu grupo!\n\n👉 Use o código: ${codigo}\n🔗 ${linkApp}\n\nBora ver quem manja mais? 😏`;
 
   if (navigator.share) {
     try {
+      // NÃO passamos a propriedade 'url' aqui, pois o linkApp já está embutido no 'textoShare'.
+      // Isso evita que navegadores (como Safari/Chrome no iOS) dupliquem o link no compartilhamento.
       await navigator.share({
         title: 'Bolão Pro',
-        text: textoShare,
-        url: linkApp
+        text: textoShare
       });
     } catch (err) {
       console.log('Erro ao compartilhar:', err);
