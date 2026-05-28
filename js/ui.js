@@ -10,7 +10,7 @@ function fecharModal(id) {
 }
 
 function switchView(targetViewId) {
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -21,6 +21,12 @@ function switchView(targetViewId) {
 
   if (targetViewId !== 'view-palpite') {
     desativarTelaAoVivo();
+  }
+
+  if (targetViewId !== 'view-ao-vivo') {
+    if (typeof desativarTVAoVivo === 'function') {
+      desativarTVAoVivo();
+    }
   }
 
   views.forEach(vId => {
@@ -40,7 +46,7 @@ function switchView(targetViewId) {
   } else {
     if (gmNavBar) gmNavBar.classList.add('hidden');
     
-    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite') {
+    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo') {
       if (navBar) navBar.classList.add('hidden');
     } else {
       if (navBar) navBar.classList.remove('hidden');
@@ -1471,9 +1477,11 @@ function ativarTelaAoVivo(fixtureId) {
     console.log(`[LIVE POLLING] Buscando dados...`);
     if (typeof buscarDadosAoVivo === 'function') {
       const jogosAoVivo = await buscarDadosAoVivo();
-      const jogoEspecifico = jogosAoVivo.find(j => j.fixture.id === fixtureId);
-      if (jogoEspecifico) {
-        renderizarPlacarAoVivo(jogoEspecifico);
+      if (Array.isArray(jogosAoVivo)) {
+        const jogoEspecifico = jogosAoVivo.find(j => j.fixture.id === fixtureId);
+        if (jogoEspecifico) {
+          renderizarPlacarAoVivo(jogoEspecifico);
+        }
       }
     }
   }, 60000); // 60 segundos

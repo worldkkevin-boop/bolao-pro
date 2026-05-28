@@ -49,11 +49,17 @@ async function buscarDadosAoVivo() {
         "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
       }
     });
+    if (!resposta.ok) {
+      throw new Error(`Erro HTTP: ${resposta.status}`);
+    }
     const dados = await resposta.json();
+    if (dados.errors && (Array.isArray(dados.errors) ? dados.errors.length > 0 : Object.keys(dados.errors).length > 0)) {
+      throw new Error(JSON.stringify(dados.errors));
+    }
     return dados.response || [];
   } catch (erro) {
     console.error("Erro na API-Football (Ao Vivo):", erro);
-    return [];
+    return null;
   }
 }
 
