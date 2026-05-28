@@ -201,19 +201,33 @@ async function processarConvitePendente() {
   }
 }
 
-// Ouvinte para códigos na URL ao carregar a página
-window.addEventListener('DOMContentLoaded', () => {
+// Lê o parâmetro de convite da URL de forma imediata (os scripts estão no rodapé do body)
+function inicializarConvitePorUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
   if (code) {
     localStorage.setItem('pending_invite_code', code.toUpperCase());
-    mostrarInputCodigo();
+    
     const input = document.getElementById('group-code');
     if (input) {
       input.value = code.toUpperCase();
+      mostrarInputCodigo();
       setTimeout(() => {
         simularValidacao();
       }, 400);
+    } else {
+      // Caso ocorra delay na renderização do DOM
+      setTimeout(() => {
+        mostrarInputCodigo();
+        const inputRetry = document.getElementById('group-code');
+        if (inputRetry) {
+          inputRetry.value = code.toUpperCase();
+          setTimeout(() => {
+            simularValidacao();
+          }, 400);
+        }
+      }, 100);
     }
   }
-});
+}
+inicializarConvitePorUrl();
