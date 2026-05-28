@@ -1,5 +1,7 @@
 // ============ INTERFACE DO USUÁRIO (UI) ============
 
+let intervaloAoVivo = null;
+
 function abrirModal(id) {
   document.getElementById(id).classList.remove('hidden');
 }
@@ -15,6 +17,10 @@ function switchView(targetViewId) {
   if (targetViewId !== 'view-grupo-home' && countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
+  }
+
+  if (targetViewId !== 'view-palpite') {
+    desativarTelaAoVivo();
   }
 
   views.forEach(vId => {
@@ -926,20 +932,40 @@ async function abrirTelaPalpite(id) {
   // Formata e exibe a data do jogo
   document.getElementById('d-jogo-data').innerText = formatarData(jogoAtual.fixture.date);
 
+  // Define o placar real da partida ou "VS" na tela de detalhes
+  const realScoreEl = document.getElementById('d-real-score');
+  const statusShort = jogoAtual.fixture.status.short;
+  const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+  const terminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
+  const isLive = aoVivo.includes(statusShort);
+  const isFinished = terminados.includes(statusShort);
+
+  if (realScoreEl) {
+    if (isLive || isFinished) {
+      const realHome = jogoAtual.goals.home ?? 0;
+      const realAway = jogoAtual.goals.away ?? 0;
+      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>`;
+      if (isLive) {
+        const elapsed = jogoAtual.fixture.status.elapsed ? ` (${jogoAtual.fixture.status.elapsed}')` : '';
+        document.getElementById('d-jogo-data').innerHTML = `<span class="text-red-500 font-bold animate-pulse">● AO VIVO${elapsed}</span>`;
+      } else {
+        document.getElementById('d-jogo-data').innerHTML = `<span class="text-zinc-400 font-bold">ENCERRADO</span>`;
+      }
+    } else {
+      realScoreEl.innerText = 'VS';
+    }
+  }
+
   // Limpa dados de palpitadores anteriores antes de carregar os novos
   document.getElementById('d-contador-palpites').innerText = "Carregando...";
   document.getElementById('d-palpitadores-fotos').innerHTML = "";
   document.getElementById('lista-palpites-amigos').innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Carregando palpites...</p>';
 
   // Verifica bloqueio de tempo (10 minutos antes do kickoff) ou se o jogo já iniciou/terminou
-  const statusShort = jogoAtual.fixture.status.short;
-  const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
-  const terminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
-
   const kickoff = new Date(jogoAtual.fixture.date);
   const agora = new Date();
   const dezMinutosAntes = new Date(kickoff.getTime() - 10 * 60000);
-  const isLocked = (agora > dezMinutosAntes) || aoVivo.includes(statusShort) || terminados.includes(statusShort);
+  const isLocked = (agora > dezMinutosAntes) || isLive || isFinished;
 
   // 1. Verificação SÍNCRONA no cache local para evitar piscadas
   const meuPalpiteLocal = palpitesUsuario.find(p => p.match_id === id);
@@ -960,6 +986,11 @@ async function abrirTelaPalpite(id) {
 
   // Abre a tela de palpites imediatamente com o layout correto
   switchView('view-palpite');
+
+  // Ativa o monitoramento ao vivo caso a partida esteja rolando
+  if (isLive) {
+    ativarTelaAoVivo(id);
+  }
 
   // 2. Consulta rápida silenciosa no Supabase para garantir consistência
   if (sbClient && grupoAtual) {
@@ -1424,4 +1455,69 @@ async function responderDesafioReal(desafioId, jogadorEscolhido) {
     console.error("Erro ao responder desafio:", e);
   }
 }
+
+// ============ MONITORAMENTO E POLLING AO VIVO ============
+
+function ativarTelaAoVivo(fixtureId) {
+  desativarTelaAoVivo();
+  if (!jogoAtual) return;
+
+  const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+  if (!aoVivo.includes(jogoAtual.fixture.status.short)) return;
+
+  console.log(`[LIVE POLLING] Iniciado para a partida ${fixtureId}`);
+
+  intervaloAoVivo = setInterval(async () => {
+    console.log(`[LIVE POLLING] Buscando dados...`);
+    if (typeof buscarDadosAoVivo === 'function') {
+      const jogosAoVivo = await buscarDadosAoVivo();
+      const jogoEspecifico = jogosAoVivo.find(j => j.fixture.id === fixtureId);
+      if (jogoEspecifico) {
+        renderizarPlacarAoVivo(jogoEspecifico);
+      }
+    }
+  }, 60000); // 60 segundos
+}
+
+function desativarTelaAoVivo() {
+  if (intervaloAoVivo) {
+    console.log('[LIVE POLLING] Encerrado.');
+    clearInterval(intervaloAoVivo);
+    intervaloAoVivo = null;
+  }
+}
+
+function renderizarPlacarAoVivo(jogo) {
+  // Atualiza os dados locais na tabela global de jogos
+  if (Array.isArray(todosOsJogos)) {
+    const idx = todosOsJogos.findIndex(j => j.fixture.id === jogo.fixture.id);
+    if (idx !== -1) {
+      todosOsJogos[idx] = jogo;
+    }
+  }
+
+  // Se o usuário ainda estiver olhando para este jogo, atualiza a tela
+  if (jogoAtual && jogoAtual.fixture.id === jogo.fixture.id) {
+    jogoAtual = jogo;
+    const realHome = jogo.goals.home ?? 0;
+    const realAway = jogo.goals.away ?? 0;
+
+    const realScoreEl = document.getElementById('d-real-score');
+    if (realScoreEl) {
+      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>`;
+    }
+
+    const elapsed = jogo.fixture.status.elapsed ? ` (${jogo.fixture.status.elapsed}')` : '';
+    document.getElementById('d-jogo-data').innerHTML = `<span class="text-red-500 font-bold animate-pulse">● AO VIVO${elapsed}</span>`;
+  }
+
+  // Atualiza a visualização principal em segundo plano se ela estiver visível
+  const viewJogos = document.getElementById('view-jogos');
+  if (viewJogos && !viewJogos.classList.contains('hidden')) {
+    if (typeof filtrarPorRodada === 'function') {
+      filtrarPorRodada(rodadaSelecionada);
+    }
+  }
+}
+
 

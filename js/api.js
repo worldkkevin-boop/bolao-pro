@@ -38,3 +38,22 @@ async function carregarJogos() {
     console.error("Erro ao puxar os jogos:", erro);
   }
 }
+
+async function buscarDadosAoVivo() {
+  const url = 'https://v3.football.api-sports.io/fixtures?live=all';
+  try {
+    const resposta = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-rapidapi-host": "v3.football.api-sports.io",
+        "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+      }
+    });
+    const dados = await resposta.json();
+    return dados.response || [];
+  } catch (erro) {
+    console.error("Erro na API-Football (Ao Vivo):", erro);
+    return [];
+  }
+}
+
