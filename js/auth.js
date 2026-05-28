@@ -57,6 +57,7 @@ function entrarNoApp(usuario) {
   document.getElementById('screen-app').classList.remove('hidden');
   processarConvitePendente();
   if (typeof verificarBannerPWA === 'function') verificarBannerPWA();
+  if (typeof verificarUsuarioGM === 'function') verificarUsuarioGM();
 }
 
 function mostrarInputCodigo() {

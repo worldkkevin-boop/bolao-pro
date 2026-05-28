@@ -224,6 +224,13 @@
         </button>
       </div>
 
+      <!-- Botão do GM (Apenas para worldkkevin@gmail.com) -->
+      <div id="gm-panel-button-container" class="hidden mb-6">
+        <button onclick="abrirPainelGM()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] transition-all active:scale-95 shadow-lg shadow-purple-600/20 uppercase tracking-wide">
+          👑 Painel do Game Master (GM)
+        </button>
+      </div>
+
       <!-- Lista de grupos -->
       <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Meus grupos</h2>
       <div id="lista-grupos">
@@ -366,7 +373,7 @@
       </div>
 
       <!-- Tab Content: Detalhes -->
-      <div id="tab-content-detalhes" class="block fade-in">
+      <div id="tab-content-detalhes" class="block fade-in space-y-4">
         <div class="bg-card-bg p-4 rounded-2xl flex items-center justify-between border border-white/5">
           <div class="flex items-center gap-2 text-[13px] font-semibold text-white">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-brand-green"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -376,6 +383,11 @@
             <div class="flex -space-x-2" id="d-palpitadores-fotos"></div>
             <span id="d-contador-palpites">0 de 0 palpitaram</span>
           </div>
+        </div>
+
+        <!-- Container do Desafio do Jogador (GM) -->
+        <div id="desafio-jogo-container" class="hidden">
+          <!-- Renderizado dinamicamente -->
         </div>
       </div>
 
@@ -588,7 +600,66 @@
             <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+3 pts</span>
           </div>
           <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">3x0</strong> e terminou <strong class="text-white">0x0</strong> (Acertou os gols de um time).</p>
+      </div>
+    </div>
+  </div>
+
+    <!-- View: Painel do Game Master (GM) -->
+    <div id="view-gm-panel" class="fade-in hidden p-4 pb-24">
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-xl font-black tracking-tight uppercase">Painel do GM 👑</h1>
+      </div>
+
+      <!-- Card: Criar Desafio -->
+      <div class="bg-card-bg rounded-2xl p-5 border border-purple-500/20 mb-6 shadow-xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+        <h3 class="font-bold mb-4 text-[13px] text-purple-400 uppercase tracking-wider">Lançar Novo Desafio</h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Selecione a Partida</label>
+            <select id="select-gm-jogo" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+              <option value="">Selecione uma partida...</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Regra do Desafio</label>
+              <select id="select-gm-evento" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                <option value="Goal">Fazer Gol ⚽</option>
+                <option value="Assist">Dar Assistência 🎯</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Pontos Extras</label>
+              <input type="number" id="input-gm-pontos" value="50" min="5" max="200" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-purple-500 transition-colors">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Opções de Jogadores (Mínimo 2)</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="input-gm-player-1" placeholder="Jogador 1" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+              <input type="text" id="input-gm-player-2" placeholder="Jogador 2" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+              <input type="text" id="input-gm-player-3" placeholder="Jogador 3 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+              <input type="text" id="input-gm-player-4" placeholder="Jogador 4 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+            </div>
+          </div>
+
+          <button onclick="criarDesafioReal()" id="btn-gm-criar-desafio" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-wider shadow-lg shadow-purple-600/20">
+            Lançar Desafio
+          </button>
         </div>
+      </div>
+
+      <!-- Seção: Gerenciar Desafios -->
+      <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Histórico de Desafios</h3>
+      <div id="lista-desafios-gm" class="space-y-3 pb-8">
+        <!-- Renderizado dinamicamente -->
       </div>
     </div>
 
@@ -702,5 +773,6 @@
   <script src="js/api.js"></script>
   <script src="js/groups.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/gm.js"></script>
 </body>
 </html>

@@ -612,6 +612,19 @@ async function exibirRankingSelecionado() {
       return;
     }
 
+    // 2b. Busca pontos extras de desafios (user_desafios)
+    let userDesafiosData = [];
+    const { data: udData, error: errUD } = await sbClient
+      .from('user_desafios')
+      .select('user_id, points_awarded')
+      .eq('group_id', grupoAtual.id);
+
+    if (!errUD && udData) {
+      userDesafiosData = udData;
+    } else if (errUD) {
+      console.error("Erro ao buscar user_desafios para ranking:", errUD.message);
+    }
+
     if (!members || members.length === 0) {
       container.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum membro neste grupo.</p>';
       return;
@@ -664,6 +677,15 @@ async function exibirRankingSelecionado() {
           if (pts === 30) {
             scores[g.user_id].acertosExatos += 1;
           }
+        }
+      });
+    }
+
+    // 5b. Adiciona pontos extras dos desafios do GM
+    if (userDesafiosData && userDesafiosData.length > 0) {
+      userDesafiosData.forEach(ud => {
+        if (scores[ud.user_id]) {
+          scores[ud.user_id].pontos += ud.points_awarded || 0;
         }
       });
     }
@@ -1098,6 +1120,11 @@ async function abrirTelaPalpite(id) {
       console.error("Erro ao carregar dados dinâmicos da partida:", e);
     }
   }
+
+  // 4. Carrega desafio do jogador (GM) para este jogo se houver
+  if (typeof carregarDesafioPartida === 'function') {
+    carregarDesafioPartida(id);
+  }
 }
 
 async function salvarPalpite() {
@@ -1277,6 +1304,115 @@ function verificarBannerPWA() {
     banner.classList.remove('hidden');
   } else {
     banner.classList.add('hidden');
+  }
+}
+
+// Carrega e desenha o desafio do jogador (GM) se aplicável
+async function carregarDesafioPartida(fixtureId) {
+  const container = document.getElementById('desafio-jogo-container');
+  if (!container) return;
+
+  container.classList.add('hidden');
+  container.innerHTML = '';
+
+  if (!sbClient || !grupoAtual || !usuarioAtual) return;
+
+  try {
+    // 1. Busca se há um desafio ativo para a partida
+    const { data: desafio, error: errDesafio } = await sbClient
+      .from('desafios')
+      .select('*')
+      .eq('fixture_id', fixtureId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (errDesafio || !desafio) return;
+
+    // 2. Busca se o usuário logado já votou nesse desafio
+    const { data: meuVoto, error: errVoto } = await sbClient
+      .from('user_desafios')
+      .select('*')
+      .eq('desafio_id', desafio.id)
+      .eq('user_id', usuarioAtual.id)
+      .eq('group_id', grupoAtual.id)
+      .maybeSingle();
+
+    container.classList.remove('hidden');
+
+    const acaoTexto = desafio.event_type === 'Goal' ? 'fará um GOL' : 'dará uma ASSISTÊNCIA';
+
+    if (meuVoto) {
+      container.innerHTML = `
+        <div class="bg-gradient-to-r from-purple-900/30 to-indigo-900/20 rounded-2xl p-5 border border-purple-500/30 shadow-lg relative overflow-hidden fade-in mt-4">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm flex-shrink-0">🏆</div>
+            <div>
+              <h4 class="font-black text-xs text-purple-400 uppercase tracking-widest">Desafio Aceito</h4>
+              <p class="text-[12px] text-white font-medium mt-1">Você escolheu <span class="text-purple-300 font-bold">${meuVoto.chosen_player}</span> para acertar o desafio.</p>
+              <p class="text-[10px] text-text-muted mt-2">Aguardando o encerramento do jogo para validação do prêmio (+${desafio.points} pts).</p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      let buttonsHtml = '';
+      desafio.players.forEach(player => {
+        buttonsHtml += `
+          <button onclick="responderDesafioReal('${desafio.id}', '${player.replace(/'/g, "\\'")}')" class="w-full bg-zinc-900 hover:bg-purple-900/40 border border-zinc-800 hover:border-purple-500/50 text-white hover:text-purple-300 font-bold py-3 px-4 rounded-xl text-xs transition-all active:scale-95 text-center truncate">
+            ${player}
+          </button>
+        `;
+      });
+
+      container.innerHTML = `
+        <div class="bg-gradient-to-r from-purple-900/40 to-indigo-900/30 rounded-2xl p-5 border border-purple-500/40 shadow-lg relative overflow-hidden fade-in mt-4">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg flex-shrink-0">🏆</div>
+            <div>
+              <h4 class="font-black text-xs text-purple-300 uppercase tracking-widest">Desafio Especial do GM</h4>
+              <p class="text-[13px] text-white/90 font-bold mt-1">Quem ${acaoTexto} nesta partida?</p>
+              <p class="text-[10px] text-purple-400 font-medium mt-0.5">Acerte e ganhe +${desafio.points} pontos extras!</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            ${buttonsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+  } catch (e) {
+    console.error("Erro ao carregar desafio da partida:", e);
+  }
+}
+
+// Salva a resposta do usuário no desafio
+async function responderDesafioReal(desafioId, jogadorEscolhido) {
+  if (!sbClient || !grupoAtual || !usuarioAtual) return;
+
+  try {
+    const { error } = await sbClient
+      .from('user_desafios')
+      .insert([{
+        user_id: usuarioAtual.id,
+        desafio_id: desafioId,
+        group_id: grupoAtual.id,
+        chosen_player: jogadorEscolhido,
+        points_awarded: 0
+      }]);
+
+    if (error) {
+      alert("Erro ao aceitar desafio: " + error.message);
+      return;
+    }
+
+    alert(`Desafio aceito! Você apostou em: ${jogadorEscolhido}`);
+    if (jogoAtual) {
+      carregarDesafioPartida(jogoAtual.fixture.id);
+    }
+
+  } catch (e) {
+    console.error("Erro ao responder desafio:", e);
   }
 }
 
