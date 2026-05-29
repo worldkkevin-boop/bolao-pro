@@ -722,17 +722,29 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Regra do Desafio</label>
-                <select id="select-gm-evento" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                <select id="select-gm-evento" onchange="ajustarCamposDesafioGM()" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
                   <option value="Goal">Fazer Gol ⚽</option>
                   <option value="Assist">Dar Assistência 🎯</option>
                   <option value="CardYellow">Receber Cartão Amarelo 🟨</option>
                   <option value="CardRed">Receber Cartão Vermelho 🟥</option>
+                  <option value="CornersOver8.5">Mais de 8.5 Escanteios 🚩</option>
+                  <option value="CornersOver9.5">Mais de 9.5 Escanteios 🚩</option>
+                  <option value="CornersOver10.5">Mais de 10.5 Escanteios 🚩</option>
+                  <option value="CornersOver11.5">Mais de 11.5 Escanteios 🚩</option>
+                  <option value="BTTS">Ambos Marcam (Sim/Não) ⚽</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Pontos Extras</label>
                 <input type="number" id="input-gm-pontos" value="50" min="5" max="200" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-purple-500 transition-colors">
               </div>
+            </div>
+
+            <div class="flex items-center gap-2 mt-1">
+              <input type="checkbox" id="checkbox-gm-penalty" class="w-4 h-4 rounded bg-zinc-900 border-zinc-800 text-purple-650 focus:ring-purple-500 focus:ring-opacity-25 accent-purple-600">
+              <label for="checkbox-gm-penalty" class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider cursor-pointer">
+                Perder pontos se errar (Penalidade ⚠️)
+              </label>
             </div>
 
             <div>

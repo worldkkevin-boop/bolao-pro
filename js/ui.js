@@ -1387,7 +1387,43 @@ async function carregarDesafioPartida(fixtureId) {
 
     container.classList.remove('hidden');
 
-    const acaoTexto = desafio.event_type === 'Goal' ? 'fará um GOL' : 'dará uma ASSISTÊNCIA';
+    const hasPenalty = desafio.event_type.endsWith('_penalty');
+    const cleanEventType = desafio.event_type.replace('_penalty', '');
+
+    let acaoTexto = '';
+    let customQuestion = '';
+    
+    if (cleanEventType === 'Goal') {
+      acaoTexto = 'fará um GOL';
+      customQuestion = 'Quem fará um GOL nesta partida?';
+    } else if (cleanEventType === 'Assist') {
+      acaoTexto = 'dará uma ASSISTÊNCIA';
+      customQuestion = 'Quem dará uma ASSISTÊNCIA nesta partida?';
+    } else if (cleanEventType === 'CardYellow') {
+      acaoTexto = 'receberá CARTÃO AMARELO';
+      customQuestion = 'Quem receberá CARTÃO AMARELO nesta partida?';
+    } else if (cleanEventType === 'CardRed') {
+      acaoTexto = 'receberá CARTÃO VERMELHO';
+      customQuestion = 'Quem receberá CARTÃO VERMELHO nesta partida?';
+    } else if (cleanEventType.startsWith('CornersOver')) {
+      const limit = cleanEventType.replace('CornersOver', '');
+      acaoTexto = `Mais/Menos de ${limit} Escanteios`;
+      customQuestion = `Teremos mais ou menos de ${limit} escanteios na partida?`;
+    } else if (cleanEventType === 'BTTS') {
+      acaoTexto = 'Ambos Marcam';
+      customQuestion = 'Ambos os times marcam gols nesta partida?';
+    } else {
+      acaoTexto = cleanEventType;
+      customQuestion = `Qual opção vencerá o desafio especial?`;
+    }
+
+    const infoPontosText = hasPenalty 
+      ? `(+${desafio.points} pts / -${desafio.points} pts se errar)`
+      : `(+${desafio.points} pts)`;
+
+    const subheaderText = hasPenalty
+      ? `Acerte e ganhe +${desafio.points} pontos. Erre e perca -${desafio.points} pts! ⚠️`
+      : `Acerte e ganhe +${desafio.points} pontos extras!`;
 
     if (meuVoto) {
       container.innerHTML = `
@@ -1397,7 +1433,7 @@ async function carregarDesafioPartida(fixtureId) {
             <div>
               <h4 class="font-black text-xs text-purple-400 uppercase tracking-widest">Desafio Aceito</h4>
               <p class="text-[12px] text-white font-medium mt-1">Você escolheu <span class="text-purple-300 font-bold">${meuVoto.chosen_player}</span> para acertar o desafio.</p>
-              <p class="text-[10px] text-text-muted mt-2">Aguardando o encerramento do jogo para validação do prêmio (+${desafio.points} pts).</p>
+              <p class="text-[10px] text-text-muted mt-2">Aguardando o encerramento do jogo para validação do prêmio ${infoPontosText}.</p>
             </div>
           </div>
         </div>
@@ -1418,8 +1454,8 @@ async function carregarDesafioPartida(fixtureId) {
             <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg flex-shrink-0">🏆</div>
             <div>
               <h4 class="font-black text-xs text-purple-300 uppercase tracking-widest">Desafio Especial do GM</h4>
-              <p class="text-[13px] text-white/90 font-bold mt-1">Quem ${acaoTexto} nesta partida?</p>
-              <p class="text-[10px] text-purple-400 font-medium mt-0.5">Acerte e ganhe +${desafio.points} pontos extras!</p>
+              <p class="text-[13px] text-white/90 font-bold mt-1">${customQuestion}</p>
+              <p class="text-[10px] text-purple-400 font-medium mt-0.5">${subheaderText}</p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">

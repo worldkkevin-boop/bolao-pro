@@ -82,7 +82,7 @@ async function carregarGMView() {
             <div class="flex justify-between items-start mb-2">
               <div>
                 <h4 class="font-black text-[14px] text-white">${d.match_name}</h4>
-                <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${d.event_type === 'Goal' ? 'Fazer Gol' : 'Dar Assistência'}</strong> (+${d.points} pts)</p>
+                <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${traduzirRegraDesafio(d.event_type)}</strong> (+${d.points} pts)</p>
               </div>
               <span class="text-[9px] font-black px-2 py-0.5 rounded-full border ${statusClass}">${labelStatus}</span>
             </div>
@@ -92,6 +92,9 @@ async function carregarGMView() {
               ${d.status === 'active' ? `
                 <button onclick="resolverDesafioReal('${d.id}', ${d.fixture_id}, '${d.event_type}', ${JSON.stringify(d.players).replace(/"/g, '&quot;')})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
                   Resolver com API
+                </button>
+                <button onclick="compartilharDesafioGM('${d.match_name.replace(/'/g, "\\'")}', '${d.event_type}', ${d.points}, ${JSON.stringify(d.players).replace(/"/g, '&quot;')})" class="px-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-1">
+                  📲 Compartilhar
                 </button>
               ` : ''}
               <button onclick="excluirDesafioReal('${d.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
@@ -113,17 +116,19 @@ async function criarDesafioReal() {
   const selectJogo = document.getElementById('select-gm-jogo');
   const selectEvento = document.getElementById('select-gm-evento');
   const inputPontos = document.getElementById('input-gm-pontos');
+  const checkboxPenalty = document.getElementById('checkbox-gm-penalty');
   
   if (!selectJogo || !selectEvento || !inputPontos) return;
 
   const fixtureId = parseInt(selectJogo.value);
-  const eventType = selectEvento.value;
+  let eventType = selectEvento.value;
   const points = parseInt(inputPontos.value) || 50;
+  const hasPenalty = checkboxPenalty ? checkboxPenalty.checked : false;
 
   if (!fixtureId) { alert('Selecione uma partida!'); return; }
   if (!eventType) { alert('Selecione o tipo de evento!'); return; }
 
-  // Coleta jogadores
+  // Coleta jogadores/opções
   const players = [];
   for (let i = 1; i <= 4; i++) {
     const val = document.getElementById(`input-gm-player-${i}`).value.trim();
@@ -131,8 +136,13 @@ async function criarDesafioReal() {
   }
 
   if (players.length < 2) {
-    alert('Insira pelo menos 2 opções de jogadores!');
+    alert('Insira pelo menos 2 opções para o desafio!');
     return;
+  }
+
+  // Se tiver penalidade, anexa sufixo para controle no banco
+  if (hasPenalty) {
+    eventType += '_penalty';
   }
 
   const selectedOptionText = selectJogo.options[selectJogo.selectedIndex].text;
@@ -160,12 +170,16 @@ async function criarDesafioReal() {
       return;
     }
 
-    // Limpa os inputs
+    // Limpa os inputs e redefine permissões de escrita
     for (let i = 1; i <= 4; i++) {
-      document.getElementById(`input-gm-player-${i}`).value = '';
+      const el = document.getElementById(`input-gm-player-${i}`);
+      el.value = '';
+      el.readOnly = false;
+      el.disabled = false;
     }
     inputPontos.value = 50;
     selectJogo.value = '';
+    if (checkboxPenalty) checkboxPenalty.checked = false;
 
     alert('Desafio lançado com sucesso!');
     carregarGMView();
@@ -174,6 +188,48 @@ async function criarDesafioReal() {
     console.error(e);
     if (btn) { btn.disabled = false; btn.innerText = 'Lançar Desafio'; }
   }
+}
+
+// Preenche e bloqueia os campos de opções baseado no tipo de desafio
+function ajustarCamposDesafioGM() {
+  const evento = document.getElementById('select-gm-evento').value;
+  const p1 = document.getElementById('input-gm-player-1');
+  const p2 = document.getElementById('input-gm-player-2');
+  const p3 = document.getElementById('input-gm-player-3');
+  const p4 = document.getElementById('input-gm-player-4');
+
+  if (!p1 || !p2 || !p3 || !p4) return;
+
+  if (evento.startsWith('CornersOver')) {
+    const limit = evento.replace('CornersOver', '');
+    p1.value = `Mais de ${limit}`;
+    p2.value = `Menos de ${limit}`;
+    p1.readOnly = true;
+    p2.readOnly = true;
+    p3.value = '';
+    p4.value = '';
+    p3.disabled = true;
+    p4.disabled = true;
+  } else if (evento === 'BTTS') {
+    p1.value = 'Sim';
+    p2.value = 'Não';
+    p1.readOnly = true;
+    p2.readOnly = true;
+    p3.value = '';
+    p4.value = '';
+    p3.disabled = true;
+    p4.disabled = true;
+  } else {
+    p1.readOnly = false;
+    p2.readOnly = false;
+    p3.disabled = false;
+    p4.disabled = false;
+    
+    // Limpa apenas se eram valores automatizados
+    if (p1.value === 'Sim' || p1.value.startsWith('Mais de ')) {
+      p1.value = '';
+      p2.value = '';
+    }
 }
 
 // Exclusão de desafio
@@ -197,56 +253,110 @@ async function excluirDesafioReal(id) {
 
 // Resolução de desafio com API de eventos
 async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
-  if (!confirm('Deseja realmente obter os dados de eventos da API para resolver este desafio?')) return;
+  if (!confirm('Deseja realmente obter os dados da API para resolver este desafio?')) return;
 
-  const url = `https://v3.football.api-sports.io/fixtures/events?fixture=${fixtureId}`;
+  const hasPenalty = eventType.endsWith('_penalty');
+  const cleanEventType = eventType.replace('_penalty', '');
   
   try {
-    const resposta = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-rapidapi-host": "v3.football.api-sports.io",
-        "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+    let jogadoresVencedores = [];
+
+    if (cleanEventType.startsWith('CornersOver')) {
+      // 1. Escanteios (estatísticas da partida)
+      const url = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`;
+      const resposta = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-host": "v3.football.api-sports.io",
+          "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+        }
+      });
+      const dados = await resposta.json();
+      const statsResponse = dados.response || [];
+
+      let totalCorners = 0;
+      statsResponse.forEach(teamData => {
+        const cornerStat = teamData.statistics.find(s => s.type === 'Corner Kicks');
+        if (cornerStat && cornerStat.value !== null) {
+          totalCorners += parseInt(cornerStat.value) || 0;
+        }
+      });
+
+      const limit = parseFloat(cleanEventType.replace("CornersOver", "")) || 9.5;
+      const resultText = totalCorners > limit ? `Mais de ${limit}` : `Menos de ${limit}`;
+      jogadoresVencedores = [resultText];
+      
+      console.log(`[RESOLVER DESAFIO] Escanteios: ${totalCorners}, Limite: ${limit}, Vencedor: ${resultText}`);
+
+    } else if (cleanEventType === 'BTTS') {
+      // 2. Ambos Marcam (BTTS)
+      const url = `https://v3.football.api-sports.io/fixtures?id=${fixtureId}`;
+      const resposta = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-host": "v3.football.api-sports.io",
+          "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+        }
+      });
+      const dados = await resposta.json();
+      const fixtureData = dados.response && dados.response[0] ? dados.response[0] : null;
+      
+      if (!fixtureData) {
+        throw new Error("Não foi possível carregar os dados da partida para Ambos Marcam.");
       }
-    });
 
-    const dados = await resposta.json();
-    const eventos = dados.response || [];
+      const goalsHome = fixtureData.goals.home;
+      const goalsAway = fixtureData.goals.away;
+      const bttsSim = (goalsHome > 0 && goalsAway > 0);
+      const resultText = bttsSim ? 'Sim' : 'Não';
+      jogadoresVencedores = [resultText];
+      
+      console.log(`[RESOLVER DESAFIO] Ambos Marcam: Placar ${goalsHome}x${goalsAway}, Vencedor: ${resultText}`);
 
-    // Filtra quem realizou a façanha
-    const jogadoresVencedores = [];
+    } else {
+      // 3. Gols, Assistências ou Cartões (usa eventos)
+      const url = `https://v3.football.api-sports.io/fixtures/events?fixture=${fixtureId}`;
+      const resposta = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-host": "v3.football.api-sports.io",
+          "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+        }
+      });
 
-    eventos.forEach(evt => {
-      // Evento de Gol
-      if (evt.type === 'Goal') {
-        const autorGoal = evt.player ? evt.player.name : '';
-        const autorAssist = evt.assist ? evt.assist.name : '';
+      const dados = await resposta.json();
+      const eventos = dados.response || [];
 
-        players.forEach(p => {
-          if (eventType === 'Goal' && nomesCoincidem(autorGoal, p)) {
-            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
-          } else if (eventType === 'Assist' && nomesCoincidem(autorAssist, p)) {
-            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
-          }
-        });
-      }
+      eventos.forEach(evt => {
+        if (evt.type === 'Goal') {
+          const autorGoal = evt.player ? evt.player.name : '';
+          const autorAssist = evt.assist ? evt.assist.name : '';
 
-      // Evento de Cartão
-      if (evt.type === 'Card') {
-        const playerCard = evt.player ? evt.player.name : '';
-        const detail = evt.detail || '';
+          players.forEach(p => {
+            if (cleanEventType === 'Goal' && nomesCoincidem(autorGoal, p)) {
+              if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+            } else if (cleanEventType === 'Assist' && nomesCoincidem(autorAssist, p)) {
+              if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+            }
+          });
+        }
 
-        players.forEach(p => {
-          if (eventType === 'CardYellow' && detail.toLowerCase().includes('yellow') && nomesCoincidem(playerCard, p)) {
-            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
-          } else if (eventType === 'CardRed' && detail.toLowerCase().includes('red') && nomesCoincidem(playerCard, p)) {
-            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
-          }
-        });
-      }
-    });
+        if (evt.type === 'Card') {
+          const playerCard = evt.player ? evt.player.name : '';
+          const detail = evt.detail || '';
 
-    console.log("Jogadores do desafio que pontuaram:", jogadoresVencedores);
+          players.forEach(p => {
+            if (cleanEventType === 'CardYellow' && detail.toLowerCase().includes('yellow') && nomesCoincidem(playerCard, p)) {
+              if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+            } else if (cleanEventType === 'CardRed' && detail.toLowerCase().includes('red') && nomesCoincidem(playerCard, p)) {
+              if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+            }
+          });
+        }
+      });
+    }
+
+    console.log("Opções vencedoras encontradas:", jogadoresVencedores);
 
     // Carrega todos os votos dos usuários para esse desafio
     const { data: votos, error: errVotos } = await sbClient
@@ -273,15 +383,19 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
 
     const pontosPremio = desafio.points || 50;
     let totalPontuados = 0;
+    let totalPerdedores = 0;
 
     // Atualiza os pontos de cada voto
     if (votos && votos.length > 0) {
       for (const voto of votos) {
-        // Verifica se a escolha do usuário bate com algum vencedor
         const acertou = jogadoresVencedores.some(p => nomesCoincidem(p, voto.chosen_player));
-        const pontosGanhos = acertou ? pontosPremio : 0;
+        const pontosGanhos = acertou ? pontosPremio : (hasPenalty ? -pontosPremio : 0);
 
-        if (acertou) totalPontuados++;
+        if (acertou) {
+          totalPontuados++;
+        } else {
+          totalPerdedores++;
+        }
 
         await sbClient
           .from('user_desafios')
@@ -296,7 +410,11 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
       .update({ status: 'resolved' })
       .eq('id', desafioId);
 
-    alert(`Desafio resolvido com sucesso!\n\nJogadores que pontuaram na vida real: ${jogadoresVencedores.join(', ') || 'Nenhum'}\nParticipantes premiados: ${totalPontuados}`);
+    const msgPenalidade = hasPenalty 
+      ? `\nErros com penalidade aplicados: ${totalPerdedores} participantes perderam -${pontosPremio} pts.`
+      : '';
+
+    alert(`Desafio resolvido com sucesso!\n\nResultado vencedor: ${jogadoresVencedores.join(', ') || 'Nenhum'}\n\nParticipantes premiados: ${totalPontuados} (+${pontosPremio} pts).${msgPenalidade}`);
     carregarGMView();
 
   } catch (e) {
@@ -457,4 +575,69 @@ function renderPerfisGM(perfis) {
       </div>
     `;
   });
+}
+
+// Traduz o tipo de evento do desafio para exibição amigável
+function traduzirRegraDesafio(eventType) {
+  const hasPenalty = eventType.endsWith('_penalty');
+  const clean = eventType.replace('_penalty', '');
+  let trad = clean;
+  
+  if (clean === 'Goal') trad = 'Fazer Gol ⚽';
+  else if (clean === 'Assist') trad = 'Dar Assistência 🎯';
+  else if (clean === 'CardYellow') trad = 'Receber Cartão Amarelo 🟨';
+  else if (clean === 'CardRed') trad = 'Receber Cartão Vermelho 🟥';
+  else if (clean.startsWith('CornersOver')) {
+    const limit = clean.replace('CornersOver', '');
+    trad = `Mais/Menos de ${limit} Escanteios 🚩`;
+  }
+  else if (clean === 'BTTS') trad = 'Ambos Marcam ⚽';
+  
+  return trad + (hasPenalty ? ' (Com Penalidade ⚠️)' : '');
+}
+
+// Compartilha os dados do desafio no WhatsApp
+async function compartilharDesafioGM(matchName, eventType, points, playersArray) {
+  if (!grupoAtual) {
+    alert("Grupo atual não carregado.");
+    return;
+  }
+  
+  const hasPenalty = eventType.endsWith('_penalty');
+  const cleanEventType = eventType.replace('_penalty', '');
+  
+  let acaoTexto = '';
+  if (cleanEventType === 'Goal') acaoTexto = 'fará um Gol';
+  else if (cleanEventType === 'Assist') acaoTexto = 'dará uma Assistência';
+  else if (cleanEventType === 'CardYellow') acaoTexto = 'receberá Cartão Amarelo';
+  else if (cleanEventType === 'CardRed') acaoTexto = 'receberá Cartão Vermelho';
+  else if (cleanEventType.startsWith('CornersOver')) {
+    const limit = cleanEventType.replace('CornersOver', '');
+    acaoTexto = `Mais/Menos de ${limit} Escanteios`;
+  } else if (cleanEventType === 'BTTS') acaoTexto = 'Ambos Marcam (Sim/Não)';
+  else acaoTexto = cleanEventType;
+
+  const avisoPenalidade = hasPenalty 
+    ? `\n⚠️ *Atenção:* Se você errar, perderá -${points} pontos!` 
+    : '';
+
+  let msg = `🏆 *DESAFIO ESPECIAL DO GM - Bolão ${grupoAtual.nome}* 🏆\n\n`;
+  msg += `🏟️ *Jogo:* ${matchName}\n`;
+  msg += `🔥 *Desafio:* ${acaoTexto}\n`;
+  msg += `💰 *Prêmio:* +${points} pontos extras!${avisoPenalidade}\n\n`;
+  msg += `*Opções para votar:*\n`;
+  
+  playersArray.forEach(p => {
+    msg += `👉 ${p}\n`;
+  });
+
+  const origin = window.location.origin + window.location.pathname;
+  const linkApp = origin.startsWith("file://")
+    ? "https://bolao-pro.vercel.app/?code=" + grupoAtual.invite_code
+    : origin + "?code=" + grupoAtual.invite_code;
+
+  msg += `\n🔗 *Participe e dê seu palpite:* ${linkApp}`;
+
+  const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
+  window.open(urlUrl, '_blank');
 }
