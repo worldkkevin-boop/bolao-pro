@@ -102,7 +102,7 @@ async function carregarGMView() {
                 <button onclick="resolverDesafioReal('${d.id}', ${d.fixture_id}, '${d.event_type}', ${JSON.stringify(d.players).replace(/"/g, '&quot;')})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
                   Resolver com API
                 </button>
-                <button onclick="compartilharDesafioGM('${d.match_name.replace(/'/g, "\\'")}', '${d.event_type}', ${d.points}, ${JSON.stringify(d.players).replace(/"/g, '&quot;')})" class="px-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-1">
+                <button onclick="compartilharDesafioGM('${d.match_name.replace(/'/g, "\\'")}', '${d.event_type}', ${d.points}, ${JSON.stringify(d.players).replace(/"/g, '&quot;')}, ${d.fixture_id})" class="px-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-1">
                   📲 Compartilhar
                 </button>
               ` : ''}
@@ -643,7 +643,7 @@ function traduzirRegraDesafio(eventType) {
 }
 
 // Compartilha os dados do desafio no WhatsApp
-async function compartilharDesafioGM(matchName, eventType, points, playersArray) {
+async function compartilharDesafioGM(matchName, eventType, points, playersArray, fixtureId) {
   if (!grupoAtual) {
     alert("Grupo atual não carregado.");
     return;
@@ -682,8 +682,8 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray)
 
   const origin = window.location.origin + window.location.pathname;
   const linkApp = origin.startsWith("file://")
-    ? "https://bolao-pro.vercel.app/?code=" + grupoAtual.invite_code
-    : origin + "?code=" + grupoAtual.invite_code;
+    ? `https://bolao-pro.vercel.app/?code=${grupoAtual.invite_code}&match=${fixtureId}`
+    : `${origin}?code=${grupoAtual.invite_code}&match=${fixtureId}`;
 
   msg += `\n🔗 *Participe e dê seu palpite:* ${linkApp}`;
 

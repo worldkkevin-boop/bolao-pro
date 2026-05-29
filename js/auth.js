@@ -206,6 +206,12 @@ async function processarConvitePendente() {
 function inicializarConvitePorUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
+  const matchId = urlParams.get('match');
+  
+  if (matchId) {
+    localStorage.setItem('redirect_match', matchId);
+  }
+
   if (code) {
     localStorage.setItem('pending_invite_code', code.toUpperCase());
     

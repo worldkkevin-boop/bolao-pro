@@ -34,6 +34,21 @@ async function carregarJogos() {
     if (typeof gerarFiltrosRodadas === 'function') gerarFiltrosRodadas();
     if (typeof filtrarPorRodada === 'function') filtrarPorRodada(rodadaSelecionada);
     if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
+
+    // Redirecionamento automático para partida específica se solicitado (via link de desafio)
+    const redirectMatch = localStorage.getItem('redirect_match');
+    if (redirectMatch) {
+      const matchId = parseInt(redirectMatch);
+      localStorage.removeItem('redirect_match');
+      if (todosOsJogos && todosOsJogos.some(j => j.fixture.id === matchId)) {
+        if (typeof abrirTelaPalpite === 'function') {
+          // Pequeno timeout para dar tempo da transição de telas/DOM assentar
+          setTimeout(() => {
+            abrirTelaPalpite(matchId);
+          }, 300);
+        }
+      }
+    }
   } catch (erro) {
     console.error("Erro ao puxar os jogos:", erro);
   }
