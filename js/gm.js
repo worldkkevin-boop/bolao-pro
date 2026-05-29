@@ -209,8 +209,9 @@ function ajustarCamposDesafioGM() {
 
   if (!p1 || !p2 || !p3 || !p4) return;
 
-  if (evento.startsWith('CornersOver')) {
-    const limit = evento.replace('CornersOver', '');
+  if (evento.startsWith('CornersOver') || evento.startsWith('CardsOver')) {
+    const isCorner = evento.startsWith('CornersOver');
+    const limit = isCorner ? evento.replace('CornersOver', '') : evento.replace('CardsOver', '');
     p1.value = `Mais de ${limit}`;
     p2.value = `Menos de ${limit}`;
     p1.readOnly = true;
@@ -297,6 +298,37 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
       jogadoresVencedores = [resultText];
       
       console.log(`[RESOLVER DESAFIO] Escanteios: ${totalCorners}, Limite: ${limit}, Vencedor: ${resultText}`);
+
+    } else if (cleanEventType.startsWith('CardsOver')) {
+      // 1b. Cartões (estatísticas da partida)
+      const url = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`;
+      const resposta = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-host": "v3.football.api-sports.io",
+          "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+        }
+      });
+      const dados = await resposta.json();
+      const statsResponse = dados.response || [];
+
+      let totalCards = 0;
+      statsResponse.forEach(teamData => {
+        const yellowStat = teamData.statistics.find(s => s.type === 'Yellow Cards');
+        const redStat = teamData.statistics.find(s => s.type === 'Red Cards');
+        if (yellowStat && yellowStat.value !== null) {
+          totalCards += parseInt(yellowStat.value) || 0;
+        }
+        if (redStat && redStat.value !== null) {
+          totalCards += parseInt(redStat.value) || 0;
+        }
+      });
+
+      const limit = parseFloat(cleanEventType.replace("CardsOver", "")) || 4.5;
+      const resultText = totalCards > limit ? `Mais de ${limit}` : `Menos de ${limit}`;
+      jogadoresVencedores = [resultText];
+      
+      console.log(`[RESOLVER DESAFIO] Cartões: ${totalCards}, Limite: ${limit}, Vencedor: ${resultText}`);
 
     } else if (cleanEventType === 'BTTS') {
       // 2. Ambos Marcam (BTTS)
@@ -601,6 +633,10 @@ function traduzirRegraDesafio(eventType) {
     const limit = clean.replace('CornersOver', '');
     trad = `Mais/Menos de ${limit} Escanteios 🚩`;
   }
+  else if (clean.startsWith('CardsOver')) {
+    const limit = clean.replace('CardsOver', '');
+    trad = `Mais/Menos de ${limit} Cartões 🟨🟥`;
+  }
   else if (clean === 'BTTS') trad = 'Ambos Marcam ⚽';
   
   return trad + (hasPenalty ? ' (Com Penalidade ⚠️)' : '');
@@ -624,6 +660,9 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray)
   else if (cleanEventType.startsWith('CornersOver')) {
     const limit = cleanEventType.replace('CornersOver', '');
     acaoTexto = `Mais/Menos de ${limit} Escanteios`;
+  } else if (cleanEventType.startsWith('CardsOver')) {
+    const limit = cleanEventType.replace('CardsOver', '');
+    acaoTexto = `Mais/Menos de ${limit} Cartões`;
   } else if (cleanEventType === 'BTTS') acaoTexto = 'Ambos Marcam (Sim/Não)';
   else acaoTexto = cleanEventType;
 

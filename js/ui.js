@@ -1409,6 +1409,10 @@ async function carregarDesafioPartida(fixtureId) {
       const limit = cleanEventType.replace('CornersOver', '');
       acaoTexto = `Mais/Menos de ${limit} Escanteios`;
       customQuestion = `Teremos mais ou menos de ${limit} escanteios na partida?`;
+    } else if (cleanEventType.startsWith('CardsOver')) {
+      const limit = cleanEventType.replace('CardsOver', '');
+      acaoTexto = `Mais/Menos de ${limit} Cartões`;
+      customQuestion = `Teremos mais ou menos de ${limit} cartões na partida?`;
     } else if (cleanEventType === 'BTTS') {
       acaoTexto = 'Ambos Marcam';
       customQuestion = 'Ambos os times marcam gols nesta partida?';
