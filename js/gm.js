@@ -230,6 +230,20 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
           }
         });
       }
+
+      // Evento de Cartão
+      if (evt.type === 'Card') {
+        const playerCard = evt.player ? evt.player.name : '';
+        const detail = evt.detail || '';
+
+        players.forEach(p => {
+          if (eventType === 'CardYellow' && detail.toLowerCase().includes('yellow') && nomesCoincidem(playerCard, p)) {
+            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+          } else if (eventType === 'CardRed' && detail.toLowerCase().includes('red') && nomesCoincidem(playerCard, p)) {
+            if (!jogadoresVencedores.includes(p)) jogadoresVencedores.push(p);
+          }
+        });
+      }
     });
 
     console.log("Jogadores do desafio que pontuaram:", jogadoresVencedores);

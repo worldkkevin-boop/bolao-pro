@@ -1573,4 +1573,79 @@ async function compartilharRankingWhatsApp() {
   window.open(urlUrl, '_blank');
 }
 
+// Pull to Refresh para PWAs (arrastar para baixo e atualizar)
+(function() {
+  let touchStart = 0;
+  let touchMove = 0;
+  let pulling = false;
+  const threshold = 70;
+  const maxPull = 100;
+  
+  // Elementos do indicador
+  const ptr = document.getElementById('pull-to-refresh');
+  if (!ptr) return;
+  const icon = document.getElementById('ptr-icon');
+  const spinner = document.getElementById('ptr-spinner');
+  const text = document.getElementById('ptr-text');
+
+  document.addEventListener('touchstart', function(e) {
+    // Só ativa quando o scroll está no topo absoluto
+    if (window.scrollY === 0) {
+      touchStart = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!pulling) return;
+    
+    touchMove = e.touches[0].clientY;
+    const distance = touchMove - touchStart;
+    
+    // Puxando para baixo no topo
+    if (distance > 0 && window.scrollY === 0) {
+      if (e.cancelable) e.preventDefault();
+      
+      // Aplica resistência física no arrasto
+      const pullDist = Math.min(maxPull, distance * 0.4);
+      ptr.style.transform = `translateY(${pullDist - 60}px)`;
+      
+      // Atualiza estado do indicador
+      if (pullDist >= threshold) {
+        text.textContent = 'Solte para atualizar';
+        if (icon) icon.style.transform = 'rotate(180deg)';
+      } else {
+        text.textContent = 'Puxe para atualizar';
+        if (icon) icon.style.transform = 'rotate(0deg)';
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function() {
+    if (!pulling) return;
+    pulling = false;
+    
+    const distance = touchMove - touchStart;
+    const pullDist = Math.min(maxPull, distance * 0.4);
+    
+    if (pullDist >= threshold) {
+      // Ativa o estado de carregando e recarrega a página
+      ptr.style.transform = 'translateY(15px)';
+      if (icon) icon.classList.add('hidden');
+      if (spinner) spinner.classList.remove('hidden');
+      text.textContent = 'Atualizando...';
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      // Recolhe o indicador
+      ptr.style.transform = 'translateY(-100%)';
+    }
+    
+    touchStart = 0;
+    touchMove = 0;
+  });
+})();
+
 

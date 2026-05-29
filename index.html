@@ -78,6 +78,17 @@
 </head>
 <body>
 
+  <!-- Pull to Refresh Indicator -->
+  <div id="pull-to-refresh" class="fixed top-0 left-0 right-0 flex items-center justify-center pointer-events-none z-50 transform -translate-y-full transition-transform duration-200 ease-out" style="height: 60px;">
+    <div class="bg-[#18181b] border border-white/10 rounded-full py-2 px-4 shadow-2xl flex items-center gap-2">
+      <svg id="ptr-icon" class="w-4 h-4 text-brand-green transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+        <path d="M19 9l-7 7-7-7"></path>
+      </svg>
+      <div id="ptr-spinner" class="hidden w-4 h-4 border-2 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+      <span id="ptr-text" class="text-[10px] font-bold text-white uppercase tracking-wider">Puxe para atualizar</span>
+    </div>
+  </div>
+
   <!-- ===================== TELA DE LOGIN ===================== -->
   <div id="screen-login" class="min-h-screen flex flex-col items-center justify-center relative p-6 overflow-x-hidden">
 
@@ -714,6 +725,8 @@
                 <select id="select-gm-evento" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
                   <option value="Goal">Fazer Gol ⚽</option>
                   <option value="Assist">Dar Assistência 🎯</option>
+                  <option value="CardYellow">Receber Cartão Amarelo 🟨</option>
+                  <option value="CardRed">Receber Cartão Vermelho 🟥</option>
                 </select>
               </div>
               <div>
