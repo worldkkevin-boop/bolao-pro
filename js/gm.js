@@ -1,5 +1,7 @@
 // ============ GAME MASTER (GM) ENGINE ============
 
+let jogosLigaGM = [];
+
 // Verifica se o usuário atual é o Game Master
 function verificarUsuarioGM() {
   const container = document.getElementById('gm-panel-button-container');
@@ -36,23 +38,32 @@ function nomesCoincidem(nomeCompleto, nomeBusca) {
   return comp.includes(busca) || busca.includes(comp);
 }
 
-// Carrega os dados da tela do GM
-async function carregarGMView() {
+// Carrega as partidas de uma liga específica no painel do GM
+async function carregarJogosLigaGM() {
+  const selectLiga = document.getElementById('select-gm-liga');
   const selectJogo = document.getElementById('select-gm-jogo');
-  const listaDesafios = document.getElementById('lista-desafios-gm');
+  if (!selectLiga || !selectJogo) return;
 
-  if (selectJogo) {
-    if (!todosOsJogos || todosOsJogos.length === 0) {
-      selectJogo.innerHTML = '<option value="">Carregando partidas...</option>';
-      if (typeof carregarJogos === 'function') {
-        await carregarJogos();
+  const leagueId = selectLiga.value;
+  selectJogo.innerHTML = '<option value="">Carregando partidas...</option>';
+
+  const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=2026`;
+  try {
+    const resposta = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-rapidapi-host": "v3.football.api-sports.io",
+        "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
       }
-    }
+    });
+    const dados = await resposta.json();
+    jogosLigaGM = dados.response || [];
 
     selectJogo.innerHTML = '<option value="">Selecione uma partida...</option>';
+    
     // Filtra jogos que ainda não terminaram ou estão ao vivo
     const statusTerminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
-    const jogosAtivos = (todosOsJogos || []).filter(j => !statusTerminados.includes(j.fixture.status.short));
+    const jogosAtivos = jogosLigaGM.filter(j => j.fixture && j.fixture.status && !statusTerminados.includes(j.fixture.status.short));
     
     // Ordena por data
     jogosAtivos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
@@ -61,6 +72,34 @@ async function carregarGMView() {
       const dataStr = new Date(j.fixture.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       selectJogo.innerHTML += `<option value="${j.fixture.id}">${j.teams.home.name} x ${j.teams.away.name} (${dataStr})</option>`;
     });
+  } catch (erro) {
+    console.error("Erro ao puxar os jogos da liga do GM:", erro);
+    selectJogo.innerHTML = '<option value="">Erro ao carregar partidas</option>';
+  }
+}
+
+// Carrega os dados da tela do GM
+async function carregarGMView() {
+  const selectJogo = document.getElementById('select-gm-jogo');
+  const listaDesafios = document.getElementById('lista-desafios-gm');
+
+  if (selectJogo) {
+    if (!jogosLigaGM || jogosLigaGM.length === 0) {
+      await carregarJogosLigaGM();
+    } else {
+      selectJogo.innerHTML = '<option value="">Selecione uma partida...</option>';
+      // Filtra jogos que ainda não terminaram ou estão ao vivo
+      const statusTerminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
+      const jogosAtivos = jogosLigaGM.filter(j => j.fixture && j.fixture.status && !statusTerminados.includes(j.fixture.status.short));
+      
+      // Ordena por data
+      jogosAtivos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+      jogosAtivos.forEach(j => {
+        const dataStr = new Date(j.fixture.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        selectJogo.innerHTML += `<option value="${j.fixture.id}">${j.teams.home.name} x ${j.teams.away.name} (${dataStr})</option>`;
+      });
+    }
   }
 
   if (listaDesafios && sbClient) {
@@ -644,11 +683,25 @@ function traduzirRegraDesafio(eventType) {
 
 // Compartilha os dados do desafio no WhatsApp
 async function compartilharDesafioGM(matchName, eventType, points, playersArray, fixtureId) {
-  if (!grupoAtual) {
-    alert("Grupo atual não carregado.");
-    return;
-  }
+  let gAtual = grupoAtual;
   
+  if (!gAtual && sbClient) {
+    try {
+      const { data: grupos } = await sbClient
+        .from('groups')
+        .select('*')
+        .limit(1);
+      if (grupos && grupos.length > 0) {
+        gAtual = {
+          nome: grupos[0].name,
+          invite_code: grupos[0].invite_code
+        };
+      }
+    } catch (e) {
+      console.error("Erro ao buscar grupo padrão para compartilhamento:", e);
+    }
+  }
+
   const hasPenalty = eventType.endsWith('_penalty');
   const cleanEventType = eventType.replace('_penalty', '');
   
@@ -670,7 +723,8 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray,
     ? `\n⚠️ *Atenção:* Se você errar, perderá -${points} pontos!` 
     : '';
 
-  let msg = `🏆 *DESAFIO ESPECIAL DO GM - Bolão ${grupoAtual.nome}* 🏆\n\n`;
+  const nomeBolao = gAtual ? ` - Bolão ${gAtual.nome}` : '';
+  let msg = `🏆 *DESAFIO ESPECIAL DO GM${nomeBolao}* 🏆\n\n`;
   msg += `🏟️ *Jogo:* ${matchName}\n`;
   msg += `🔥 *Desafio:* ${acaoTexto}\n`;
   msg += `💰 *Prêmio:* +${points} pontos extras!${avisoPenalidade}\n\n`;
@@ -681,9 +735,10 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray,
   });
 
   const origin = window.location.origin + window.location.pathname;
+  const codeParam = gAtual ? `&code=${gAtual.invite_code}` : '';
   const linkApp = origin.startsWith("file://")
-    ? `https://bolao-pro.vercel.app/?code=${grupoAtual.invite_code}&match=${fixtureId}`
-    : `${origin}?code=${grupoAtual.invite_code}&match=${fixtureId}`;
+    ? `https://bolao-pro.vercel.app/?match=${fixtureId}${codeParam}`
+    : `${origin}?match=${fixtureId}${codeParam}`;
 
   msg += `\n🔗 *Participe e dê seu palpite:* ${linkApp}`;
 
