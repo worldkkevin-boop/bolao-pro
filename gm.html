@@ -140,12 +140,195 @@
       <div class="flex-1 overflow-y-auto p-8">
         
         <!-- ABA: DASHBOARD -->
-        <div x-show="abaAtiva === 'dashboard'" class="space-y-6">
-          <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
-            <h3 class="text-lg font-black uppercase text-purple-400 mb-2">Bem-vindo ao Painel do GM!</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">A autenticação e verificação de PIN de segurança foram validadas com sucesso. Em breve, as ferramentas de criação de desafios, gerenciador de grupos e visualizadores do Alpine.js estarão disponíveis aqui.</p>
+        <div x-show="abaAtiva === 'dashboard'" class="space-y-8" x-cloak>
+          
+          <!-- 1. GRID DE MÉTRICAS -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            
+            <!-- Card: Usuários -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Usuários Ativos</span>
+                <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.usuarios">0</h3>
+                <span class="text-[10px] text-zinc-400 font-medium mt-1 block">Registros na tabela profiles</span>
+              </div>
+              <div class="w-12 h-12 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-xl flex items-center justify-center text-xl">
+                👤
+              </div>
+            </div>
+
+            <!-- Card: Grupos -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Grupos Criados</span>
+                <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.grupos">0</h3>
+                <span class="text-[10px] text-zinc-400 font-medium mt-1 block">Tabela groups no Supabase</span>
+              </div>
+              <div class="w-12 h-12 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl flex items-center justify-center text-xl">
+                👥
+              </div>
+            </div>
+
+            <!-- Card: Palpites -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Palpites Enviados</span>
+                <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.palpites">0</h3>
+                <span class="text-[10px] text-zinc-400 font-medium mt-1 block">Palpites nas rodadas normais</span>
+              </div>
+              <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center text-xl">
+                📝
+              </div>
+            </div>
+
+            <!-- Card: Desafios -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Desafios do GM</span>
+                <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.desafios">0</h3>
+                <span class="text-[10px] text-zinc-400 font-medium mt-1 block">Desafios especiais abertos</span>
+              </div>
+              <div class="w-12 h-12 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl flex items-center justify-center text-xl">
+                🏆
+              </div>
+            </div>
+
           </div>
+
+          <!-- 2. DUAS COLUNAS: STATUS DA API E LOGS -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Coluna Esquerda: Status da API-Football -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-6">
+                  <h3 class="text-sm font-bold uppercase tracking-wider text-zinc-400">API-Football Status</h3>
+                  <span class="text-[10px] uppercase font-bold px-2.5 py-1 rounded-full border" 
+                        :class="apiStatus.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'">
+                    <span x-text="apiStatus.active ? 'Ativo' : 'Inativo'">Ativo</span>
+                  </span>
+                </div>
+
+                <div x-show="apiStatus.loading" class="py-8 flex flex-col items-center justify-center gap-2">
+                  <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Carregando status...</span>
+                </div>
+
+                <div x-show="!apiStatus.loading && apiStatus.error" class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-xs text-red-400 mb-4">
+                  <strong>Erro de conexão:</strong> <span x-text="apiStatus.error"></span>
+                </div>
+
+                <div x-show="!apiStatus.loading && !apiStatus.error" class="space-y-4">
+                  <!-- Conta / Plano -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/40">
+                      <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Conta</span>
+                      <span class="text-xs font-bold text-white truncate block" x-text="apiStatus.account || 'Não identificada'">-</span>
+                    </div>
+                    <div class="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/40">
+                      <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Plano Contratado</span>
+                      <span class="text-xs font-bold text-purple-400 block" x-text="apiStatus.plan || 'Free'">-</span>
+                    </div>
+                  </div>
+
+                  <!-- Progresso de Requisições -->
+                  <div class="bg-zinc-950/60 rounded-xl p-4 border border-zinc-800/40 mt-4">
+                    <div class="flex items-center justify-between text-xs font-bold mb-2">
+                      <span class="text-zinc-400">Requisições Diárias</span>
+                      <span class="text-white" x-text="`${apiStatus.current} / ${apiStatus.limit}`">0 / 0</span>
+                    </div>
+                    
+                    <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden mb-1">
+                      <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all duration-500" 
+                           :style="`width: ${apiStatus.percent}%`"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-zinc-500 font-bold">
+                      <span x-text="`${apiStatus.percent}% Utilizado`">0%</span>
+                      <span>Reseta à meia-noite UTC</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 border-t border-zinc-850 pt-4 flex gap-2">
+                <button @click="carregarApiStatus()" class="flex-1 bg-zinc-850 hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                  Atualizar Quota
+                </button>
+              </div>
+            </div>
+
+            <!-- Coluna Direita (2/3 de largura): Logs de Requisições -->
+            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg lg:col-span-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-zinc-400">Logs de Erros e Requisições da API</h3>
+                    <p class="text-[10px] text-zinc-500 font-medium">Histórico recente de requisições de banco de dados e APIs externas.</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="carregarDadosPainel()" title="Recarregar Tudo" class="w-8 h-8 bg-zinc-800 hover:bg-zinc-750 rounded-lg flex items-center justify-center text-sm transition-all active:scale-95">
+                      🔄
+                    </button>
+                    <button @click="limparLogs()" title="Limpar Logs" class="w-8 h-8 bg-red-500/10 hover:bg-red-500/25 text-red-400 rounded-lg flex items-center justify-center text-sm transition-all active:scale-95">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                <div class="overflow-x-auto min-h-[220px] max-h-[320px] overflow-y-auto border border-zinc-800/60 rounded-xl bg-zinc-950/40">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="bg-zinc-900 border-b border-zinc-800/80 text-[10px] text-zinc-400 font-bold uppercase">
+                        <th class="py-2.5 px-3">Horário</th>
+                        <th class="py-2.5 px-3">Serviço</th>
+                        <th class="py-2.5 px-3">Operação/Rota</th>
+                        <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-3 text-right">Tempo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Caso não haja logs -->
+                      <template x-if="apiLogs.length === 0">
+                        <tr>
+                          <td colspan="5" class="py-12 text-center text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
+                            Nenhum log registrado na sessão atual.
+                          </td>
+                        </tr>
+                      </template>
+                      
+                      <!-- Loop de logs -->
+                      <template x-for="log in apiLogs" :key="log.horario + log.rota">
+                        <tr class="border-b border-zinc-850 hover:bg-zinc-900/30 transition-colors">
+                          <td class="py-2 px-3 text-zinc-400 font-mono text-[10px]" x-text="log.horario">12:34:56</td>
+                          <td class="py-2 px-3">
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase" 
+                                  :class="log.servico === 'Supabase' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'"
+                                  x-text="log.servico">
+                            </span>
+                          </td>
+                          <td class="py-2 px-3 font-mono text-[10px] max-w-[200px] truncate" :title="log.mensagem" x-text="log.rota">SELECT COUNT(*)</td>
+                          <td class="py-2 px-3">
+                            <span class="text-[9px] font-bold" 
+                                  :class="log.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400'"
+                                  x-text="log.status">
+                            </span>
+                          </td>
+                          <td class="py-2 px-3 text-right text-zinc-400 font-mono text-[10px]" x-text="`${log.tempoMs}ms`">45ms</td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="mt-4 flex justify-between items-center text-[10px] text-zinc-500 font-medium">
+                <span>*Logs são temporários e duram apenas durante a sessão do painel.</span>
+                <span class="text-zinc-400 cursor-pointer hover:underline" @click="adicionarLog('Teste', 'Manual trigger', 'SUCCESS', 1, 'Painel operando normalmente')">Inserir Log de Teste</span>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
