@@ -498,7 +498,7 @@ async function compartilharGrupo() {
   
   // Se estiver abrindo o arquivo local via file://, usa o domínio de produção como fallback, caso contrário usa a URL atual dinâmica do servidor/Vercel
   const linkApp = origin.startsWith("file://")
-    ? "https://bolao-pro.vercel.app/?code=" + codigo
+    ? "https://bolao-pro-six.vercel.app/?code=" + codigo
     : origin + "?code=" + codigo;
 
   const textoShare = `⚽ BOLÃO PRO - ${grupoNome} ⚽\n\nFala, craque! 🏟️\nCriei um bolão pra gente competir. Prova que você entende de futebol e entra no meu grupo!\n\n👉 Use o código: ${codigo}\n🔗 ${linkApp}\n\nBora ver quem manja mais? 😏`;

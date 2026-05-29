@@ -1605,7 +1605,7 @@ async function compartilharRankingWhatsApp() {
 
   const origin = window.location.origin + window.location.pathname;
   const linkApp = origin.startsWith("file://")
-    ? "https://bolao-pro.vercel.app/?code=" + grupoAtual.invite_code
+    ? "https://bolao-pro-six.vercel.app/?code=" + grupoAtual.invite_code
     : origin + "?code=" + grupoAtual.invite_code;
 
   msg += `\n\n👉 Jogue conosco! Código do grupo: *${grupoAtual.invite_code}*`;

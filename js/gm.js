@@ -737,7 +737,7 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray,
   const origin = window.location.origin + window.location.pathname;
   const codeParam = gAtual ? `&code=${gAtual.invite_code}` : '';
   const linkApp = origin.startsWith("file://")
-    ? `https://bolao-pro.vercel.app/?match=${fixtureId}${codeParam}`
+    ? `https://bolao-pro-six.vercel.app/?match=${fixtureId}${codeParam}`
     : `${origin}?match=${fixtureId}${codeParam}`;
 
   msg += `\n🔗 *Participe e dê seu palpite:* ${linkApp}`;
