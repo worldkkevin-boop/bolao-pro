@@ -385,11 +385,9 @@ function atualizarDestaquesHomeGrupo() {
 }
 
 async function buscarDesafioAtivoHome() {
-  const bannerDesafio = document.getElementById('btn-desafio-ativo-gm');
-  const descDesafio = document.getElementById('txt-desafio-ativo-desc');
-  const badgeDesafio = document.getElementById('badge-desafio-ativo-gm');
-  if (!bannerDesafio || !descDesafio || !badgeDesafio || !sbClient || !grupoAtual || !usuarioAtual) {
-    if (bannerDesafio) bannerDesafio.classList.add('hidden');
+  const container = document.getElementById('container-desafios-ativos-gm');
+  if (!container || !sbClient || !grupoAtual || !usuarioAtual) {
+    if (container) container.classList.add('hidden');
     return;
   }
 
@@ -400,46 +398,68 @@ async function buscarDesafioAtivoHome() {
       .eq('status', 'active');
 
     if (error || !desafios || desafios.length === 0) {
-      bannerDesafio.classList.add('hidden');
+      container.innerHTML = '';
+      container.classList.add('hidden');
       return;
     }
 
     // Filtra desafios que pertencem às partidas carregadas para a liga do grupo atual
-    const desafioAtivo = desafios.find(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
+    const desafiosAtivosGrupo = desafios.filter(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
 
-    if (desafioAtivo) {
-      // Verifica se o usuário já votou nesse desafio
-      const { data: meuVoto } = await sbClient
+    if (desafiosAtivosGrupo.length > 0) {
+      container.innerHTML = ''; // Limpa o container
+
+      // Busca os votos do usuário logado para todos os desafios ativos de uma vez
+      const desafioIds = desafiosAtivosGrupo.map(d => d.id);
+      const { data: meusVotos } = await sbClient
         .from('user_desafios')
-        .select('id')
-        .eq('desafio_id', desafioAtivo.id)
+        .select('desafio_id')
+        .in('desafio_id', desafioIds)
         .eq('user_id', usuarioAtual.id)
-        .eq('group_id', grupoAtual.id)
-        .maybeSingle();
+        .eq('group_id', grupoAtual.id);
 
-      if (meuVoto) {
-        descDesafio.innerText = `${desafioAtivo.match_name} - Seu voto está registrado!`;
-        bannerDesafio.onclick = () => {
-          if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(desafioAtivo.fixture_id);
-        };
-        badgeDesafio.innerText = "Ver";
-        badgeDesafio.classList.remove('animate-pulse');
-      } else {
-        descDesafio.innerText = `${desafioAtivo.match_name} - Participe e ganhe +${desafioAtivo.points} pts!`;
-        bannerDesafio.onclick = () => {
-          if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(desafioAtivo.fixture_id);
-        };
-        badgeDesafio.innerText = "Palpitar";
-        badgeDesafio.classList.add('animate-pulse');
-      }
+      const votosMap = new Set((meusVotos || []).map(v => v.desafio_id));
 
-      bannerDesafio.classList.remove('hidden');
+      desafiosAtivosGrupo.forEach(desafio => {
+        const jaVotou = votosMap.has(desafio.id);
+        const descTexto = jaVotou 
+          ? `${desafio.match_name} - Seu palpite foi registrado!` 
+          : `${desafio.match_name} - Participe e ganhe +${desafio.points} pts!`;
+        
+        const badgeTexto = jaVotou ? 'Ver' : 'Palpitar';
+        const badgeClass = jaVotou 
+          ? 'text-purple-400 text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20' 
+          : 'text-purple-400 text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20 animate-pulse';
+
+        const cardHtml = `
+          <div onclick="if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(${desafio.fixture_id})" class="bg-gradient-to-r from-purple-650/40 via-purple-650/5 to-transparent p-5 rounded-2xl border border-purple-500/30 transition-all hover:border-purple-500/50 cursor-pointer flex items-center justify-between shadow-[0_0_20px_rgba(139,92,246,0.08)] active:scale-[0.98]">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="relative flex h-2.5 w-2.5 flex-shrink-0">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-black text-[13px] text-white flex items-center gap-1.5 uppercase tracking-wide truncate">
+                  <span>🏆</span> DESAFIO DO GM NO AR!
+                </h3>
+                <p class="text-[10px] text-zinc-300 mt-0.5 truncate">${descTexto}</p>
+              </div>
+            </div>
+            <span class="${badgeClass} flex-shrink-0 ml-3">${badgeTexto}</span>
+          </div>
+        `;
+        container.innerHTML += cardHtml;
+      });
+
+      container.classList.remove('hidden');
     } else {
-      bannerDesafio.classList.add('hidden');
+      container.innerHTML = '';
+      container.classList.add('hidden');
     }
   } catch (e) {
-    console.error("Erro ao buscar desafio ativo na home do grupo:", e);
-    bannerDesafio.classList.add('hidden');
+    console.error("Erro ao buscar desafios ativos na home do grupo:", e);
+    container.innerHTML = '';
+    container.classList.add('hidden');
   }
 }
 
