@@ -42,10 +42,17 @@ async function carregarGMView() {
   const listaDesafios = document.getElementById('lista-desafios-gm');
 
   if (selectJogo) {
+    if (!todosOsJogos || todosOsJogos.length === 0) {
+      selectJogo.innerHTML = '<option value="">Carregando partidas...</option>';
+      if (typeof carregarJogos === 'function') {
+        await carregarJogos();
+      }
+    }
+
     selectJogo.innerHTML = '<option value="">Selecione uma partida...</option>';
     // Filtra jogos que ainda não terminaram ou estão ao vivo
     const statusTerminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
-    const jogosAtivos = todosOsJogos.filter(j => !statusTerminados.includes(j.fixture.status.short));
+    const jogosAtivos = (todosOsJogos || []).filter(j => !statusTerminados.includes(j.fixture.status.short));
     
     // Ordena por data
     jogosAtivos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
