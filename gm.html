@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-zinc-950 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bolão Pro | Painel do GM 👑</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Alpine.js CDN (Deferred) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .bg-glow {
+      position: absolute; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(9, 9, 11, 0) 70%);
+      border-radius: 50%; z-index: 0;
+    }
+  </style>
+</head>
+<body class="h-full overflow-hidden flex flex-col relative" x-data="adminApp()" x-init="init()">
+
+  <!-- Background decorative glows -->
+  <div class="bg-glow top-[-200px] left-[-200px] pointer-events-none"></div>
+  <div class="bg-glow bottom-[-200px] right-[-200px] pointer-events-none"></div>
+
+  <!-- 1. TELA DE CARREGAMENTO INICIAL -->
+  <div x-show="loading" class="fixed inset-0 bg-zinc-950 z-[100] flex flex-col items-center justify-center gap-4">
+    <div class="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Iniciando Sistema Administrativo...</span>
+  </div>
+
+  <!-- 2. TELA DE LOGIN (Se não autenticado) -->
+  <div x-show="!loading && !usuario" class="flex-1 flex flex-col items-center justify-center p-6 relative z-10" x-cloak>
+    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center shadow-2xl">
+      <div class="w-20 h-20 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20 flex items-center justify-center mx-auto mb-6 text-3xl">
+        👑
+      </div>
+      <h1 class="text-3xl font-black tracking-tight mb-2">Painel do <span class="text-purple-400">GM</span></h1>
+      <p class="text-sm text-zinc-400 mb-8">Acesso exclusivo do Game Master para computadores.</p>
+
+      <button @click="entrarComGoogle()" class="w-full bg-white text-black font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-200 transition-colors active:scale-95 shadow-xl mb-4">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Autenticar como Administrador
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. TELA DE ACESSO BLOQUEADO (Se não for worldkkevin) -->
+  <div x-show="!loading && usuario && !acessoAutorizado" class="flex-1 flex flex-col items-center justify-center p-6 relative z-10" x-cloak>
+    <div class="w-full max-w-md bg-zinc-900 border border-red-500/20 rounded-3xl p-8 text-center shadow-2xl">
+      <div class="w-20 h-20 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl border border-red-500/20">
+        🚫
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-white mb-2">Acesso Negado (403)</h1>
+      <p class="text-sm text-zinc-400 mb-6">O e-mail conectado (<span class="text-white font-bold" x-text="usuario.email"></span>) não possui permissões administrativas.</p>
+      
+      <button @click="deslogar()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all active:scale-95">
+        Conectar com Outra Conta
+      </button>
+    </div>
+  </div>
+
+  <!-- 4. TELA DE PIN DE SEGURANÇA (Se for worldkkevin mas PIN bloqueado) -->
+  <div x-show="!loading && usuario && acessoAutorizado && !pinDesbloqueado" class="flex-1 flex flex-col items-center justify-center p-6 relative z-10" x-cloak>
+    <div class="w-full max-w-md bg-zinc-900 border border-purple-500/20 rounded-3xl p-8 text-center shadow-2xl">
+      <div class="w-20 h-20 bg-purple-500/10 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl border border-purple-500/20 animate-pulse">
+        🔒
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-white mb-1">Verificação de Segurança</h1>
+      <p class="text-xs text-zinc-400 mb-6">Insira o PIN secreto para liberar as ferramentas administrativas.</p>
+
+      <form @submit.prevent="verificarPin()">
+        <input type="password" x-model="pinInput" placeholder="••••" maxlength="6" class="w-full bg-zinc-950 text-white text-4xl font-black text-center tracking-[0.4em] rounded-xl border border-zinc-800 focus:border-purple-500 outline-none py-4 mb-4 transition-colors placeholder-zinc-800">
+        
+        <p x-show="pinErro" class="text-red-400 text-xs font-bold mb-4" x-cloak>PIN incorreto. Tente novamente.</p>
+
+        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-sm py-3.5 rounded-xl uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-purple-600/20">
+          Desbloquear Painel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. PAINEL DO GM PRINCIPAL (Se tudo desbloqueado) -->
+  <div x-show="!loading && usuario && acessoAutorizado && pinDesbloqueado" class="flex-1 flex overflow-hidden relative z-10" x-cloak>
+    
+    <!-- Sidebar fixa à esquerda -->
+    <aside class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between flex-shrink-0">
+      <div class="p-6">
+        <div class="flex items-center gap-3 mb-8">
+          <span class="text-2xl">👑</span>
+          <div>
+            <h2 class="font-black text-sm uppercase leading-tight tracking-wider">Painel do GM</h2>
+            <span class="text-[10px] text-purple-400 font-bold tracking-widest uppercase">Modo Desktop</span>
+          </div>
+        </div>
+
+        <nav class="space-y-1">
+          <button @click="abaAtiva = 'dashboard'" :class="abaAtiva === 'dashboard' ? 'bg-purple-650 text-white font-bold' : 'text-zinc-400 hover:text-white hover:bg-zinc-850'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span>📊</span> Dashboard
+          </button>
+          <button @click="abaAtiva = 'grupos'" :class="abaAtiva === 'grupos' ? 'bg-purple-650 text-white font-bold' : 'text-zinc-400 hover:text-white hover:bg-zinc-850'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span>👥</span> Gerenciar Grupos
+          </button>
+          <button @click="abaAtiva = 'usuarios'" :class="abaAtiva === 'usuarios' ? 'bg-purple-650 text-white font-bold' : 'text-zinc-400 hover:text-white hover:bg-zinc-850'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span>👤</span> Gerenciar Usuários
+          </button>
+        </nav>
+      </div>
+
+      <!-- Rodapé da Sidebar (Usuário Logado) -->
+      <div class="p-4 border-t border-zinc-800 bg-zinc-950/40 flex items-center justify-between">
+        <div class="flex items-center gap-2 min-w-0">
+          <img :src="usuario ? (usuario.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=GM&background=8b5cf6&color=fff') : ''" class="w-8 h-8 rounded-full border border-purple-500/30 flex-shrink-0">
+          <div class="min-w-0">
+            <p class="text-xs font-bold truncate" x-text="usuario ? (usuario.user_metadata.full_name || usuario.email) : ''">GM</p>
+            <button @click="deslogar()" class="text-[10px] text-red-400 hover:underline font-semibold block text-left">Sair da Conta</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Área de Conteúdo Central -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-zinc-950/90">
+      <!-- Top header -->
+      <header class="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/40">
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' ? 'Gerenciador de Grupos' : 'Gerenciador de Perfis')">Métricas</h1>
+        <div class="flex items-center gap-4">
+          <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
+        </div>
+      </header>
+
+      <!-- Conteúdo da Aba -->
+      <div class="flex-1 overflow-y-auto p-8">
+        
+        <!-- ABA: DASHBOARD -->
+        <div x-show="abaAtiva === 'dashboard'" class="space-y-6">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+            <h3 class="text-lg font-black uppercase text-purple-400 mb-2">Bem-vindo ao Painel do GM!</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">A autenticação e verificação de PIN de segurança foram validadas com sucesso. Em breve, as ferramentas de criação de desafios, gerenciador de grupos e visualizadores do Alpine.js estarão disponíveis aqui.</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Carrega as credenciais globais e o script do admin -->
+  <script src="js/config.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
