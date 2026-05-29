@@ -292,6 +292,8 @@
             <div class="flex items-center gap-2 mt-1">
               <span class="text-[10px] text-text-muted font-bold tracking-widest">CÓD: <span class="text-white" id="codigo-grupo">8187964</span></span>
               <button onclick="copiarCodigo()" class="text-brand-green text-[10px] font-bold underline">Copiar</button>
+              <span class="text-zinc-700 text-[10px]">•</span>
+              <button onclick="switchView('view-regras')" class="text-brand-green text-[10px] font-bold underline">Regras</button>
               <span id="badge-vagas" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full"></span>
             </div>
           </div>
@@ -640,6 +642,38 @@
       </button>
     </div>
 
+    <!-- View: Desafios do GM (Histórico e Ativos) -->
+    <div id="view-desafios" class="fade-in hidden pb-28">
+      <div class="flex items-center justify-between mb-6 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight flex items-center gap-2">🏆 Desafios do GM</h1>
+        </div>
+      </div>
+
+      <!-- Tab Controller Interno -->
+      <div class="flex border-b border-white/5 mb-6">
+        <button id="btn-tab-desafios-ativos" onclick="alternarAbaDesafios('ativos')" class="flex-1 py-3 border-b-2 border-brand-green font-bold text-brand-green transition-all text-xs uppercase tracking-wider">Disponíveis</button>
+        <button id="btn-tab-desafios-historico" onclick="alternarAbaDesafios('historico')" class="flex-1 py-3 text-text-muted hover:text-white transition-all text-xs uppercase tracking-wider font-bold">Meus Palpites</button>
+      </div>
+
+      <!-- Tab Content: Desafios Disponíveis -->
+      <div id="tab-desafios-ativos" class="block fade-in space-y-4">
+        <div id="lista-desafios-ativos-usuario" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
+        </div>
+      </div>
+
+      <!-- Tab Content: Histórico de Desafios -->
+      <div id="tab-desafios-historico" class="hidden fade-in space-y-4">
+        <div id="lista-desafios-historico-usuario" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
+        </div>
+      </div>
+    </div>
+
     <div id="view-regras" class="fade-in hidden">
       <div class="flex items-center justify-between mb-6 mt-2">
         <div class="flex items-center gap-4">
@@ -936,9 +970,9 @@
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
         <span class="text-[10px] font-bold">Galera</span>
       </button>
-      <button onclick="switchView('view-regras')" id="nav-view-regras" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <span class="text-[10px] font-bold">Regras</span>
+      <button onclick="switchView('view-desafios')" id="nav-view-desafios" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span class="text-[10px] font-bold">Desafios</span>
       </button>
     </div>
 

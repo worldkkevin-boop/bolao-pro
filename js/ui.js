@@ -10,7 +10,7 @@ function fecharModal(id) {
 }
 
 function switchView(targetViewId) {
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -78,6 +78,8 @@ function switchView(targetViewId) {
       document.getElementById('nome-grupo-ranking').innerText = '—';
       document.getElementById('lista-ranking').innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Selecione um grupo para ver o ranking...</p>';
     }
+  } else if (targetViewId === 'view-desafios') {
+    if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
   } else if (targetViewId === 'view-painel') {
     const adminSettings = document.getElementById('admin-settings-section');
     const isOwner = grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id;
@@ -1723,5 +1725,186 @@ async function compartilharRankingWhatsApp() {
     });
   }
 })();
+
+// ============ CONTROLE DE DESAFIOS DO USUÁRIO ============
+
+let abaDesafiosAtiva = 'ativos';
+
+function alternarAbaDesafios(aba) {
+  abaDesafiosAtiva = aba;
+  
+  const btnAtivos = document.getElementById('btn-tab-desafios-ativos');
+  const btnHistorico = document.getElementById('btn-tab-desafios-historico');
+  const tabAtivos = document.getElementById('tab-desafios-ativos');
+  const tabHistorico = document.getElementById('tab-desafios-historico');
+
+  if (!btnAtivos || !btnHistorico || !tabAtivos || !tabHistorico) return;
+
+  if (aba === 'ativos') {
+    btnAtivos.className = "flex-1 py-3 border-b-2 border-brand-green font-bold text-brand-green transition-all text-xs uppercase tracking-wider";
+    btnHistorico.className = "flex-1 py-3 text-text-muted hover:text-white transition-all text-xs uppercase tracking-wider font-bold";
+    tabAtivos.classList.remove('hidden');
+    tabHistorico.classList.add('hidden');
+  } else {
+    btnHistorico.className = "flex-1 py-3 border-b-2 border-brand-green font-bold text-brand-green transition-all text-xs uppercase tracking-wider";
+    btnAtivos.className = "flex-1 py-3 text-text-muted hover:text-white transition-all text-xs uppercase tracking-wider font-bold";
+    tabHistorico.classList.remove('hidden');
+    tabAtivos.classList.add('hidden');
+  }
+
+  carregarDesafiosUsuarioView();
+}
+
+async function carregarDesafiosUsuarioView() {
+  const listaAtivos = document.getElementById('lista-desafios-ativos-usuario');
+  const listaHistorico = document.getElementById('lista-desafios-historico-usuario');
+
+  if (!listaAtivos || !listaHistorico || !sbClient || !grupoAtual || !usuarioAtual) return;
+
+  if (abaDesafiosAtiva === 'ativos') {
+    listaAtivos.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Buscando desafios disponíveis...</p>';
+    try {
+      const { data: desafios, error } = await sbClient
+        .from('desafios')
+        .select('*')
+        .eq('status', 'active');
+
+      if (error) {
+        listaAtivos.innerHTML = `<p class="text-red-400 text-[13px] text-center py-8">Erro: ${error.message}</p>`;
+        return;
+      }
+
+      const desafiosGrupo = (desafios || []).filter(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
+
+      if (desafiosGrupo.length === 0) {
+        listaAtivos.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum desafio ativo no momento.</p>';
+        return;
+      }
+
+      const desafioIds = desafiosGrupo.map(d => d.id);
+      const { data: meusVotos } = await sbClient
+        .from('user_desafios')
+        .select('desafio_id, chosen_player')
+        .in('desafio_id', desafioIds)
+        .eq('user_id', usuarioAtual.id)
+        .eq('group_id', grupoAtual.id);
+
+      const votosMap = {};
+      (meusVotos || []).forEach(v => {
+        votosMap[v.desafio_id] = v.chosen_player;
+      });
+
+      listaAtivos.innerHTML = '';
+      desafiosGrupo.forEach(d => {
+        const jaVotou = !!votosMap[d.id];
+        const votoUsuario = votosMap[d.id];
+        
+        const labelRegra = (typeof traduzirRegraDesafio === 'function') ? traduzirRegraDesafio(d.event_type) : d.event_type;
+        const ptsInfo = `+${d.points} pts`;
+
+        let cardHtml = `
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 mb-3">
+            <div class="flex justify-between items-start mb-2">
+              <div class="min-w-0 flex-1">
+                <h4 class="font-bold text-[14px] text-white truncate">${d.match_name}</h4>
+                <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${labelRegra}</strong></p>
+              </div>
+              <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 flex-shrink-0 ml-3">${ptsInfo}</span>
+            </div>
+            
+            ${jaVotou ? `
+              <div class="mt-3 p-3 bg-purple-650/10 border border-purple-500/20 rounded-xl flex justify-between items-center">
+                <span class="text-[11px] text-zinc-300">Seu palpite: <strong class="text-white">${votoUsuario}</strong></span>
+                <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">Aguardando</span>
+              </div>
+            ` : `
+              <div class="flex gap-2 mt-4">
+                <button onclick="if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(${d.fixture_id})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 shadow-lg shadow-purple-650/20">
+                  Participar do Desafio
+                </button>
+              </div>
+            `}
+          </div>
+        `;
+        listaAtivos.innerHTML += cardHtml;
+      });
+
+    } catch (e) {
+      console.error(e);
+      listaAtivos.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao carregar desafios.</p>';
+    }
+  } else {
+    listaHistorico.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Carregando histórico...</p>';
+    try {
+      const { data: votos, error } = await sbClient
+        .from('user_desafios')
+        .select(`
+          id,
+          chosen_player,
+          points_awarded,
+          desafio_id,
+          desafios (
+            match_name,
+            event_type,
+            points,
+            status
+          )
+        `)
+        .eq('user_id', usuarioAtual.id)
+        .eq('group_id', grupoAtual.id);
+
+      if (error) {
+        listaHistorico.innerHTML = `<p class="text-red-400 text-[13px] text-center py-8">Erro: ${error.message}</p>`;
+        return;
+      }
+
+      const historicoDesafios = (votos || []).filter(v => v.desafios && v.desafios.status === 'resolved');
+
+      if (historicoDesafios.length === 0) {
+        listaHistorico.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum palpite em desafios finalizados.</p>';
+        return;
+      }
+
+      listaHistorico.innerHTML = '';
+      historicoDesafios.forEach(v => {
+        const d = v.desafios;
+        const acertou = v.points_awarded > 0;
+        const perdeu = v.points_awarded < 0;
+        
+        const labelRegra = (typeof traduzirRegraDesafio === 'function') ? traduzirRegraDesafio(d.event_type) : d.event_type;
+        
+        let statusBadge = '';
+        if (acertou) {
+          statusBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">+${v.points_awarded} PTS</span>`;
+        } else if (perdeu) {
+          statusBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">${v.points_awarded} PTS</span>`;
+        } else {
+          statusBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">0 PTS</span>`;
+        }
+
+        let cardHtml = `
+          <div class="bg-card-bg border border-white/5 rounded-2xl p-4 mb-3">
+            <div class="flex justify-between items-start mb-2">
+              <div class="min-w-0 flex-1">
+                <h4 class="font-bold text-[14px] text-white truncate">${d.match_name}</h4>
+                <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${labelRegra}</strong></p>
+              </div>
+              <div class="ml-3 flex-shrink-0">${statusBadge}</div>
+            </div>
+            <div class="mt-3 p-3 bg-black/30 border border-white/5 rounded-xl flex justify-between items-center">
+              <span class="text-[11px] text-text-muted">Seu voto: <strong class="text-white">${v.chosen_player}</strong></span>
+              <span class="text-[11px] font-bold ${acertou ? 'text-green-400' : (perdeu ? 'text-red-400' : 'text-zinc-400')} uppercase">${acertou ? 'Acertou' : (perdeu ? 'Errou' : 'Errou')}</span>
+            </div>
+          </div>
+        `;
+        listaHistorico.innerHTML += cardHtml;
+      });
+
+    } catch (e) {
+      console.error(e);
+      listaHistorico.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao carregar histórico.</p>';
+    }
+  }
+}
 
 

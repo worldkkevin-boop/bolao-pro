@@ -382,6 +382,9 @@ function atualizarDestaquesHomeGrupo() {
 
   // 3. Desafio Ativo do GM
   buscarDesafioAtivoHome();
+
+  // 4. Verifica notificações de desafios resolvidos
+  verificarNotificacoesDesafios();
 }
 
 async function buscarDesafioAtivoHome() {
@@ -710,6 +713,123 @@ async function carregarParticipantesGrupo() {
   } catch (err) {
     console.error("Erro em carregarParticipantesGrupo:", err);
     container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro no processamento.</p>';
+  }
+}
+
+async function verificarNotificacoesDesafios() {
+  if (!sbClient || !grupoAtual || !usuarioAtual) return;
+
+  try {
+    const { data: votos, error } = await sbClient
+      .from('user_desafios')
+      .select(`
+        id,
+        chosen_player,
+        points_awarded,
+        desafio_id,
+        desafios (
+          match_name,
+          event_type,
+          points,
+          status
+        )
+      `)
+      .eq('user_id', usuarioAtual.id)
+      .eq('group_id', grupoAtual.id);
+
+    if (error || !votos) return;
+
+    // Filtra os votos para desafios que estão "resolved" (finalizados pelo GM)
+    const votosResolvidos = votos.filter(v => v.desafios && v.desafios.status === 'resolved');
+
+    // Lê a lista de IDs de desafios que o usuário já viu/foi notificado
+    let desafiosVistos = [];
+    try {
+      const vistosStr = localStorage.getItem('desafios_vistos_' + usuarioAtual.id);
+      if (vistosStr) {
+        desafiosVistos = JSON.parse(vistosStr);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Identifica quais desafios resolvidos o usuário ainda NÃO viu a notificação
+    const pendentesNotificacao = votosResolvidos.filter(v => !desafiosVistos.includes(v.desafio_id));
+
+    if (pendentesNotificacao.length > 0) {
+      // Notifica o usuário de cada um (um de cada vez ou todos em popups separados)
+      pendentesNotificacao.forEach(voto => {
+        const d = voto.desafios;
+        const acertou = (voto.points_awarded > 0);
+        const perdeu = (voto.points_awarded < 0);
+        const pontosInfo = voto.points_awarded;
+        const msgPontos = acertou 
+          ? `Ganhou +${pontosInfo} pontos! 🎉` 
+          : (perdeu ? `Perdeu ${pontosInfo} pontos! ⚠️` : `0 pontos.`);
+        
+        let resultadoTexto = 'ERROU';
+        if (acertou) resultadoTexto = 'ACERTOU';
+        else if (perdeu) resultadoTexto = 'ERROU (Com Penalidade)';
+
+        const modalId = 'modal-notif-desafio-' + voto.desafio_id;
+        const labelRegra = (typeof traduzirRegraDesafio === 'function') ? traduzirRegraDesafio(d.event_type) : d.event_type;
+
+        // Cria um modal dinâmico no HTML para exibir a notificação
+        const modalHtml = `
+          <div id="${modalId}" class="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-6 fade-in">
+            <div class="bg-card-bg border border-purple-500/30 rounded-3xl w-full max-w-sm p-6 text-center shadow-[0_0_30px_rgba(139,92,246,0.15)] relative overflow-hidden">
+              <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+              
+              <div class="w-16 h-16 rounded-full bg-purple-500/10 text-purple-400 mx-auto flex items-center justify-center mb-4 border border-purple-500/20 text-2xl">
+                🏆
+              </div>
+              
+              <h3 class="text-lg font-black uppercase text-white mb-1">Resultado do Desafio!</h3>
+              <p class="text-[11px] font-bold text-purple-400 uppercase tracking-widest mb-4">Finalizado pelo GM</p>
+              
+              <div class="bg-black/30 border border-white/5 rounded-2xl p-4 mb-5 text-left space-y-2">
+                <p class="text-[12px] text-text-muted">🏟️ Jogo: <strong class="text-white">${d.match_name}</strong></p>
+                <p class="text-[12px] text-text-muted">🔥 Regra: <strong class="text-white">${labelRegra}</strong></p>
+                <p class="text-[12px] text-text-muted">👉 Seu Voto: <strong class="text-white">${voto.chosen_player}</strong></p>
+                <p class="text-[12px] text-text-muted">📊 Resultado: <strong class="${acertou ? 'text-green-400' : (perdeu ? 'text-red-400' : 'text-zinc-400')} font-black">${resultadoTexto}</strong></p>
+              </div>
+
+              <div class="text-base font-black text-white mb-6">
+                ${msgPontos}
+              </div>
+
+              <button onclick="fecharNotificacaoDesafio('${modalId}', '${voto.desafio_id}')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 rounded-xl uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-purple-600/20">
+                Sensacional!
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao verificar notificações de desafios:", err);
+  }
+}
+
+function fecharNotificacaoDesafio(modalId, desafioId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+
+  // Salva no localStorage que o usuário já viu
+  if (usuarioAtual) {
+    let desafiosVistos = [];
+    const vistosStr = localStorage.getItem('desafios_vistos_' + usuarioAtual.id);
+    if (vistosStr) {
+      try {
+        desafiosVistos = JSON.parse(vistosStr);
+      } catch (e) {}
+    }
+    if (!desafiosVistos.includes(desafioId)) {
+      desafiosVistos.push(desafioId);
+      localStorage.setItem('desafios_vistos_' + usuarioAtual.id, JSON.stringify(desafiosVistos));
+    }
   }
 }
 
