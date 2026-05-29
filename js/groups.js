@@ -379,6 +379,68 @@ function atualizarDestaquesHomeGrupo() {
       ultimoCard.onclick = null;
     }
   }
+
+  // 3. Desafio Ativo do GM
+  buscarDesafioAtivoHome();
+}
+
+async function buscarDesafioAtivoHome() {
+  const bannerDesafio = document.getElementById('btn-desafio-ativo-gm');
+  const descDesafio = document.getElementById('txt-desafio-ativo-desc');
+  const badgeDesafio = document.getElementById('badge-desafio-ativo-gm');
+  if (!bannerDesafio || !descDesafio || !badgeDesafio || !sbClient || !grupoAtual || !usuarioAtual) {
+    if (bannerDesafio) bannerDesafio.classList.add('hidden');
+    return;
+  }
+
+  try {
+    const { data: desafios, error } = await sbClient
+      .from('desafios')
+      .select('*')
+      .eq('status', 'active');
+
+    if (error || !desafios || desafios.length === 0) {
+      bannerDesafio.classList.add('hidden');
+      return;
+    }
+
+    // Filtra desafios que pertencem às partidas carregadas para a liga do grupo atual
+    const desafioAtivo = desafios.find(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
+
+    if (desafioAtivo) {
+      // Verifica se o usuário já votou nesse desafio
+      const { data: meuVoto } = await sbClient
+        .from('user_desafios')
+        .select('id')
+        .eq('desafio_id', desafioAtivo.id)
+        .eq('user_id', usuarioAtual.id)
+        .eq('group_id', grupoAtual.id)
+        .maybeSingle();
+
+      if (meuVoto) {
+        descDesafio.innerText = `${desafioAtivo.match_name} - Seu voto está registrado!`;
+        bannerDesafio.onclick = () => {
+          if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(desafioAtivo.fixture_id);
+        };
+        badgeDesafio.innerText = "Ver";
+        badgeDesafio.classList.remove('animate-pulse');
+      } else {
+        descDesafio.innerText = `${desafioAtivo.match_name} - Participe e ganhe +${desafioAtivo.points} pts!`;
+        bannerDesafio.onclick = () => {
+          if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(desafioAtivo.fixture_id);
+        };
+        badgeDesafio.innerText = "Palpitar";
+        badgeDesafio.classList.add('animate-pulse');
+      }
+
+      bannerDesafio.classList.remove('hidden');
+    } else {
+      bannerDesafio.classList.add('hidden');
+    }
+  } catch (e) {
+    console.error("Erro ao buscar desafio ativo na home do grupo:", e);
+    bannerDesafio.classList.add('hidden');
+  }
 }
 
 function copiarCodigo() {
