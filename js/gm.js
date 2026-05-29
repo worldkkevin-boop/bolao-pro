@@ -232,6 +232,7 @@ function ajustarCamposDesafioGM() {
       p1.value = '';
       p2.value = '';
     }
+  }
 }
 
 // Exclusão de desafio
@@ -643,3 +644,6 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray)
   const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
   window.open(urlUrl, '_blank');
 }
+
+// Executa na carga do script para garantir que o botão apareça se a sessão já estiver recuperada
+verificarUsuarioGM();
