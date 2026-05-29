@@ -23,6 +23,17 @@ function adminApp() {
     usuariosLoading: false,
     usuariosFiltro: '',
 
+    // Desafios do GM
+    desafiosListaGM: [],
+    desafiosLoading: false,
+    desafiosAbaFiltro: 'active',
+    novoDesafio: { fixture_id: '', match_name: '', event_type: 'Goal', points: 5, players: [], status: 'active', hasPenalty: false },
+    novoJogadorInput: '',
+    desafioLancando: false,
+    buscaFixture: '',
+    buscaFixtureLoading: false,
+    resultadoBuscaFixtures: [],
+
     // Métricas de Banco de Dados
     metricas: {
       loading: false,
@@ -437,6 +448,269 @@ function adminApp() {
         console.error('Erro ao carregar usuários:', err);
       } finally {
         this.usuariosLoading = false;
+      }
+    },
+
+    // ============ DESAFIOS DO GM ============
+
+    traduzirRegra(eventType) {
+      const map = {
+        'Goal': '⚽ Gol',
+        'Goal_penalty': '⚽ Gol (Pen.)',
+        'Card': '🟨 Cartão',
+        'Card_penalty': '🟨 Cartão (Pen.)'
+      };
+      return map[eventType] || eventType;
+    },
+
+    async carregarDesafiosGM() {
+      if (this.desafiosLoading) return;
+      this.desafiosLoading = true;
+      const startTime = Date.now();
+
+      try {
+        const { data: desafios, error } = await sbClient
+          .from('desafios')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Conta votos por desafio
+        const desafioIds = desafios.map(d => d.id);
+        let votosCount = {};
+        if (desafioIds.length > 0) {
+          const { data: votos } = await sbClient
+            .from('user_desafios')
+            .select('desafio_id')
+            .in('desafio_id', desafioIds);
+
+          if (votos) votos.forEach(v => {
+            votosCount[v.desafio_id] = (votosCount[v.desafio_id] || 0) + 1;
+          });
+        }
+
+        desafios.forEach(d => {
+          d._votosCount = votosCount[d.id] || 0;
+          d._statusJogo = null; // será preenchido pela API
+          d._placarJogo = null;
+        });
+
+        this.desafiosListaGM = desafios;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT desafios + user_desafios', 'SUCCESS', duration, `${desafios.length} desafios carregados`);
+
+        // Busca status dos jogos em background para desafios ativos
+        this.enriquecerStatusJogos();
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT desafios', 'ERROR', duration, err.message);
+        console.error('Erro ao carregar desafios:', err);
+      } finally {
+        this.desafiosLoading = false;
+      }
+    },
+
+    async enriquecerStatusJogos() {
+      // Pega fixture_ids únicos dos desafios
+      const fixtureIds = [...new Set(this.desafiosListaGM.map(d => d.fixture_id))];
+      if (fixtureIds.length === 0) return;
+
+      const startTime = Date.now();
+      try {
+        const idsParam = fixtureIds.join('-');
+        const resp = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idsParam}`, {
+          headers: {
+            'x-rapidapi-host': 'v3.football.api-sports.io',
+            'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
+          }
+        });
+        const json = await resp.json();
+
+        if (json.response) {
+          const statusMap = {};
+          json.response.forEach(f => {
+            statusMap[f.fixture.id] = {
+              status: f.fixture.status.short,
+              statusLong: f.fixture.status.long,
+              elapsed: f.fixture.status.elapsed,
+              homeGoals: f.goals.home,
+              awayGoals: f.goals.away,
+              homeName: f.teams.home.name,
+              awayName: f.teams.away.name,
+              homeLogo: f.teams.home.logo,
+              awayLogo: f.teams.away.logo
+            };
+          });
+
+          this.desafiosListaGM.forEach(d => {
+            if (statusMap[d.fixture_id]) {
+              d._statusJogo = statusMap[d.fixture_id];
+              const s = statusMap[d.fixture_id];
+              d._placarJogo = `${s.homeGoals ?? '-'} x ${s.awayGoals ?? '-'}`;
+            }
+          });
+        }
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('API-Football', `GET /fixtures?ids=${fixtureIds.length} jogos`, 'SUCCESS', duration, `Status de ${fixtureIds.length} partidas carregados`);
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('API-Football', 'GET /fixtures (status)', 'ERROR', duration, err.message);
+      }
+    },
+
+    async buscarPartidas() {
+      if (!this.buscaFixture || this.buscaFixtureLoading) return;
+      this.buscaFixtureLoading = true;
+      this.resultadoBuscaFixtures = [];
+
+      const startTime = Date.now();
+      try {
+        // Busca nas 3 ligas: Brasileirão (71), Libertadores (13), Copa do Mundo (1)
+        const ligas = [71, 13, 1];
+        const hoje = new Date();
+        const from = hoje.toISOString().split('T')[0];
+        const ate = new Date(hoje.getTime() + 15 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+        let todosJogos = [];
+
+        for (const liga of ligas) {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2025&from=${from}&to=${ate}`, {
+            headers: {
+              'x-rapidapi-host': 'v3.football.api-sports.io',
+              'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
+            }
+          });
+          const json = await resp.json();
+          if (json.response) todosJogos = todosJogos.concat(json.response);
+        }
+
+        // Filtra pelo nome do time buscado
+        const q = this.buscaFixture.toLowerCase();
+        this.resultadoBuscaFixtures = todosJogos.filter(j =>
+          j.teams.home.name.toLowerCase().includes(q) ||
+          j.teams.away.name.toLowerCase().includes(q)
+        ).sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('API-Football', `GET /fixtures busca "${this.buscaFixture}"`, 'SUCCESS', duration, `${this.resultadoBuscaFixtures.length} partidas encontradas`);
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('API-Football', 'GET /fixtures (busca)', 'ERROR', duration, err.message);
+      } finally {
+        this.buscaFixtureLoading = false;
+      }
+    },
+
+    selecionarPartida(jogo) {
+      this.novoDesafio.fixture_id = jogo.fixture.id;
+      this.novoDesafio.match_name = `${jogo.teams.home.name} vs ${jogo.teams.away.name}`;
+    },
+
+    adicionarJogadorDesafio() {
+      const nome = this.novoJogadorInput.trim();
+      if (!nome) return;
+      if (!this.novoDesafio.players.includes(nome)) {
+        this.novoDesafio.players.push(nome);
+      }
+      this.novoJogadorInput = '';
+    },
+
+    async lancarDesafioGM() {
+      if (this.desafioLancando) return;
+      if (!this.novoDesafio.fixture_id || this.novoDesafio.players.length < 2) {
+        alert('Selecione uma partida e adicione pelo menos 2 jogadores.');
+        return;
+      }
+
+      this.desafioLancando = true;
+      const startTime = Date.now();
+
+      try {
+        const payload = {
+          fixture_id: Number(this.novoDesafio.fixture_id),
+          match_name: this.novoDesafio.match_name,
+          event_type: this.novoDesafio.event_type,
+          points: this.novoDesafio.points,
+          players: this.novoDesafio.players,
+          status: 'active'
+        };
+
+        const { error } = await sbClient
+          .from('desafios')
+          .insert([payload]);
+
+        if (error) throw error;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'INSERT desafios', 'SUCCESS', duration, `Desafio "${payload.match_name}" lançado`);
+
+        alert(`⚡ Desafio lançado com sucesso!\n${payload.match_name}\nTipo: ${this.traduzirRegra(payload.event_type)}\nPontos: ${payload.points}`);
+
+        // Volta pra lista
+        this.abaAtiva = 'desafios';
+        this.carregarDesafiosGM();
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'INSERT desafios', 'ERROR', duration, err.message);
+        alert('Erro ao lançar desafio: ' + err.message);
+      } finally {
+        this.desafioLancando = false;
+      }
+    },
+
+    async finalizarDesafioGM(desafioId) {
+      if (!confirm('Tem certeza que deseja FINALIZAR este desafio? Ele será marcado como resolvido.')) return;
+
+      const startTime = Date.now();
+      try {
+        const { error } = await sbClient
+          .from('desafios')
+          .update({ status: 'resolved' })
+          .eq('id', desafioId);
+
+        if (error) throw error;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'UPDATE desafios (finalizar)', 'SUCCESS', duration, `Desafio ${desafioId.substring(0, 8)} finalizado`);
+
+        this.carregarDesafiosGM();
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'UPDATE desafios', 'ERROR', duration, err.message);
+        alert('Erro ao finalizar: ' + err.message);
+      }
+    },
+
+    async excluirDesafioGM(desafioId) {
+      if (!confirm('⚠️ Tem certeza? Isso vai APAGAR o desafio e os votos dos jogadores permanentemente!')) return;
+
+      const startTime = Date.now();
+      try {
+        // Deleta votos primeiro
+        await sbClient
+          .from('user_desafios')
+          .delete()
+          .eq('desafio_id', desafioId);
+
+        // Depois deleta o desafio
+        const { error } = await sbClient
+          .from('desafios')
+          .delete()
+          .eq('id', desafioId);
+
+        if (error) throw error;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'DELETE desafios + user_desafios', 'SUCCESS', duration, `Desafio ${desafioId.substring(0, 8)} excluído`);
+
+        this.carregarDesafiosGM();
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'DELETE desafios', 'ERROR', duration, err.message);
+        alert('Erro ao excluir: ' + err.message);
       }
     }
   };
