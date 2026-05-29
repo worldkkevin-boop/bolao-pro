@@ -10,6 +10,19 @@ function adminApp() {
     pinErro: false,
     abaAtiva: 'dashboard',
 
+    // Grupos
+    gruposLista: [],
+    gruposLoading: false,
+    gruposFiltro: '',
+    grupoSelecionado: null,
+    grupoMembros: [],
+    grupoMembrosLoading: false,
+
+    // Usuários
+    usuariosLista: [],
+    usuariosLoading: false,
+    usuariosFiltro: '',
+
     // Métricas de Banco de Dados
     metricas: {
       loading: false,
@@ -262,6 +275,168 @@ function adminApp() {
         this.adicionarLog('API-Football', 'GET /status', 'ERROR', duration, err.message);
       } finally {
         this.apiStatus.loading = false;
+      }
+    },
+
+    // ============ GRUPOS ============
+
+    gruposFiltrados() {
+      if (!this.gruposFiltro) return this.gruposLista;
+      const q = this.gruposFiltro.toLowerCase();
+      return this.gruposLista.filter(g =>
+        (g.name || '').toLowerCase().includes(q) ||
+        (g.invite_code || '').toLowerCase().includes(q) ||
+        (g._donoNome || '').toLowerCase().includes(q)
+      );
+    },
+
+    async carregarGrupos() {
+      if (this.gruposLoading) return;
+      this.gruposLoading = true;
+      const startTime = Date.now();
+
+      try {
+        // Busca todos os grupos
+        const { data: grupos, error } = await sbClient
+          .from('groups')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Busca todos os membros para contar por grupo
+        const { data: membros } = await sbClient
+          .from('group_members')
+          .select('group_id, user_id');
+
+        // Busca perfis para resolver nomes dos donos
+        const { data: perfis } = await sbClient
+          .from('profiles')
+          .select('id, full_name');
+
+        const perfisMap = {};
+        if (perfis) perfis.forEach(p => { perfisMap[p.id] = p.full_name; });
+
+        const membrosCount = {};
+        if (membros) membros.forEach(m => {
+          membrosCount[m.group_id] = (membrosCount[m.group_id] || 0) + 1;
+        });
+
+        // Enriquece os grupos com contagem e nome do dono
+        grupos.forEach(g => {
+          g._membros = membrosCount[g.id] || 0;
+          g._donoNome = perfisMap[g.owner_id] || 'Desconhecido';
+        });
+
+        this.gruposLista = grupos;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT groups + members + profiles', 'SUCCESS', duration, `${grupos.length} grupos carregados`);
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT groups', 'ERROR', duration, err.message);
+        console.error('Erro ao carregar grupos:', err);
+      } finally {
+        this.gruposLoading = false;
+      }
+    },
+
+    async carregarMembrosGrupo(grupoId) {
+      this.grupoMembrosLoading = true;
+      this.grupoMembros = [];
+
+      try {
+        const { data: membros, error } = await sbClient
+          .from('group_members')
+          .select('*')
+          .eq('group_id', grupoId);
+
+        if (error) throw error;
+
+        // Busca perfis dos membros
+        const userIds = membros.map(m => m.user_id);
+        const { data: perfis } = await sbClient
+          .from('profiles')
+          .select('id, full_name, email, avatar_url')
+          .in('id', userIds);
+
+        const perfisMap = {};
+        if (perfis) perfis.forEach(p => { perfisMap[p.id] = p; });
+
+        membros.forEach(m => {
+          const p = perfisMap[m.user_id];
+          m._nome = p ? p.full_name : 'Sem nome';
+          m._email = p ? p.email : '';
+          m._avatar = p ? p.avatar_url : null;
+        });
+
+        this.grupoMembros = membros;
+      } catch (err) {
+        console.error('Erro ao carregar membros:', err);
+      } finally {
+        this.grupoMembrosLoading = false;
+      }
+    },
+
+    // ============ USUÁRIOS ============
+
+    usuariosFiltrados() {
+      if (!this.usuariosFiltro) return this.usuariosLista;
+      const q = this.usuariosFiltro.toLowerCase();
+      return this.usuariosLista.filter(u =>
+        (u.full_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      );
+    },
+
+    async carregarUsuarios() {
+      if (this.usuariosLoading) return;
+      this.usuariosLoading = true;
+      const startTime = Date.now();
+
+      try {
+        const { data: perfis, error } = await sbClient
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Busca contagem de grupos por usuário
+        const { data: membros } = await sbClient
+          .from('group_members')
+          .select('user_id');
+
+        // Busca contagem de palpites por usuário
+        const { data: palpites } = await sbClient
+          .from('guesses')
+          .select('user_id');
+
+        const gruposCount = {};
+        if (membros) membros.forEach(m => {
+          gruposCount[m.user_id] = (gruposCount[m.user_id] || 0) + 1;
+        });
+
+        const palpitesCount = {};
+        if (palpites) palpites.forEach(p => {
+          palpitesCount[p.user_id] = (palpitesCount[p.user_id] || 0) + 1;
+        });
+
+        perfis.forEach(u => {
+          u._gruposCount = gruposCount[u.id] || 0;
+          u._palpitesCount = palpitesCount[u.id] || 0;
+        });
+
+        this.usuariosLista = perfis;
+
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT profiles + members + guesses', 'SUCCESS', duration, `${perfis.length} usuários carregados`);
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        this.adicionarLog('Supabase', 'SELECT profiles', 'ERROR', duration, err.message);
+        console.error('Erro ao carregar usuários:', err);
+      } finally {
+        this.usuariosLoading = false;
       }
     }
   };
