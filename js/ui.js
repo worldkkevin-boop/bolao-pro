@@ -721,6 +721,8 @@ async function exibirRankingSelecionado() {
       return b.acertosExatos - a.acertosExatos;
     });
 
+    window.ultimoRankingCalculado = rankingList;
+
     // 6. Injeta na lista
     container.innerHTML = '';
     rankingList.forEach((user, index) => {
@@ -1526,6 +1528,49 @@ function renderizarPlacarAoVivo(jogo) {
       filtrarPorRodada(rodadaSelecionada);
     }
   }
+}
+
+async function compartilharRankingWhatsApp() {
+  if (!grupoAtual) {
+    alert("Selecione um grupo primeiro!");
+    return;
+  }
+
+  const ranking = window.ultimoRankingCalculado;
+  if (!ranking || ranking.length === 0) {
+    alert("Nenhum ranking carregado para compartilhar!");
+    return;
+  }
+
+  const seletor = document.getElementById('seletor-ranking');
+  const tipoTexto = seletor ? seletor.options[seletor.selectedIndex].text : 'Ranking Geral';
+
+  let msg = `🏆 *${tipoTexto} - Bolão ${grupoAtual.nome}* 🏆\n\n`;
+
+  ranking.slice(0, 10).forEach((user, index) => {
+    const posicao = index + 1;
+    let emoji = '👤';
+    if (posicao === 1) emoji = '🥇';
+    else if (posicao === 2) emoji = '🥈';
+    else if (posicao === 3) emoji = '🥉';
+
+    msg += `${emoji} ${posicao}º ${user.nome} - *${user.pontos} Pts* (${user.acertosExatos} exatos)\n`;
+  });
+
+  if (ranking.length > 10) {
+    msg += `\n...e mais ${ranking.length - 10} participantes!`;
+  }
+
+  const origin = window.location.origin + window.location.pathname;
+  const linkApp = origin.startsWith("file://")
+    ? "https://bolao-pro.vercel.app/?code=" + grupoAtual.invite_code
+    : origin + "?code=" + grupoAtual.invite_code;
+
+  msg += `\n\n👉 Jogue conosco! Código do grupo: *${grupoAtual.invite_code}*`;
+  msg += `\n🔗 ${linkApp}`;
+
+  const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
+  window.open(urlUrl, '_blank');
 }
 
 
