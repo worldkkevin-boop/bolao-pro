@@ -1689,4 +1689,39 @@ async function compartilharRankingWhatsApp() {
   });
 })();
 
+// ============ CORREÇÃO DO TECLADO MOBILE (FIXED NAV BARS) ============
+(function() {
+  if (window.visualViewport) {
+    let maxVisualHeight = window.visualViewport.height;
+    let lastWidth = window.visualViewport.width;
+    
+    window.visualViewport.addEventListener('resize', function() {
+      const bottomNav = document.getElementById('bottom-nav');
+      const gmBottomNav = document.getElementById('gm-bottom-nav');
+      
+      // Se a largura mudou, foi uma rotação. Atualiza referências e sai.
+      if (window.visualViewport.width !== lastWidth) {
+        lastWidth = window.visualViewport.width;
+        maxVisualHeight = window.visualViewport.height;
+        if (bottomNav) bottomNav.style.removeProperty('display');
+        if (gmBottomNav) gmBottomNav.style.removeProperty('display');
+        return;
+      }
+      
+      if (window.visualViewport.height > maxVisualHeight) {
+        maxVisualHeight = window.visualViewport.height;
+      }
+      
+      // Se a altura do viewport visual encolheu mais de 150px em relação ao máximo
+      if (window.visualViewport.height < maxVisualHeight - 150) {
+        if (bottomNav) bottomNav.style.setProperty('display', 'none', 'important');
+        if (gmBottomNav) gmBottomNav.style.setProperty('display', 'none', 'important');
+      } else {
+        if (bottomNav) bottomNav.style.removeProperty('display');
+        if (gmBottomNav) gmBottomNav.style.removeProperty('display');
+      }
+    });
+  }
+})();
+
 
