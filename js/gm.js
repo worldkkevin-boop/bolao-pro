@@ -5,6 +5,8 @@ function verificarUsuarioGM() {
   const container = document.getElementById('gm-panel-button-container');
   if (!container) return;
 
+  console.log("[GM CHECK] Usuario atual logado:", usuarioAtual);
+
   if (usuarioAtual && usuarioAtual.email === 'worldkkevin@gmail.com') {
     container.classList.remove('hidden');
   } else {
