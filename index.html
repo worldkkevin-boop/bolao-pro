@@ -36,7 +36,17 @@
     }
   </script>
   <style>
-    body { background-color: #09090b; color: white; -webkit-tap-highlight-color: transparent; }
+    html {
+      height: -webkit-fill-available;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background-color: #09090b;
+      color: white;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+    }
 
     /* Login */
     .bg-glow {
