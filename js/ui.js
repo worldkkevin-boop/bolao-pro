@@ -1610,7 +1610,8 @@ async function compartilharRankingWhatsApp() {
   msg += `\n🔗 ${linkApp}`;
 
   const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
-  window.open(urlUrl, '_blank');
+  // Redireciona para abrir o WhatsApp diretamente (evita bloqueio de popup em PWAs mobile)
+  window.location.href = urlUrl;
 }
 
 // Pull to Refresh para PWAs (arrastar para baixo e atualizar)

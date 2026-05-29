@@ -688,7 +688,8 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray,
   msg += `\n🔗 *Participe e dê seu palpite:* ${linkApp}`;
 
   const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
-  window.open(urlUrl, '_blank');
+  // Redireciona a janela para abrir diretamente o WhatsApp no mobile/PWA (evita bloqueador de popups)
+  window.location.href = urlUrl;
 }
 
 // Executa na carga do script para garantir que o botão apareça se a sessão já estiver recuperada
