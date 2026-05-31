@@ -73,10 +73,13 @@ serve(async (req) => {
       if (subsError) throw subsError
       if (subs) subscriptions = subs
     } else {
-      return new Response(JSON.stringify({ error: 'Either userId or groupId must be provided' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // Notificação Global: se nenhum ID for passado, busca todos os aparelhos registrados no banco
+      const { data: subs, error: subsError } = await adminClient
+        .from('push_subscriptions')
+        .select('*')
+
+      if (subsError) throw subsError
+      if (subs) subscriptions = subs
     }
 
     if (subscriptions.length === 0) {

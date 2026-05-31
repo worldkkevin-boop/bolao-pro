@@ -789,9 +789,10 @@ async function alertarInicioJogo() {
 
   if (confirm(`Deseja enviar o alerta de Aquecimento para a partida: ${jogo.name}?`)) {
     showToast("Enviando alerta...", "success");
-    if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+    if (typeof dispararNotificacaoPush === 'function') {
+      const gId = (typeof grupoAtual !== 'undefined' && grupoAtual) ? grupoAtual.id : null;
       await dispararNotificacaoPush({
-        groupId: grupoAtual.id,
+        groupId: gId,
         title: '⏰ O aquecimento começou!',
         body: `${jogo.name} começa em breve. Já enviou seu palpite na aba de jogos?`,
         url: '/'
@@ -816,9 +817,10 @@ async function alertarGolJogo() {
   }
 
   showToast("Enviando alerta de Gol...", "success");
-  if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+  if (typeof dispararNotificacaoPush === 'function') {
+    const gId = (typeof grupoAtual !== 'undefined' && grupoAtual) ? grupoAtual.id : null;
     await dispararNotificacaoPush({
-      groupId: grupoAtual.id,
+      groupId: gId,
       title: titulo,
       body: corpoMensagem,
       url: '/'
@@ -840,9 +842,10 @@ async function alertarFimJogo() {
   }
 
   showToast("Enviando alerta de Fim de Jogo...", "success");
-  if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+  if (typeof dispararNotificacaoPush === 'function') {
+    const gId = (typeof grupoAtual !== 'undefined' && grupoAtual) ? grupoAtual.id : null;
     await dispararNotificacaoPush({
-      groupId: grupoAtual.id,
+      groupId: gId,
       title: '🏁 Apito Final!',
       body: corpoMensagem,
       url: '/'
