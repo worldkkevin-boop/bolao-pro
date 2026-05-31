@@ -261,6 +261,16 @@ function inicializarConvitePorUrl() {
 }
 inicializarConvitePorUrl();
 
+function esconderLoading() {
+  const elLoading = document.getElementById('screen-loading');
+  if (!elLoading) return;
+  elLoading.style.transition = 'opacity 0.4s ease';
+  elLoading.style.opacity = '0';
+  setTimeout(() => {
+    elLoading.classList.add('hidden');
+  }, 400);
+}
+
 // ============ GERENCIADOR DE ESTADO E INICIALIZAÇÃO ============
 async function inicializarApp() {
   const elLoading = document.getElementById('screen-loading');
@@ -279,13 +289,23 @@ async function inicializarApp() {
       // ✅ O usuário já estava logado antes de apertar F5
       const user = session.user;
       console.log("Sessão recuperada:", user.email);
+      
+      const startTime = Date.now();
+      
       entrarNoApp({
         id:    user.id,
         nome:  user.user_metadata.full_name || user.email,
         email: user.email,
         foto:  user.user_metadata.avatar_url || null
       });
-      if (elLoading) elLoading.classList.add('hidden');
+      
+      const elapsed = Date.now() - startTime;
+      const minDuration = 1000; // 1 segundo para carregar as informações em segundo plano com fluidez
+      const delay = Math.max(0, minDuration - elapsed);
+      
+      setTimeout(() => {
+        esconderLoading();
+      }, delay);
     } else {
       // ❌ Ninguém logado de verdade. Agora sim mostramos o Login.
       usuarioAtual = null;
