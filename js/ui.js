@@ -173,6 +173,23 @@ function switchView(targetViewId) {
         if (nameInput) {
           nameInput.value = grupoAtual.nome || '';
         }
+        
+        // Carrega as regras de pontuação nos inputs
+        const ptExato = document.getElementById('num-pt-placar-exato');
+        const ptGolsTime = document.getElementById('num-pt-vencedor-gols-time');
+        const ptEmpateNaoExato = document.getElementById('num-pt-empate-nao-exato');
+        const ptSaldo = document.getElementById('num-pt-vencedor-saldo');
+        const ptGolsPerdedor = document.getElementById('num-pt-vencedor-gols-perdedor');
+        const ptApenasVencedor = document.getElementById('num-pt-apenas-vencedor');
+        const ptGolsUmTime = document.getElementById('num-pt-gols-um-time');
+        
+        if (ptExato) ptExato.value = grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null ? grupoAtual.pt_placar_exato : 30;
+        if (ptGolsTime) ptGolsTime.value = grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null ? grupoAtual.pt_vencedor_gols_time : 18;
+        if (ptEmpateNaoExato) ptEmpateNaoExato.value = grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null ? grupoAtual.pt_empate_nao_exato : 18;
+        if (ptSaldo) ptSaldo.value = grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null ? grupoAtual.pt_vencedor_saldo : 15;
+        if (ptGolsPerdedor) ptGolsPerdedor.value = grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null ? grupoAtual.pt_vencedor_gols_perdedor : 12;
+        if (ptApenasVencedor) ptApenasVencedor.value = grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null ? grupoAtual.pt_apenas_vencedor : 4;
+        if (ptGolsUmTime) ptGolsUmTime.value = grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null ? grupoAtual.pt_gols_um_time : 3;
       } else {
         adminSettings.classList.add('hidden');
       }

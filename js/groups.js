@@ -749,8 +749,78 @@ async function alterarNomeGrupoReal() {
   }
 }
 
-function salvarRegrasGrupoReal() {
-  showToast("Disponível em breve!", "mago");
+async function salvarRegrasGrupoReal() {
+  if (!grupoAtual || !sbClient) return;
+
+  const btn = document.getElementById('btn-salvar-regras-grupo');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "SALVANDO...";
+  }
+
+  // Captura os valores digitados nos inputs
+  const pt_placar_exato = parseInt(document.getElementById('num-pt-placar-exato').value);
+  const pt_vencedor_gols_time = parseInt(document.getElementById('num-pt-vencedor-gols-time').value);
+  const pt_empate_nao_exato = parseInt(document.getElementById('num-pt-empate-nao-exato').value);
+  const pt_vencedor_saldo = parseInt(document.getElementById('num-pt-vencedor-saldo').value);
+  const pt_vencedor_gols_perdedor = parseInt(document.getElementById('num-pt-vencedor-gols-perdedor').value);
+  const pt_apenas_vencedor = parseInt(document.getElementById('num-pt-apenas-vencedor').value);
+  const pt_gols_um_time = parseInt(document.getElementById('num-pt-gols-um-time').value);
+
+  // Validação simples
+  if (
+    isNaN(pt_placar_exato) || isNaN(pt_vencedor_gols_time) || isNaN(pt_empate_nao_exato) ||
+    isNaN(pt_vencedor_saldo) || isNaN(pt_vencedor_gols_perdedor) || isNaN(pt_apenas_vencedor) ||
+    isNaN(pt_gols_um_time)
+  ) {
+    showToast("Por favor, preencha todos os campos com números válidos!", "error");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Salvar Regras de Pontuação";
+    }
+    return;
+  }
+
+  showToast("Atualizando regras de pontuação...", "success");
+
+  try {
+    const { error } = await sbClient
+      .from('groups')
+      .update({
+        pt_placar_exato,
+        pt_vencedor_gols_time,
+        pt_empate_nao_exato,
+        pt_vencedor_saldo,
+        pt_vencedor_gols_perdedor,
+        pt_apenas_vencedor,
+        pt_gols_um_time
+      })
+      .eq('id', grupoAtual.id);
+
+    if (error) throw error;
+
+    // Atualiza o estado local em memória
+    grupoAtual.pt_placar_exato = pt_placar_exato;
+    grupoAtual.pt_vencedor_gols_time = pt_vencedor_gols_time;
+    grupoAtual.pt_empate_nao_exato = pt_empate_nao_exato;
+    grupoAtual.pt_vencedor_saldo = pt_vencedor_saldo;
+    grupoAtual.pt_vencedor_gols_perdedor = pt_vencedor_gols_perdedor;
+    grupoAtual.pt_apenas_vencedor = pt_apenas_vencedor;
+    grupoAtual.pt_gols_um_time = pt_gols_um_time;
+
+    // Atualiza a persistência local (localStorage) para manter sincronizado no reload
+    localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
+
+    showToast("Regras de pontuação salvas com sucesso!", "success");
+  } catch (err) {
+    console.error("Erro ao salvar regras:", err.message);
+    showToast("Erro ao salvar as regras. Verifique a tabela no Supabase.", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Salvar Regras de Pontuação";
+    }
+  }
 }
 
 async function carregarParticipantesGrupo() {

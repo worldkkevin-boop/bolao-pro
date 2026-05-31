@@ -592,46 +592,97 @@
           </div>
 
           <div class="mb-5 border-t border-zinc-800 pt-4">
-              <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Regras de Pontuação</label>
+              <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-3">Regras de Pontuação Premium</label>
+              <p class="text-[10px] text-zinc-500 mb-4 leading-relaxed">Customize os pontos distribuídos para cada critério. Se não quiser usar um critério, defina-o como 0.</p>
               
-              <!-- Placar Exato -->
-              <div class="flex items-center justify-between mb-3 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
-                <div class="flex items-center gap-3">
-                  <input type="checkbox" id="chk-regra-placar-exato" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
-                  <div>
-                    <p class="text-[13px] font-bold text-white leading-tight">Placar Exato</p>
-                    <p class="text-[10px] text-text-muted">Cravou o placar do jogo</p>
+              <div class="space-y-3">
+                  <!-- 1. Placar Exato -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">🎯</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Placar Exato</p>
+                        <p class="text-[9px] text-text-muted">Cravou o placar exato (Ex: 2x1 -> 2x1)</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-placar-exato" value="30" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
                   </div>
-                </div>
-                <input type="number" id="num-pontos-placar-exato" value="30" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
+
+                  <!-- 2. Vencedor e gols de um time -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">⚽</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols de um Time</p>
+                        <p class="text-[9px] text-text-muted">Acertou vencedor + gols de uma equipe</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-vencedor-gols-time" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
+
+                  <!-- 3. Empate não exato -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">🤝</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Empate Não-Exato</p>
+                        <p class="text-[9px] text-text-muted">Acertou o empate, mas errou placar (Ex: 2x2 -> 1x1)</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-empate-nao-exato" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
+
+                  <!-- 4. Vencedor e Saldo -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">📊</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Saldo de Gols</p>
+                        <p class="text-[9px] text-text-muted">Acertou vencedor + diferença de gols (Ex: 2x1 -> 1x0)</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-vencedor-saldo" value="15" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
+
+                  <!-- 5. Vencedor e Gols do Perdedor -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">📉</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols do Perdedor</p>
+                        <p class="text-[9px] text-text-muted">Acertou quem ganha + gols do derrotado (Ex: 2x0 -> 3x0)</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-vencedor-gols-perdedor" value="12" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
+
+                  <!-- 6. Apenas Vencedor -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">👑</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Apenas o Vencedor</p>
+                        <p class="text-[9px] text-text-muted">Só acertou o vencedor (Ex: 2x0 -> 3x2)</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-apenas-vencedor" value="4" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
+
+                  <!-- 7. Gols de um time -->
+                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">⚽</span>
+                      <div>
+                        <p class="text-[12px] font-black text-white leading-tight">Placar de Algum Time</p>
+                        <p class="text-[9px] text-text-muted">Errou vencedor/empate, mas acertou os gols de um time</p>
+                      </div>
+                    </div>
+                    <input type="number" id="num-pt-gols-um-time" value="3" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+                  </div>
               </div>
 
-              <!-- Vencedor -->
-              <div class="flex items-center justify-between mb-3 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
-                <div class="flex items-center gap-3">
-                  <input type="checkbox" id="chk-regra-vencedor" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
-                  <div>
-                    <p class="text-[13px] font-bold text-white leading-tight">Acertar Vencedor</p>
-                    <p class="text-[10px] text-text-muted">Acertou vencedor ou empate</p>
-                  </div>
-                </div>
-                <input type="number" id="num-pontos-vencedor" value="4" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
-              </div>
-
-              <!-- Saldo -->
-              <div class="flex items-center justify-between mb-4 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
-                <div class="flex items-center gap-3">
-                  <input type="checkbox" id="chk-regra-saldo" checked class="w-4 h-4 accent-brand-green bg-zinc-850 border-zinc-700 rounded focus:ring-brand-green">
-                  <div>
-                    <p class="text-[13px] font-bold text-white leading-tight">Acertar Saldo</p>
-                    <p class="text-[10px] text-text-muted">Acertou o saldo de gols</p>
-                  </div>
-                </div>
-                <input type="number" id="num-pontos-saldo" value="2" min="0" max="100" class="w-14 bg-zinc-800 text-white rounded-lg border border-zinc-700 py-1 px-1.5 text-center text-sm font-bold focus:border-brand-green outline-none">
-              </div>
-
-              <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-zinc-800 border border-white/5 text-zinc-400 hover:text-white font-black text-xs py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wide">
-                Salvar Regras
+              <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-gradient-to-r from-brand-green to-emerald-600 hover:from-brand-green/90 text-black font-black text-[11px] py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-widest mt-5 shadow-lg shadow-brand-green/10">
+                Salvar Regras de Pontuação
               </button>
           </div>
 
