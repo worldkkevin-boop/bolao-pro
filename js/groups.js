@@ -1257,18 +1257,26 @@ async function carregarDadosTesouraria() {
     htmlBase += `<p class="text-sm text-gray-400 text-center py-6">Nenhum pote ativo. Crie um novo para arrecadar!</p>`;
     container.innerHTML = htmlBase;
   } else {
-    // 3. Monta o Seletor de Potes (Dropdown)
+    // 3. Monta o Seletor de Potes (Dropdown) e Botão de Compartilhar
     let seletorHTML = `
       <div class="mb-5">
         <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Selecione o Pote para Gerenciar</label>
-        <select id="seletor-potes-gm" onchange="trocarPoteGerenciado()" class="w-full bg-black/80 border border-yellow-500/40 rounded-xl p-3 text-white focus:border-yellow-500 outline-none appearance-none font-bold">
+        <div class="flex gap-2">
+          <select id="seletor-potes-gm" onchange="trocarPoteGerenciado()" class="flex-1 bg-[#151518] border border-brand-green/30 rounded-xl p-3 text-white focus:border-brand-green outline-none appearance-none font-bold text-xs">
     `;
     
     potesTesourariaAtivos.forEach(p => {
-      seletorHTML += `<option value="${p.id}">${p.nome} - Entrada: R$ ${parseFloat(p.valor_entrada).toFixed(2)}</option>`;
+      seletorHTML += `<option value="${p.id}">${p.nome} - R$ ${parseFloat(p.valor_entrada).toFixed(2)}</option>`;
     });
     
-    seletorHTML += `</select></div>`;
+    seletorHTML += `
+          </select>
+          <button onclick="compartilharListaPoteWhatsApp()" class="bg-brand-green hover:opacity-90 text-black px-4 rounded-xl font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+            <span>📋</span> WhatsApp
+          </button>
+        </div>
+      </div>
+    `;
     
     // Div onde a lista de quem pagou vai ser desenhada
     seletorHTML += `<div id="tesouraria-lista-participantes"></div>`;
@@ -1922,6 +1930,105 @@ async function responderSolicitacaoGrupo(userId, aceitar, userName) {
   } catch (err) {
     console.error("Erro ao responder solicitação:", err.message);
     showToast("Erro ao processar solicitação. Tente novamente.", "error");
+  }
+}
+
+async function compartilharListaPoteWhatsApp() {
+  const select = document.getElementById('seletor-potes-gm');
+  if (!select) return;
+  const poteId = select.value;
+  const poteSelecionado = potesTesourariaAtivos.find(p => p.id === poteId);
+  if (!poteSelecionado) return;
+
+  showToast("Gerando lista para copiar...", "info");
+
+  try {
+    // 1. Busca os participantes deste pote
+    const { data: participantes, error: erroPart } = await sbClient
+      .from('potes_participantes')
+      .select('*')
+      .eq('pote_id', poteId);
+
+    if (erroPart) {
+      showToast("Erro ao carregar participantes.", "error");
+      return;
+    }
+
+    let pagos = [];
+    let pendentes = [];
+
+    if (participantes && participantes.length > 0) {
+      const userIds = participantes.map(p => p.user_id);
+      const { data: profiles } = await sbClient
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      participantes.forEach(part => {
+        const prof = profiles ? profiles.find(p => p.id === part.user_id) : null;
+        const nome = prof ? (prof.full_name || 'Jogador') : 'Jogador';
+        const isPago = part.status_pagamento === 'pago';
+        if (isPago) {
+          pagos.push(nome);
+        } else {
+          pendentes.push(nome);
+        }
+      });
+    }
+
+    const valorEntrada = parseFloat(poteSelecionado.valor_entrada);
+    const totalAcumulado = pagos.length * valorEntrada;
+    const nomeGrupo = grupoAtual.nome;
+
+    // Gerando o texto do template com base no grupo atual
+    let texto = `⚽ BOLÃO DO ${nomeGrupo.toUpperCase()} 💰\n\n`;
+    texto += `🏆 Pote: ${poteSelecionado.nome}\n`;
+    texto += `📍 Valor: R$ ${valorEntrada.toFixed(2)} por pessoa\n`;
+    texto += `💵 Pote Acumulado: R$ ${totalAcumulado.toFixed(2)} (O bicho tá pegando!) 🔥\n\n`;
+
+    texto += `✅ JÁ GARANTIRAM A VAGA\n`;
+    if (pagos.length > 0) {
+      pagos.forEach(p => {
+        texto += `✔️ ${p}\n`;
+      });
+    } else {
+      texto += `(Nenhum confirmado ainda)\n`;
+    }
+
+    texto += `\n⚠️ ATENÇÃO PARA OS PENDENTES ⚠️\n`;
+    if (pendentes.length > 0) {
+      texto += `❌ ${pendentes.join(', ')}\n`;
+    } else {
+      texto += `(Nenhum pendente)\n`;
+    }
+
+    // Link do App
+    const origin = window.location.origin + window.location.pathname;
+    const linkApp = origin.startsWith("file://")
+      ? "https://bolao-pro-six.vercel.app/?code=" + grupoAtual.invite_code
+      : origin + "?code=" + grupoAtual.invite_code;
+
+    texto += `\nO esquema agora é 100% pelo nosso aplicativo VIP! Para a sua vaga ser confirmada e você disputar o prêmio, siga os passos:\n\n`;
+    texto += `1️⃣ Acesse o app:\n🔗 ${linkApp}\n`;
+    texto += `2️⃣ Crie sua conta rapidão.\n`;
+    texto += `3️⃣ Acesse o nosso grupo.\n`;
+    texto += `4️⃣ Clique no banner dourado gigante "🔥 ENTRAR NA DISPUTA (R$ ${valorEntrada.toFixed(2)})".\n`;
+    texto += `5️⃣ Copie a chave PIX lá no app, faça o pagamento, e o sistema já me avisa para eu aprovar sua entrada!\n\n`;
+    texto += `Bora que o bicho vai pegar! 🚀💸`;
+
+    // Compartilha ou copia
+    if (navigator.share) {
+      await navigator.share({
+        title: `Lista do Pote - ${poteSelecionado.nome}`,
+        text: texto
+      });
+    } else {
+      await navigator.clipboard.writeText(texto);
+      showToast("Lista copiada com sucesso! Só colar no WhatsApp.", "success");
+    }
+  } catch (err) {
+    console.error("Erro ao gerar/compartilhar lista:", err);
+    showToast("Erro ao gerar a lista do WhatsApp.", "error");
   }
 }
 
