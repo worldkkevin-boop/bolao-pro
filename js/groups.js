@@ -526,15 +526,13 @@ async function compartilharGrupo() {
     } catch (err) {
       console.log('Erro ao compartilhar:', err);
     }
-  } else {
     try {
       await navigator.clipboard.writeText(textoShare);
-      alert("Link e código copiados! Agora é só colar no WhatsApp.");
+      showToast("Link de convite copiado!", "success");
     } catch (err) {
       console.error('Erro ao copiar:', err);
-      alert(`Código do grupo: ${codigo}\nCopie o link: ${linkApp}`);
+      showToast(`Código: ${codigo} | Link copiado para transferência!`, "success");
     }
-  }
 }
 
 async function uploadIcone(event) {
@@ -555,7 +553,7 @@ async function uploadIcone(event) {
 
     if (uploadError) {
       if (spinner) spinner.classList.add('hidden');
-      alert("Erro no upload: " + uploadError.message);
+      showToast("Erro no upload: " + uploadError.message, "error");
       return;
     }
 
@@ -566,7 +564,7 @@ async function uploadIcone(event) {
 
     if (spinner) spinner.classList.add('hidden');
 
-    alert("Ícone atualizado com sucesso!");
+    showToast("Ícone atualizado com sucesso!", "success");
     
     // Atualiza na interface da Home do Grupo na hora (com cache-buster timestamp)
     const imgEl = document.getElementById('icone-grupo-header');
@@ -586,7 +584,7 @@ async function uploadIcone(event) {
   } catch (e) {
     console.error("Erro no upload do ícone:", e);
     if (spinner) spinner.classList.add('hidden');
-    alert("Ocorreu um erro no processamento do upload.");
+    showToast("Erro no processamento do upload.", "error");
   }
 }
 
@@ -601,12 +599,12 @@ async function alterarNomeGrupoReal() {
   const novoNome = inputNome.value.trim();
   
   if (!novoNome) {
-    alert("O nome do grupo não pode ser vazio!");
+    showToast("O nome do grupo não pode ser vazio!", "error");
     return;
   }
   
   if (novoNome === grupoAtual.nome) {
-    alert("O nome do grupo é o mesmo atual.");
+    showToast("O nome do grupo é o mesmo atual.", "error");
     return;
   }
   
@@ -621,7 +619,7 @@ async function alterarNomeGrupoReal() {
       
     if (error) {
       console.error("Erro ao alterar nome do grupo:", error.message);
-      alert("Erro ao alterar nome do grupo. Tente novamente.");
+      showToast("Erro ao alterar nome do grupo. Tente novamente.", "error");
       return;
     }
     
@@ -633,7 +631,7 @@ async function alterarNomeGrupoReal() {
     const rankingHeader = document.getElementById('nome-grupo-ranking');
     if (rankingHeader) rankingHeader.innerText = novoNome;
     
-    alert("Nome do grupo alterado com sucesso!");
+    showToast("Nome do grupo alterado com sucesso!", "success");
     
     // Atualiza a lista geral de grupos em background
     carregarGrupos();
@@ -646,7 +644,7 @@ async function alterarNomeGrupoReal() {
 }
 
 function salvarRegrasGrupoReal() {
-  alert("Funcionalidade em testes, disponível em breve!");
+  showToast("Disponível em breve!", "mago");
 }
 
 async function carregarParticipantesGrupo() {

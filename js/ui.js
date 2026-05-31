@@ -15,6 +15,58 @@ function renderEmptyState(icone, titulo, descricao) {
   `;
 }
 
+// ============ SISTEMA DE NOTIFICAÇÕES (TOAST) ============
+function showToast(mensagem, tipo = 'success') {
+  // 1. Verifica se o container já existe. Se não, cria no topo da tela.
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[10000] flex flex-col gap-2 pointer-events-none w-[90%] max-w-sm';
+    document.body.appendChild(container);
+  }
+
+  // 2. Cria o elemento da notificação
+  const toast = document.createElement('div');
+  
+  // 3. Define as cores e ícones baseados no 'tipo'
+  let bgClass, icon;
+  if (tipo === 'success') {
+    bgClass = 'bg-brand-green/95 border-brand-green/50 text-white';
+    icon = '✅';
+  } else if (tipo === 'error') {
+    bgClass = 'bg-red-500/95 border-red-500/50 text-white';
+    icon = '❌';
+  } else if (tipo === 'mago') {
+    bgClass = 'bg-purple-650/95 border-purple-400/50 text-white'; // O Mago tem uma cor especial!
+    icon = '🪄';
+  } else {
+    bgClass = 'bg-zinc-800/95 border-zinc-700/50 text-white';
+    icon = 'ℹ️';
+  }
+
+  // 4. Monta a estrutura com Tailwind (Inicia invisível e um pouco mais alto)
+  toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border shadow-[0_10px_40px_rgba(0,0,0,0.3)] backdrop-blur-md text-[13px] font-bold transform transition-all duration-300 translate-y-[-20px] opacity-0 ${bgClass}`;
+  
+  toast.innerHTML = `<span class="text-[16px]">${icon}</span> <span>${mensagem}</span>`;
+  
+  container.appendChild(toast);
+
+  // 5. Animação de entrada (desliza para baixo)
+  setTimeout(() => {
+    toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+  }, 10);
+
+  // 6. Remove automaticamente após 3 segundos
+  setTimeout(() => {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('translate-y-[-20px]', 'opacity-0'); // Animação de saída
+    setTimeout(() => toast.remove(), 300); // Espera a transição terminar para remover do HTML
+  }, 3000);
+}
+
+
 
 function abrirModal(id) {
   document.getElementById(id).classList.remove('hidden');
@@ -1210,11 +1262,11 @@ async function abrirTelaPalpite(id) {
 
 async function salvarPalpite() {
   if (!sbClient) {
-    alert("Supabase não está inicializado.");
+    showToast("Supabase não está inicializado.", "error");
     return;
   }
   if (!grupoAtual) {
-    alert("Nenhum grupo ativo selecionado.");
+    showToast("Nenhum grupo ativo selecionado.", "error");
     return;
   }
 
@@ -1228,7 +1280,7 @@ async function salvarPalpite() {
   try {
     const { data: { user } } = await sbClient.auth.getUser();
     if (!user) {
-      alert("Você precisa estar logado para palpitar!");
+      showToast("Você precisa estar logado para palpitar!", "error");
       if (confirmBtn) {
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
@@ -1259,7 +1311,7 @@ async function salvarPalpite() {
 
     if (matchError) {
       console.error("Erro ao salvar partida:", matchError.message);
-      alert("Erro ao preparar dados da partida. Tente novamente.");
+      showToast("Erro ao preparar dados da partida. Tente novamente.", "error");
       if (confirmBtn) {
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
@@ -1280,7 +1332,7 @@ async function salvarPalpite() {
 
     if (guessError) {
       console.error("Erro ao salvar palpite:", guessError.message);
-      alert("Não foi possível salvar seu palpite. Tente novamente.");
+      showToast("Não foi possível salvar seu palpite. Tente novamente.", "error");
       if (confirmBtn) {
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
@@ -1305,13 +1357,14 @@ async function salvarPalpite() {
     palpiteOriginal.home = golsHome;
     palpiteOriginal.away = golsAway;
 
+    showToast("Palpite salvo com sucesso!", "success");
     switchView('view-jogos');
     gerarFiltrosRodadas();
     filtrarPorRodada(rodadaSelecionada);
 
   } catch (e) {
     console.error("Erro inesperado:", e);
-    alert("Ocorreu um erro inesperado. Tente novamente.");
+    showToast("Ocorreu um erro inesperado. Tente novamente.", "error");
   } finally {
     if (confirmBtn) {
       confirmBtn.disabled = false;
@@ -1370,7 +1423,7 @@ function abrirSuporteWhatsapp() {
     const url = `https://wa.me/${SUPORTE_WHATSAPP}`;
     window.open(url, '_blank');
   } else {
-    alert("O administrador ainda não configurou o número de suporte!");
+    showToast("O administrador ainda não configurou o número de suporte!", "error");
   }
 }
 
@@ -1523,11 +1576,11 @@ async function responderDesafioReal(desafioId, jogadorEscolhido) {
       }]);
 
     if (error) {
-      alert("Erro ao aceitar desafio: " + error.message);
+      showToast("Erro ao aceitar desafio: " + error.message, "error");
       return;
     }
 
-    alert(`Desafio aceito! Você apostou em: ${jogadorEscolhido}`);
+    showToast(`Desafio aceito! Você apostou em: ${jogadorEscolhido}`, "success");
     if (jogoAtual) {
       carregarDesafioPartida(jogoAtual.fixture.id);
     }
@@ -1605,13 +1658,13 @@ function renderizarPlacarAoVivo(jogo) {
 
 async function compartilharRankingWhatsApp() {
   if (!grupoAtual) {
-    alert("Selecione um grupo primeiro!");
+    showToast("Selecione um grupo primeiro!", "error");
     return;
   }
 
   const ranking = window.ultimoRankingCalculado;
   if (!ranking || ranking.length === 0) {
-    alert("Nenhum ranking carregado para compartilhar!");
+    showToast("Nenhum ranking carregado para compartilhar!", "error");
     return;
   }
 

@@ -173,8 +173,8 @@ async function criarDesafioReal() {
   const points = parseInt(inputPontos.value) || 50;
   const hasPenalty = checkboxPenalty ? checkboxPenalty.checked : false;
 
-  if (!fixtureId) { alert('Selecione uma partida!'); return; }
-  if (!eventType) { alert('Selecione o tipo de evento!'); return; }
+  if (!fixtureId) { showToast('Selecione uma partida!', 'error'); return; }
+  if (!eventType) { showToast('Selecione o tipo de evento!', 'error'); return; }
 
   // Coleta jogadores/opções
   const players = [];
@@ -184,7 +184,7 @@ async function criarDesafioReal() {
   }
 
   if (players.length < 2) {
-    alert('Insira pelo menos 2 opções para o desafio!');
+    showToast('Insira pelo menos 2 opções para o desafio!', 'error');
     return;
   }
 
@@ -214,7 +214,7 @@ async function criarDesafioReal() {
     if (btn) { btn.disabled = false; btn.innerText = 'Lançar Desafio'; }
 
     if (error) {
-      alert('Erro ao criar desafio: ' + error.message);
+      showToast('Erro ao criar desafio: ' + error.message, 'error');
       return;
     }
 
@@ -224,12 +224,13 @@ async function criarDesafioReal() {
       el.value = '';
       el.readOnly = false;
       el.disabled = false;
+      el.disabled = false;
     }
     inputPontos.value = 50;
     selectJogo.value = '';
     if (checkboxPenalty) checkboxPenalty.checked = false;
 
-    alert('Desafio lançado com sucesso!');
+    showToast("Aposta tirada da cartola! Desafio lançado.", "mago");
     carregarGMView();
 
   } catch (e) {
@@ -292,7 +293,7 @@ async function excluirDesafioReal(id) {
       .eq('id', id);
 
     if (error) {
-      alert('Erro ao excluir: ' + error.message);
+      showToast('Erro ao excluir: ' + error.message, 'error');
       return;
     }
     carregarGMView();
@@ -446,7 +447,7 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
       .eq('desafio_id', desafioId);
 
     if (errVotos) {
-      alert('Erro ao carregar palpites dos usuários: ' + errVotos.message);
+      showToast('Erro ao carregar palpites dos usuários: ' + errVotos.message, 'error');
       return;
     }
 
@@ -458,7 +459,7 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
       .single();
 
     if (errDesafio || !desafio) {
-      alert('Erro ao buscar pontos do desafio.');
+      showToast('Erro ao buscar pontos do desafio.', 'error');
       return;
     }
 
@@ -495,12 +496,12 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
       ? `\nErros com penalidade aplicados: ${totalPerdedores} participantes perderam -${pontosPremio} pts.`
       : '';
 
-    alert(`Desafio resolvido com sucesso!\n\nResultado vencedor: ${jogadoresVencedores.join(', ') || 'Nenhum'}\n\nParticipantes premiados: ${totalPontuados} (+${pontosPremio} pts).${msgPenalidade}`);
+    showToast(`Desafio resolvido! Vencedor: ${jogadoresVencedores.join(', ') || 'Nenhum'}. Premiados: ${totalPontuados} (+${pontosPremio} pts).`, 'success');
     carregarGMView();
 
   } catch (e) {
     console.error(e);
-    alert('Erro no processamento da resolução do desafio.');
+    showToast('Erro no processamento da resolução do desafio.', 'error');
   }
 }
 

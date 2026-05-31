@@ -1,5 +1,48 @@
 // ============ GAME MASTER (GM) ADMIN CONTROLLER ============
 
+// ============ SISTEMA DE NOTIFICAÇÕES (TOAST) ============
+function showToast(mensagem, tipo = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[10000] flex flex-col gap-2 pointer-events-none w-[90%] max-w-sm';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  
+  let bgClass, icon;
+  if (tipo === 'success') {
+    bgClass = 'bg-brand-green/95 border-brand-green/50 text-white';
+    icon = '✅';
+  } else if (tipo === 'error') {
+    bgClass = 'bg-red-500/95 border-red-500/50 text-white';
+    icon = '❌';
+  } else if (tipo === 'mago') {
+    bgClass = 'bg-purple-650/95 border-purple-400/50 text-white';
+    icon = '🪄';
+  } else {
+    bgClass = 'bg-zinc-800/95 border-zinc-700/50 text-white';
+    icon = 'ℹ️';
+  }
+
+  toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border shadow-[0_10px_40px_rgba(0,0,0,0.3)] backdrop-blur-md text-[13px] font-bold transform transition-all duration-300 translate-y-[-20px] opacity-0 ${bgClass}`;
+  toast.innerHTML = `<span class="text-[16px]">${icon}</span> <span>${mensagem}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+  }, 10);
+
+  setTimeout(() => {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('translate-y-[-20px]', 'opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
 function adminApp() {
   return {
     loading: true,
@@ -62,7 +105,7 @@ function adminApp() {
       console.log("[ADMIN] Inicializando aplicação do GM...");
 
       if (!sbClient) {
-        alert("Erro: Cliente Supabase não inicializado. Verifique a configuração.");
+        showToast("Erro: Cliente Supabase não inicializado. Verifique a configuração.", "error");
         this.loading = false;
         return;
       }
@@ -131,7 +174,7 @@ function adminApp() {
         });
         if (error) throw error;
       } catch (err) {
-        alert("Erro no Login do Google: " + err.message);
+        showToast("Erro no Login do Google: " + err.message, "error");
       }
     },
 
@@ -621,7 +664,7 @@ function adminApp() {
     async lancarDesafioGM() {
       if (this.desafioLancando) return;
       if (!this.novoDesafio.fixture_id || this.novoDesafio.players.length < 2) {
-        alert('Selecione uma partida e adicione pelo menos 2 jogadores.');
+        showToast('Selecione uma partida e adicione pelo menos 2 jogadores.', 'error');
         return;
       }
 
@@ -647,7 +690,7 @@ function adminApp() {
         const duration = Date.now() - startTime;
         this.adicionarLog('Supabase', 'INSERT desafios', 'SUCCESS', duration, `Desafio "${payload.match_name}" lançado`);
 
-        alert(`⚡ Desafio lançado com sucesso!\n${payload.match_name}\nTipo: ${this.traduzirRegra(payload.event_type)}\nPontos: ${payload.points}`);
+        showToast("Aposta tirada da cartola! Desafio lançado.", "mago");
 
         // Volta pra lista
         this.abaAtiva = 'desafios';
@@ -655,7 +698,7 @@ function adminApp() {
       } catch (err) {
         const duration = Date.now() - startTime;
         this.adicionarLog('Supabase', 'INSERT desafios', 'ERROR', duration, err.message);
-        alert('Erro ao lançar desafio: ' + err.message);
+        showToast('Erro ao lançar desafio: ' + err.message, 'error');
       } finally {
         this.desafioLancando = false;
       }
@@ -680,7 +723,7 @@ function adminApp() {
       } catch (err) {
         const duration = Date.now() - startTime;
         this.adicionarLog('Supabase', 'UPDATE desafios', 'ERROR', duration, err.message);
-        alert('Erro ao finalizar: ' + err.message);
+        showToast('Erro ao finalizar: ' + err.message, 'error');
       }
     },
 
@@ -710,7 +753,7 @@ function adminApp() {
       } catch (err) {
         const duration = Date.now() - startTime;
         this.adicionarLog('Supabase', 'DELETE desafios', 'ERROR', duration, err.message);
-        alert('Erro ao excluir: ' + err.message);
+        showToast('Erro ao excluir: ' + err.message, 'error');
       }
     }
   };
