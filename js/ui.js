@@ -174,22 +174,33 @@ function switchView(targetViewId) {
           nameInput.value = grupoAtual.nome || '';
         }
         
-        // Carrega as regras de pontuação nos inputs
-        const ptExato = document.getElementById('num-pt-placar-exato');
-        const ptGolsTime = document.getElementById('num-pt-vencedor-gols-time');
-        const ptEmpateNaoExato = document.getElementById('num-pt-empate-nao-exato');
-        const ptSaldo = document.getElementById('num-pt-vencedor-saldo');
-        const ptGolsPerdedor = document.getElementById('num-pt-vencedor-gols-perdedor');
-        const ptApenasVencedor = document.getElementById('num-pt-apenas-vencedor');
-        const ptGolsUmTime = document.getElementById('num-pt-gols-um-time');
-        
-        if (ptExato) ptExato.value = grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null ? grupoAtual.pt_placar_exato : 30;
-        if (ptGolsTime) ptGolsTime.value = grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null ? grupoAtual.pt_vencedor_gols_time : 18;
-        if (ptEmpateNaoExato) ptEmpateNaoExato.value = grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null ? grupoAtual.pt_empate_nao_exato : 18;
-        if (ptSaldo) ptSaldo.value = grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null ? grupoAtual.pt_vencedor_saldo : 15;
-        if (ptGolsPerdedor) ptGolsPerdedor.value = grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null ? grupoAtual.pt_vencedor_gols_perdedor : 12;
-        if (ptApenasVencedor) ptApenasVencedor.value = grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null ? grupoAtual.pt_apenas_vencedor : 4;
-        if (ptGolsUmTime) ptGolsUmTime.value = grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null ? grupoAtual.pt_gols_um_time : 3;
+        // Carrega as regras de pontuação nos inputs e checkboxes
+        const carregarRegraUI = (inputId, chkId, dbValue, defaultValue) => {
+          const input = document.getElementById(inputId);
+          const chk = document.getElementById(chkId);
+          if (!input) return;
+          
+          const value = dbValue !== undefined && dbValue !== null ? Number(dbValue) : defaultValue;
+          input.value = value > 0 ? value : defaultValue;
+          
+          if (chk) {
+            chk.checked = value > 0;
+            input.disabled = !chk.checked;
+            if (input.disabled) {
+              input.classList.add('opacity-30', 'cursor-not-allowed');
+            } else {
+              input.classList.remove('opacity-30', 'cursor-not-allowed');
+            }
+          }
+        };
+
+        carregarRegraUI('num-pt-placar-exato', 'chk-pt-placar-exato', grupoAtual.pt_placar_exato, 30);
+        carregarRegraUI('num-pt-vencedor-gols-time', 'chk-pt-vencedor-gols-time', grupoAtual.pt_vencedor_gols_time, 18);
+        carregarRegraUI('num-pt-empate-nao-exato', 'chk-pt-empate-nao-exato', grupoAtual.pt_empate_nao_exato, 18);
+        carregarRegraUI('num-pt-vencedor-saldo', 'chk-pt-vencedor-saldo', grupoAtual.pt_vencedor_saldo, 15);
+        carregarRegraUI('num-pt-vencedor-gols-perdedor', 'chk-pt-vencedor-gols-perdedor', grupoAtual.pt_vencedor_gols_perdedor, 12);
+        carregarRegraUI('num-pt-apenas-vencedor', 'chk-pt-apenas-vencedor', grupoAtual.pt_apenas_vencedor, 4);
+        carregarRegraUI('num-pt-gols-um-time', 'chk-pt-gols-um-time', grupoAtual.pt_gols_um_time, 3);
       } else {
         adminSettings.classList.add('hidden');
       }
@@ -530,7 +541,7 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
   // ================= A CASCATA DE PONTUAÇÃO =================
 
   // 1. Placar Exato
-  if (pHome === rHome && pAway === rAway) {
+  if (pHome === rHome && pAway === rAway && regras.pt_placar_exato > 0) {
     return regras.pt_placar_exato;
   }
 
@@ -540,7 +551,7 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
 
   if (acertouVencedor) {
     // 2. Empate Não-Exato
-    if (vencedorReal === 'empate') {
+    if (vencedorReal === 'empate' && regras.pt_empate_nao_exato > 0) {
       return regras.pt_empate_nao_exato;
     }
 
@@ -563,27 +574,29 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
     }
 
     // 3. Vencedor e Gols de um Time (Gols do Vencedor)
-    if (acertouGolsDoVencedor) {
-      return   regras.pt_vencedor_gols_time;
+    if (acertouGolsDoVencedor && regras.pt_vencedor_gols_time > 0) {
+      return regras.pt_vencedor_gols_time;
     }
 
     // 4. Vencedor e Saldo/Diferença de Gols
-    if (saldoPalpite === saldoReal) {
+    if (saldoPalpite === saldoReal && regras.pt_vencedor_saldo > 0) {
       return regras.pt_vencedor_saldo;
     }
 
     // 5. Vencedor e Gols do Perdedor
-    if (acertouGolsDoPerdedor) {
-      return regras.pt_vencedor_gols_perdedor;
+    if (acertouGolsDoPerdedor && regras.pt_vencedor_gols_perdedor > 0) {
+      return   regras.pt_vencedor_gols_perdedor;
     }
 
     // 6. Apenas o Vencedor
-    return regras.pt_apenas_vencedor;
+    if (regras.pt_apenas_vencedor > 0) {
+      return regras.pt_apenas_vencedor;
+    }
   } else {
     // 7. Gols de um Time
     const acertouGolsHome = pHome === rHome;
     const acertouGolsAway = pAway === rAway;
-    if (acertouGolsHome || acertouGolsAway) {
+    if ((acertouGolsHome || acertouGolsAway) && regras.pt_gols_um_time > 0) {
       return regras.pt_gols_um_time;
     }
   }
@@ -2816,6 +2829,18 @@ function toggleMenuRegras() {
       menu.classList.add('hidden');
       seta.style.transform = 'rotate(0deg)';
       seta.innerText = '▼';
+    }
+  }
+}
+
+function toggleInputRegra(inputId, checkbox) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.disabled = !checkbox.checked;
+    if (input.disabled) {
+      input.classList.add('opacity-30', 'cursor-not-allowed');
+    } else {
+      input.classList.remove('opacity-30', 'cursor-not-allowed');
     }
   }
 }

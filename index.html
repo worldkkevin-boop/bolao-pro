@@ -593,6 +593,8 @@
 
           <div class="mb-5 border-t border-zinc-800 pt-4">
               <!-- Botão para abrir o menu colapsável de regras -->
+          <div class="mb-5 border-t border-zinc-800 pt-4">
+              <!-- Botão para abrir o menu colapsável de regras -->
               <button onclick="toggleMenuRegras()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
                 <span class="flex items-center gap-2">⚙️ Customizar Regras de Pontuação</span>
                 <span id="seta-menu-regras" class="text-[10px] transition-transform duration-200">▼</span>
@@ -600,11 +602,12 @@
 
               <!-- Container colapsável (oculto por padrão) -->
               <div id="menu-regras-custom" class="hidden mt-3 space-y-3 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800/80 transition-all">
-                  <p class="text-[9px] text-zinc-500 leading-relaxed mb-1">Customize os pontos distribuídos para cada critério. Se não quiser usar um critério, defina-o como 0.</p>
+                  <p class="text-[9px] text-zinc-500 leading-relaxed mb-1">Marque os critérios ativos do seu Bolão e defina os pontos de cada um. Desmarque para anular a regra.</p>
                   
                   <!-- 1. Placar Exato -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-placar-exato" checked onchange="toggleInputRegra('num-pt-placar-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">🎯</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Placar Exato</p>
@@ -617,6 +620,7 @@
                   <!-- 2. Vencedor e gols de um time -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-vencedor-gols-time" checked onchange="toggleInputRegra('num-pt-vencedor-gols-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">⚽</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols de um Time</p>
@@ -629,6 +633,7 @@
                   <!-- 3. Empate não exato -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-empate-nao-exato" checked onchange="toggleInputRegra('num-pt-empate-nao-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">🤝</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Empate Não-Exato</p>
@@ -641,6 +646,7 @@
                   <!-- 4. Vencedor e Saldo -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-vencedor-saldo" checked onchange="toggleInputRegra('num-pt-vencedor-saldo', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">📊</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Vencedor e Saldo de Gols</p>
@@ -653,6 +659,7 @@
                   <!-- 5. Vencedor e Gols do Perdedor -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-vencedor-gols-perdedor" checked onchange="toggleInputRegra('num-pt-vencedor-gols-perdedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">📉</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols do Perdedor</p>
@@ -665,6 +672,7 @@
                   <!-- 6. Apenas Vencedor -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-apenas-vencedor" checked onchange="toggleInputRegra('num-pt-apenas-vencedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">👑</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Apenas o Vencedor</p>
@@ -677,6 +685,7 @@
                   <!-- 7. Gols de um time -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
+                      <input type="checkbox" id="chk-pt-gols-um-time" checked onchange="toggleInputRegra('num-pt-gols-um-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
                       <span class="text-lg">⚽</span>
                       <div>
                         <p class="text-[12px] font-black text-white leading-tight">Placar de Algum Time</p>

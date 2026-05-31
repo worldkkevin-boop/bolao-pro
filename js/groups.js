@@ -758,14 +758,20 @@ async function salvarRegrasGrupoReal() {
     btn.innerText = "SALVANDO...";
   }
 
-  // Captura os valores digitados nos inputs
-  const pt_placar_exato = parseInt(document.getElementById('num-pt-placar-exato').value);
-  const pt_vencedor_gols_time = parseInt(document.getElementById('num-pt-vencedor-gols-time').value);
-  const pt_empate_nao_exato = parseInt(document.getElementById('num-pt-empate-nao-exato').value);
-  const pt_vencedor_saldo = parseInt(document.getElementById('num-pt-vencedor-saldo').value);
-  const pt_vencedor_gols_perdedor = parseInt(document.getElementById('num-pt-vencedor-gols-perdedor').value);
-  const pt_apenas_vencedor = parseInt(document.getElementById('num-pt-apenas-vencedor').value);
-  const pt_gols_um_time = parseInt(document.getElementById('num-pt-gols-um-time').value);
+  // Captura os valores digitados nos inputs (ou 0 se o checkbox correspondente estiver desmarcado)
+  const getRegraVal = (chkId, numId) => {
+    const chk = document.getElementById(chkId);
+    const num = document.getElementById(numId);
+    if (!chk || !num) return 0;
+    return chk.checked ? parseInt(num.value) : 0;
+  };
+  const pt_placar_exato = getRegraVal('chk-pt-placar-exato', 'num-pt-placar-exato');
+  const pt_vencedor_gols_time = getRegraVal('chk-pt-vencedor-gols-time', 'num-pt-vencedor-gols-time');
+  const pt_empate_nao_exato = getRegraVal('chk-pt-empate-nao-exato', 'num-pt-empate-nao-exato');
+  const pt_vencedor_saldo = getRegraVal('chk-pt-vencedor-saldo', 'num-pt-vencedor-saldo');
+  const pt_vencedor_gols_perdedor = getRegraVal('chk-pt-vencedor-gols-perdedor', 'num-pt-vencedor-gols-perdedor');
+  const pt_apenas_vencedor = getRegraVal('chk-pt-apenas-vencedor', 'num-pt-apenas-vencedor');
+  const pt_gols_um_time = getRegraVal('chk-pt-gols-um-time', 'num-pt-gols-um-time');
 
   // Validação simples
   if (
