@@ -429,7 +429,7 @@ async function inicializarNotificacoesPush(silencioso = false) {
     console.log('[PUSH] Service Worker ready. Registrando inscrição push...');
     
     // NOTA: Esta chave pública VAPID deve ser a mesma configurada nas suas Edge Functions.
-    const VAPID_PUBLIC_KEY = 'BFCw-pZSKdzpQ8q96ckZh_zQiKEebh1agLg6S0xVni0SNpi6P18Z27w57EmmU8Nauxu8r0Q6fxY0_H_FkvvcmUI';
+    const VAPID_PUBLIC_KEY = 'BKVRm4BIW81Kf0FH0q2IrdW2iwfp4Cc7LOfuz8wab89MpHMvbLYXxqubTS_pnBfdPSUdI0LgrXXQrwFnmndcU9w';
     const convertedVapidKey = urlB64ToUint8Array(VAPID_PUBLIC_KEY);
 
     const subscription = await reg.pushManager.subscribe({
