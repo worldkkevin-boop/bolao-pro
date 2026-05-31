@@ -1057,6 +1057,32 @@
       </div>
     </div>
 
+    <!-- Modal: Histórico do Jogador -->
+    <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-[10000] flex items-end justify-center backdrop-blur-sm" onclick="fecharModal('modal-historico')">
+      <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-white/5 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-[#2a2a35] flex-shrink-0">
+              <img id="hist-usuario-foto" src="" class="w-full h-full object-cover">
+            </div>
+            <div>
+              <h3 id="hist-usuario-nome" class="text-base font-black text-white leading-tight">—</h3>
+              <p id="hist-usuario-resumo" class="text-[11px] text-text-muted mt-0.5">—</p>
+            </div>
+          </div>
+          <button onclick="fecharModal('modal-historico')" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <!-- Conteúdo Scrollable -->
+        <div id="hist-usuario-lista" class="overflow-y-auto py-4 flex-1 space-y-3 scrollbar-thin">
+          <!-- Linhas dinâmicas injetadas por JS -->
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Como Instalar App -->
     <div id="modal-instalar-app" class="hidden fixed inset-0 bg-black/70 z-[100] flex items-end justify-center" onclick="fecharModal('modal-instalar-app')">
       <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-white/5 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -1138,13 +1164,13 @@
 
   </div>
 
-  <script src="js/config.js?v=8"></script>
-  <script src="js/auth.js?v=8"></script>
-  <script src="js/api.js?v=8"></script>
-  <script src="js/groups.js?v=8"></script>
-  <script src="js/ui.js?v=8"></script>
-  <script src="js/gm.js?v=8"></script>
-  <script src="js/aovivo.js?v=8"></script>
+  <script src="js/config.js?v=9"></script>
+  <script src="js/auth.js?v=9"></script>
+  <script src="js/api.js?v=9"></script>
+  <script src="js/groups.js?v=9"></script>
+  <script src="js/ui.js?v=9"></script>
+  <script src="js/gm.js?v=9"></script>
+  <script src="js/aovivo.js?v=9"></script>
 
   <!-- Registro do Service Worker -->
   <script>
