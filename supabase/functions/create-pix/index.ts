@@ -39,24 +39,54 @@ serve(async (req) => {
     }
 
     // Get parameters
-    const { groupId } = await req.json()
-    if (!groupId) {
-      return new Response(JSON.stringify({ error: 'groupId is required' }), {
+    const body = await req.json().catch(() => ({}))
+    const paymentType = body.paymentType || (body.groupId ? 'grupo' : 'usuario')
+    const targetId = body.targetId || body.groupId || user.id
+
+    if (!targetId) {
+      return new Response(JSON.stringify({ error: 'Target ID is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Verify if user is the owner of the group
-    const { data: group, error: groupError } = await userClient
-      .from('groups')
-      .select('id, owner_id')
-      .eq('id', groupId)
-      .single()
+    let transactionAmount = 9.90
+    let description = `Upgrade de Bolão do Mago`
+    let extRef = `grupo|${targetId}|20`
 
-    if (groupError || !group || group.owner_id !== user.id) {
-      return new Response(JSON.stringify({ error: 'Only the group owner can generate payments', details: groupError }), {
-        status: 403,
+    if (paymentType === 'grupo') {
+      transactionAmount = 9.90
+      description = `Upgrade de Bolão do Mago - Grupo ${targetId}`
+      extRef = `grupo|${targetId}|20`
+      
+      // Verify if user is the owner of the group
+      const { data: group, error: groupError } = await userClient
+        .from('groups')
+        .select('id, owner_id')
+        .eq('id', targetId)
+        .single()
+
+      if (groupError || !group || group.owner_id !== user.id) {
+        return new Response(JSON.stringify({ error: 'Only the group owner can generate payments', details: groupError }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    } else if (paymentType === 'usuario') {
+      transactionAmount = 4.90
+      description = `Passe Livre do Mago - Usuário ${targetId}`
+      extRef = `usuario|${targetId}|999`
+      
+      // Verify targetId matches calling user
+      if (targetId !== user.id) {
+        return new Response(JSON.stringify({ error: 'Cannot purchase Passe Livre for another user' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    } else {
+      return new Response(JSON.stringify({ error: 'Invalid paymentType' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -79,10 +109,10 @@ serve(async (req) => {
         'X-Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
-        transaction_amount: 9.90,
+        transaction_amount: transactionAmount,
         payment_method_id: 'pix',
-        description: `Upgrade de Bolão do Mago - Grupo ${groupId}`,
-        external_reference: `${groupId}|20`,
+        description: description,
+        external_reference: extRef,
         payer: {
           email: user.email,
           first_name: user.user_metadata?.full_name?.split(' ')[0] || 'Jogador',

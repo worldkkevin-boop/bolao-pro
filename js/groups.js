@@ -190,6 +190,14 @@ async function criarGrupoReal() {
   btn.disabled = true;
   btn.textContent = 'Criando...';
 
+  // Trava de grupos por usuário (B2C Catraca)
+  const limitePermitido = await checarLimiteGruposUsuario();
+  if (!limitePermitido) {
+    btn.disabled = false;
+    btn.textContent = 'Criar';
+    return;
+  }
+
   const { data: { user } } = await sbClient.auth.getUser();
   const codigo = Math.random().toString(36).substring(2, 9).toUpperCase();
   const leagueId = parseInt(document.getElementById('select-liga-grupo').value) || 1;
@@ -249,6 +257,13 @@ async function entrarPorCodigoApp() {
     .maybeSingle();
 
   if (!jaEhMembro) {
+    // Trava de grupos por usuário (B2C Catraca)
+    const limitePermitido = await checarLimiteGruposUsuario();
+    if (!limitePermitido) {
+      if (typeof fecharModal === 'function') fecharModal('modal-entrar-grupo');
+      return;
+    }
+
     // 1. Conta quantos membros o grupo já tem
     const { count: totalMembros, error: countError } = await sbClient
       .from('group_members')
@@ -914,6 +929,45 @@ function fecharNotificacaoDesafio(modalId, desafioId) {
       desafiosVistos.push(desafioId);
       localStorage.setItem('desafios_vistos_' + usuarioAtual.id, JSON.stringify(desafiosVistos));
     }
+  }
+}
+
+async function checarLimiteGruposUsuario() {
+  if (!usuarioAtual) return true;
+  try {
+    // 1. Conta em quantos grupos o usuário logado já participa
+    const { count: totalGruposUsuario, error: countUserError } = await sbClient
+      .from('group_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', usuarioAtual.id);
+
+    if (countUserError) {
+      console.error("Erro ao contar grupos do usuário:", countUserError);
+      return true; // Evita travar a entrada caso o Supabase dê falha temporária
+    }
+
+    // 2. Descobre qual é o limite do jogador (buscando na tabela profiles)
+    const { data: perfilData, error: perfilError } = await sbClient
+      .from('profiles')
+      .select('max_grupos')
+      .eq('id', usuarioAtual.id)
+      .single();
+
+    const limiteDoJogador = perfilData?.max_grupos || 1; // Se der erro ou for nulo, assume 1
+
+    // 3. Se ele já esgotou a cota, bloqueia a entrada e abre o modal do Passe Livre.
+    if (totalGruposUsuario >= limiteDoJogador) {
+      if (typeof abrirModalPasseLivre === 'function') {
+        abrirModalPasseLivre();
+      } else {
+        showToast("Você atingiu o limite de grupos permitidos no seu plano.", "error");
+      }
+      return false; // Bloqueado!
+    }
+    return true; // Autorizado!
+  } catch (err) {
+    console.error("Erro ao verificar limite de grupos do usuário:", err);
+    return true;
   }
 }
 

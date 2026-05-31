@@ -91,7 +91,7 @@ serve(async (req) => {
     console.log(`Resposta do Mercado Pago recebida. Status do pagamento: ${payment.status}`)
     
     if (payment.status === 'approved') {
-      const extRef = payment.external_reference // e.g. "groupId|20"
+      const extRef = payment.external_reference // e.g. "grupo|groupId|20" or "usuario|userId|999" or legacy "groupId|20"
       console.log(`Referência externa do pagamento: ${extRef}`)
       
       if (!extRef) {
@@ -103,10 +103,22 @@ serve(async (req) => {
       }
 
       const parts = extRef.split('|')
-      const groupId = parts[0]
-      const newLimit = parseInt(parts[1] || '20', 10)
+      let paymentType = 'grupo'
+      let targetId = ''
+      let newLimit = 20
 
-      console.log(`Iniciando upgrade no banco. Grupo ID: ${groupId}, Novo limite: ${newLimit}`)
+      if (parts.length === 3) {
+        paymentType = parts[0]
+        targetId = parts[1]
+        newLimit = parseInt(parts[2], 10)
+      } else {
+        // Legacy support for "groupId|20"
+        paymentType = 'grupo'
+        targetId = parts[0]
+        newLimit = parseInt(parts[1] || '20', 10)
+      }
+
+      console.log(`Iniciando upgrade no banco. Tipo de pagamento: ${paymentType}, ID: ${targetId}, Novo limite: ${newLimit}`)
 
       // Initialize Supabase Client with service role key to bypass RLS
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
@@ -122,21 +134,37 @@ serve(async (req) => {
 
       const adminClient = createClient(supabaseUrl, supabaseServiceKey)
 
-      const { error: updateError } = await adminClient
-        .from('groups')
-        .update({ max_participants: newLimit })
-        .eq('id', groupId)
+      if (paymentType === 'grupo') {
+        const { error: updateError } = await adminClient
+          .from('groups')
+          .update({ max_participants: newLimit })
+          .eq('id', targetId)
 
-      if (updateError) {
-        console.error("Erro ao atualizar grupo no banco de dados:", updateError)
-        return new Response(JSON.stringify({ error: 'Failed to update group max_participants', details: updateError }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        if (updateError) {
+          console.error("Erro ao atualizar grupo no banco de dados:", updateError)
+          return new Response(JSON.stringify({ error: 'Failed to update group max_participants', details: updateError }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        console.log(`✅ Upgrade concluído com sucesso no banco de dados para o grupo ${targetId}!`)
+      } else if (paymentType === 'usuario') {
+        const { error: updateError } = await adminClient
+          .from('profiles')
+          .update({ max_grupos: newLimit })
+          .eq('id', targetId)
+
+        if (updateError) {
+          console.error("Erro ao atualizar perfil do usuário no banco de dados:", updateError)
+          return new Response(JSON.stringify({ error: 'Failed to update profile max_grupos', details: updateError }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        console.log(`✅ Upgrade de Passe Livre concluído com sucesso para o usuário ${targetId}!`)
       }
 
-      console.log(`✅ Upgrade concluído com sucesso no banco de dados para o grupo ${groupId}!`)
-      return new Response(JSON.stringify({ success: true, message: `Group ${groupId} upgraded to limit ${newLimit}` }), {
+      return new Response(JSON.stringify({ success: true, message: `Upgrade successful for ${paymentType} ${targetId}` }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

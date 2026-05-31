@@ -2519,3 +2519,239 @@ function recarregarGrupoAposUpgrade() {
     carregarRanking();
   }
 }
+
+function abrirModalPasseLivre() {
+  fecharModalUpgrade(); // Caso algum outro modal de upgrade esteja aberto
+  
+  // Garantir que não duplique o modal
+  const existing = document.getElementById('passe-livre-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'passe-livre-overlay';
+  overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] transition-all duration-300 opacity-0';
+
+  // Animação de entrada
+  setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+  overlay.innerHTML = `
+    <div class="bg-[#121214] border border-brand-purple/20 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(139,92,246,0.15)] overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+      
+      <!-- Cabeçalho do Modal -->
+      <div class="p-6 text-center border-b border-white/5 relative">
+        <button onclick="fecharModalPasseLivre()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+        <div class="w-16 h-16 bg-brand-purple/10 rounded-full flex items-center justify-center border border-brand-purple/30 mx-auto mb-3 text-3xl">
+          🎟️
+        </div>
+        <h2 class="text-white font-black text-lg uppercase tracking-wide">Passe Livre do Mago</h2>
+        <p class="text-brand-purple text-xs font-bold mt-1">Ligas & Grupos Ilimitados</p>
+      </div>
+      
+      <!-- Mensagem explicativa -->
+      <div class="p-6 text-center">
+        <p class="text-gray-300 text-xs leading-relaxed mb-6">
+          Você já está participando de um bolão! Para participar de ligas ilimitadas e desafiar outras galeras, adquira o <strong class="text-white">Passe Livre do Mago</strong> por apenas <strong class="text-white">R$ 4,90</strong> no Pix.
+        </p>
+
+        <!-- Recursos inclusos -->
+        <div class="bg-[#18181b] rounded-xl p-4 mb-6 border border-white/5 text-left flex flex-col gap-2.5">
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-sm">✓</span>
+            <p class="text-xs text-gray-200">Participação em <strong class="text-white">Grupos Ilimitados</strong></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-sm">✓</span>
+            <p class="text-xs text-gray-200">Acesso completo a todos os seus bolões</p>
+          </div>
+        </div>
+        
+        <!-- Botão Mercado Pago -->
+        <button onclick="iniciarPagamentoPasseLivre()" class="w-full bg-[#009EE3] hover:bg-[#0080B7] text-white font-black py-3.5 rounded-xl uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2 text-xs">
+          <img src="https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png" alt="MP" class="w-4 h-4 brightness-0 invert">
+          Adquirir por R$ 4,90
+        </button>
+        <p class="text-[10px] text-center text-gray-500 mt-3">
+          🔒 Pagamento 100% seguro via Mercado Pago
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-95', 'opacity-0');
+      child.classList.add('scale-100', 'opacity-100');
+    }
+  }, 100);
+}
+
+function fecharModalPasseLivre() {
+  const overlay = document.getElementById('passe-livre-overlay');
+  if (overlay) {
+    overlay.classList.add('opacity-0');
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-100', 'opacity-100');
+      child.classList.add('scale-95', 'opacity-0');
+    }
+    setTimeout(() => overlay.remove(), 300);
+  }
+}
+
+async function iniciarPagamentoPasseLivre() {
+  if (typeof showToast === 'function') {
+    showToast("Gerando Pix de R$ 4,90...", "success");
+  }
+
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) {
+      showToast("Você precisa estar logado para efetuar o pagamento.", "error");
+      return;
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-pix`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ paymentType: 'usuario', targetId: session.user.id })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Erro MP Passe Livre:", data);
+      showToast(data.error || "Erro ao gerar pagamento.", "error");
+      return;
+    }
+
+    // Fechar o modal de Passe Livre
+    fecharModalPasseLivre();
+
+    // Criar o overlay de checkout PIX
+    const overlay = document.createElement('div');
+    overlay.id = 'payment-overlay';
+    overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] transition-all duration-300 opacity-0';
+    
+    // Animação de entrada
+    setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+    const qrCodeImageSrc = `data:image/png;base64,${data.qr_code_base64}`;
+    const qrCodeCopyPaste = data.qr_code;
+
+    overlay.innerHTML = `
+      <div class="bg-[#121214] border border-brand-purple/20 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(139,92,246,0.15)] overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+        
+        <!-- Cabeçalho -->
+        <div class="p-5 text-center border-b border-white/5 relative">
+          <button onclick="fecharModalPagamento()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="w-12 h-12 bg-brand-purple/10 rounded-full flex items-center justify-center border border-brand-purple/30 mx-auto mb-2 text-xl">
+            🎟️
+          </div>
+          <h2 class="text-white font-black text-base uppercase tracking-wide">Passe Livre</h2>
+          <p class="text-brand-purple text-[11px] font-bold">Upgrade de Usuário — Ligas Ilimitadas</p>
+        </div>
+        
+        <!-- Checkout -->
+        <div class="p-6 flex flex-col items-center">
+          <p class="text-gray-300 text-xs text-center mb-4 leading-relaxed">
+            Escaneie o QR Code Pix abaixo ou copie o código "Copia e Cola" para pagar <strong class="text-white">R$ 4,90</strong>. Sua conta será liberada para grupos ilimitados imediatamente após o pagamento.
+          </p>
+
+          <!-- QR Code Container -->
+          <div class="bg-white p-3 rounded-xl mb-4 border-2 border-brand-purple/20 shadow-[0_0_20px_rgba(255,255,255,0.05)] w-44 h-44 flex items-center justify-center">
+            <img src="${qrCodeImageSrc}" alt="QR Code PIX" class="w-full h-full object-contain">
+          </div>
+
+          <!-- Pix Copia e Cola -->
+          <div class="w-full bg-[#18181b] border border-white/5 rounded-xl p-3 mb-5">
+            <label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Código Pix Copia e Cola</label>
+            <div class="flex gap-2">
+              <input type="text" id="pix-copia-cola" readonly value="${qrCodeCopyPaste}" class="bg-transparent border-0 text-white text-xs w-full focus:ring-0 focus:outline-none overflow-hidden text-ellipsis whitespace-nowrap">
+              <button onclick="copiarPixCodigo()" id="btn-copy-pix" class="bg-brand-purple hover:bg-brand-purple/80 text-white font-bold px-3 py-1 rounded-lg text-[10px] uppercase tracking-wide transition-all active:scale-95 shrink-0">
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <!-- Aguardando pagamento spinner -->
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-gray-400 font-medium">Aguardando confirmação do PIX...</span>
+          </div>
+          <p class="text-[10px] text-gray-500 text-center">Processado de forma 100% segura via Mercado Pago</p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    
+    // Animação de entrada do card
+    setTimeout(() => {
+      const child = overlay.firstElementChild;
+      if (child) {
+        child.classList.remove('scale-95', 'opacity-0');
+        child.classList.add('scale-100', 'opacity-100');
+      }
+    }, 100);
+
+    // Iniciar polling para verificar a confirmação do pagamento
+    if (paymentPollInterval) clearInterval(paymentPollInterval);
+    
+    paymentPollInterval = setInterval(async () => {
+      try {
+        const { data: profile, error: profErr } = await sbClient
+          .from('profiles')
+          .select('max_grupos')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profErr) {
+          console.error("Erro ao verificar status do perfil:", profErr);
+          return;
+        }
+
+        if (profile && profile.max_grupos > 1) {
+          // Upgrade do jogador detectado!
+          clearInterval(paymentPollInterval);
+          paymentPollInterval = null;
+          
+          if (usuarioAtual) {
+            usuarioAtual.max_grupos = profile.max_grupos;
+          }
+
+          // Animação de Sucesso
+          showToast("Passe Livre Ativado! Ligas ilimitadas liberadas 🎟️", "success");
+          
+          const card = overlay.firstElementChild;
+          if (card) {
+            card.innerHTML = `
+              <div class="p-8 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mb-4 text-3xl animate-bounce">
+                  🎉
+                </div>
+                <h2 class="text-white font-black text-lg uppercase tracking-wide mb-2">Passe Livre Ativo!</h2>
+                <p class="text-gray-300 text-xs leading-relaxed mb-6">
+                  Parabéns! Sua conta agora possui o <strong class="text-white">Passe Livre do Mago</strong>. Você pode entrar em quantos bolões quiser sem limites!
+                </p>
+                <button onclick="fecharModalPagamento();" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
+                  Começar a Jogar
+                </button>
+              </div>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling do Passe Livre:", err);
+      }
+    }, 4000);
+
+  } catch (error) {
+    console.error("Erro iniciarPagamentoPasseLivre:", error);
+    showToast("Erro de conexão ao gerar pagamento.", "error");
+  }
+}
