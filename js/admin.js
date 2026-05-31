@@ -860,8 +860,7 @@ function adminApp() {
             novosMembros.push({
               group_id: grupoDestinoId,
               user_id: m.user_id,
-              role: m.role || 'member',
-              created_at: m.created_at
+              role: m.role || 'member'
             });
           }
         });
