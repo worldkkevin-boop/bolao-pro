@@ -34,6 +34,7 @@ async function carregarJogos() {
     if (typeof gerarFiltrosRodadas === 'function') gerarFiltrosRodadas();
     if (typeof filtrarPorRodada === 'function') filtrarPorRodada(rodadaSelecionada);
     if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
+    if (typeof exibirRankingSelecionado === 'function') exibirRankingSelecionado();
 
     // Restaura a tela de detalhes da partida se a página foi recarregada (F5) nela
     const lastActiveView = localStorage.getItem('last_active_view');
