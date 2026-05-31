@@ -1046,82 +1046,75 @@ async function carregarDadosTesouraria() {
   } 
   // SE JÁ TEM POTE, MOSTRA O PAINEL DE CONTROLE
   else {
-    // 1. Busca os participantes do pote aberto
-    const { data: participantes, error: erroPart } = await sbClient
+    // Busca todo mundo que tentou entrar nesse Pote e faz um 'join' com a tabela de profiles para pegar os nomes e fotos
+    const { data: participantes, error: partError } = await sbClient
       .from('potes_participantes')
-      .select('*')
+      .select('*, user_id (id, full_name, avatar_url)')
       .eq('pote_id', poteAberto.id);
 
-    let listHTML = '';
-    let totalAcumulado = 0;
+    let listaParticipantesHTML = '';
+    let totalArrecadado = 0;
 
-    if (erroPart || !participantes || participantes.length === 0) {
-      listHTML = '<p class="text-xs text-gray-500 text-center py-6">Nenhum participante entrou no pote ainda.</p>';
+    if (!participantes || participantes.length === 0) {
+      listaParticipantesHTML = '<p class="text-[11px] text-gray-500 text-center py-4">Ninguém entrou no pote ainda.</p>';
     } else {
-      // Calcula total arrecadado (status = 'pago')
-      const pagantes = participantes.filter(p => p.status_pagamento === 'pago');
-      totalAcumulado = pagantes.length * parseFloat(poteAberto.valor_entrada);
-
-      // Busca os perfis deles
-      const userIds = participantes.map(p => p.user_id);
-      const { data: profiles } = await sbClient
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-
-      listHTML = '<div class="space-y-2 max-h-[250px] overflow-y-auto pr-1">';
       participantes.forEach(part => {
-        const p = profiles ? profiles.find(prof => prof.id === part.user_id) : null;
-        const nome = p ? p.full_name : 'Participante';
-        const foto = (p && p.avatar_url) ? p.avatar_url : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=10b981&color=fff';
+        const nomeUser = part.user_id ? (part.user_id.full_name || 'Jogador Misterioso') : 'Jogador Misterioso';
+        const avatarUrl = part.user_id ? part.user_id.avatar_url : null;
+        const isPago = part.status_pagamento === 'pago';
         
-        const statusLabel = part.status_pagamento === 'pago' 
-          ? '<span class="text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded text-[10px] font-bold">PAGO</span>'
-          : '<span class="text-orange-500 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-[10px] font-bold">PENDENTE</span>';
-          
-        let acaoHTML = '';
-        if (part.status_pagamento === 'pendente') {
-          acaoHTML = `
-            <button onclick="confirmarPagamentoPote('${part.id}')" class="bg-brand-green hover:bg-green-500 text-black font-black px-3 py-1.5 rounded-lg text-[10px] uppercase transition-all active:scale-95">
-              Confirmar
-            </button>
-          `;
-        }
+        if (isPago) totalArrecadado += parseFloat(poteAberto.valor_entrada);
 
-        listHTML += `
-          <div class="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3">
-            <div class="flex items-center gap-2 min-w-0">
-              <img src="${foto}" class="w-8 h-8 rounded-full border border-white/10" />
-              <div class="min-w-0">
-                <p class="text-white text-xs font-bold truncate">${nome}</p>
-                <p class="text-[10px] text-gray-400">Status: ${statusLabel}</p>
+        listaParticipantesHTML += `
+          <div class="flex items-center justify-between p-2 bg-black/40 border border-white/5 rounded-lg mb-2 ${isPago ? 'border-brand-green/30' : 'border-orange-500/30'}">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs overflow-hidden">
+                ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover">` : '⚽'}
+              </div>
+              <div>
+                <p class="text-white text-xs font-bold">${nomeUser}</p>
+                <p class="text-[9px] uppercase tracking-widest ${isPago ? 'text-brand-green' : 'text-orange-500'}">
+                  ${isPago ? '✅ PAGO' : '⏳ PENDENTE'}
+                </p>
               </div>
             </div>
-            <div>
-              ${acaoHTML}
-            </div>
+            
+            ${!isPago ? `
+              <button onclick="aprovarPagamentoPote('${part.id}')" class="bg-brand-green/20 text-brand-green border border-brand-green hover:bg-brand-green text-black px-3 py-1 rounded text-[10px] font-black uppercase transition-all">
+                Aprovar
+              </button>
+            ` : `
+              <button onclick="desfazerPagamentoPote('${part.id}')" class="text-gray-500 hover:text-red-500 text-xs px-2" title="Desfazer">
+                ✖
+              </button>
+            `}
           </div>
         `;
       });
-      listHTML += '</div>';
     }
 
     container.innerHTML = `
-      <div class="text-center mb-4 bg-black/30 p-4 rounded-xl border border-brand-green/20">
-        <h3 class="text-white font-black text-xl uppercase tracking-widest">${poteAberto.nome}</h3>
-        <p class="text-brand-green font-bold mt-1">Entrada: R$ ${parseFloat(poteAberto.valor_entrada).toFixed(2)}</p>
-        <p class="text-[11px] text-gray-400 mt-2">Chave Recebedora: <span class="text-white font-bold select-all">${poteAberto.chave_pix_gm}</span></p>
-        <p class="text-[12px] text-yellow-500 font-bold mt-2">Acumulado Confirmado: R$ ${totalAcumulado.toFixed(2)}</p>
+      <!-- Cabeçalho do Pote -->
+      <div class="text-center mb-4 bg-black/30 p-4 rounded-xl border border-brand-green/20 relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 text-6xl opacity-10 blur-[1px]">💰</div>
+        <h3 class="text-white font-black text-xl uppercase tracking-widest relative z-10">${poteAberto.nome}</h3>
+        <p class="text-brand-green font-bold text-sm mt-1 relative z-10">Arrecadado: R$ ${totalArrecadado.toFixed(2)}</p>
       </div>
       
-      <div class="mt-6 border-t border-white/5 pt-4">
-        <h4 class="text-white font-bold text-sm mb-3">Status dos Pagamentos</h4>
+      <!-- Lista de Pagamentos -->
+      <div class="mt-4">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="text-white font-bold text-sm">Controle de PIX</h4>
+          <span class="text-[10px] bg-white/10 text-gray-300 px-2 py-0.5 rounded">${participantes ? participantes.length : 0} inscritos</span>
+        </div>
         
-        ${listHTML}
-        
-        <!-- O botão de encerrar (pra fechar a rodada depois) -->
-        <button onclick="encerrarPote('${poteAberto.id}')" class="w-full mt-6 bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95">
-          Encerrar Pote
+        <div class="max-h-60 overflow-y-auto pr-1 space-y-1">
+          ${listaParticipantesHTML}
+        </div>
+
+        <!-- Botão Perigoso (Encerrar a Rodada) -->
+        <button onclick="encerrarPoteAtual('${poteAberto.id}')" class="w-full mt-6 bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all">
+          ⚠️ Encerrar Pote (Não aceitar mais)
         </button>
       </div>
     `;
@@ -1160,38 +1153,52 @@ async function lancarPote() {
   }
 }
 
-// 4. Confirma pagamento manualmente
-async function confirmarPagamentoPote(participanteId) {
-  showToast("Confirmando pagamento...", "success");
+// ==================== AÇÕES DO GM NA TESOURARIA ====================
+
+// GM clica para dizer que o PIX do cara caiu
+async function aprovarPagamentoPote(participanteId) {
+  showToast("Aprovando...", "success");
+  
   const { error } = await sbClient
     .from('potes_participantes')
     .update({ status_pagamento: 'pago' })
     .eq('id', participanteId);
 
   if (error) {
-    showToast("Erro ao confirmar pagamento.", "error");
+    showToast("Erro ao aprovar.", "error");
   } else {
-    showToast("Pagamento confirmado com sucesso!", "success");
+    // Recarrega a Tesouraria e também o Banner Dourado que fica no fundo!
     await carregarDadosTesouraria();
-    await carregarPoteBanner();
+    if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
   }
 }
 
-// 5. Encerra o Pote
-async function encerrarPote(poteId) {
-  if (!confirm("Tem certeza que deseja encerrar este Pote? Ninguém mais poderá entrar nesta disputa.")) return;
-  showToast("Encerrando pote...", "success");
+// Caso o GM tenha clicado sem querer
+async function desfazerPagamentoPote(participanteId) {
+  const { error } = await sbClient
+    .from('potes_participantes')
+    .update({ status_pagamento: 'pendente' })
+    .eq('id', participanteId);
+
+  if (!error) {
+    await carregarDadosTesouraria();
+    if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
+  }
+}
+
+// Fechar o cofre e ninguém mais entra
+async function encerrarPoteAtual(poteId) {
+  if(!confirm("Tem certeza? Ninguém mais vai conseguir entrar nesse Pote!")) return;
+
   const { error } = await sbClient
     .from('potes')
     .update({ status: 'encerrado' })
     .eq('id', poteId);
 
-  if (error) {
-    showToast("Erro ao encerrar o pote.", "error");
-  } else {
-    showToast("Pote encerrado com sucesso!", "success");
-    await carregarDadosTesouraria();
-    await carregarPoteBanner();
+  if (!error) {
+    showToast("Pote Encerrado!", "success");
+    fecharTesouraria();
+    if(typeof carregarPoteBanner === 'function') carregarPoteBanner(); // Atualiza a tela pra sumir o banner
   }
 }
 
