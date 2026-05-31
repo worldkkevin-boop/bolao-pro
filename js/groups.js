@@ -2016,13 +2016,21 @@ async function compartilharListaPoteWhatsApp() {
     texto += `5️⃣ Copie a chave PIX lá no app, faça o pagamento, e o sistema já me avisa para eu aprovar sua entrada!\n\n`;
     texto += `Bora que o bicho vai pegar! 🚀💸`;
 
-    // Compartilha ou copia
+    // Tenta usar compartilhamento nativo. Se der erro (ex: cancelado ou sem suporte real), faz o fallback para cópia
+    let compartilhado = false;
     if (navigator.share) {
-      await navigator.share({
-        title: `Lista do Pote - ${poteSelecionado.nome}`,
-        text: texto
-      });
-    } else {
+      try {
+        await navigator.share({
+          title: `Lista do Pote - ${poteSelecionado.nome}`,
+          text: texto
+        });
+        compartilhado = true;
+      } catch (shareErr) {
+        console.log("Navigator share falhou ou cancelado, tentando copiar para clipboard:", shareErr);
+      }
+    }
+
+    if (!compartilhado) {
       await navigator.clipboard.writeText(texto);
       showToast("Lista copiada com sucesso! Só colar no WhatsApp.", "success");
     }
