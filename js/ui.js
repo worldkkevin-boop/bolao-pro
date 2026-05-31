@@ -137,7 +137,7 @@ function switchView(targetViewId) {
     } else {
       if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
     }
-  } else if (targetViewId === 'view-jogos' && todosOsJogos.length === 0) {
+  } else if ((targetViewId === 'view-jogos' || targetViewId === 'view-palpite') && todosOsJogos.length === 0) {
     if (typeof carregarJogos === 'function') carregarJogos();
   } else if (targetViewId === 'view-jogos' && todosOsJogos.length > 0) {
     gerarFiltrosRodadas();
