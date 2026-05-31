@@ -499,8 +499,22 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
     return 0;
   }
 
+  // Configuração padrão de pontos com fallback para as regras customizadas do grupo atual (se houver)
+  const regras = {
+    pt_placar_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 30,
+    pt_vencedor_gols_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? Number(grupoAtual.pt_vencedor_gols_time) : 18,
+    pt_empate_nao_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 18,
+    pt_vencedor_saldo: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 15,
+    pt_vencedor_gols_perdedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? Number(grupoAtual.pt_vencedor_gols_perdedor) : 12,
+    pt_apenas_vencedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 4,
+    pt_gols_um_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? Number(grupoAtual.pt_gols_um_time) : 3
+  };
+
+  // ================= A CASCATA DE PONTUAÇÃO =================
+
+  // 1. Placar Exato
   if (pHome === rHome && pAway === rAway) {
-    return 30; // Placar Exato
+    return regras.pt_placar_exato;
   }
 
   const vencedorPalpite = pHome > pAway ? 'home' : (pHome < pAway ? 'away' : 'empate');
@@ -508,35 +522,52 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
   const acertouVencedor = vencedorPalpite === vencedorReal;
 
   if (acertouVencedor) {
+    // 2. Empate Não-Exato
     if (vencedorReal === 'empate') {
-      return 18; // Empate
+      return regras.pt_empate_nao_exato;
     }
 
-    const saldoPalpite = pHome - pAway;
-    const saldoReal = rHome - rAway;
+    const saldoPalpite = Math.abs(pHome - pAway);
+    const saldoReal = Math.abs(rHome - rAway);
 
     const acertouGolsHome = pHome === rHome;
     const acertouGolsAway = pAway === rAway;
-    if (acertouGolsHome || acertouGolsAway) {
-      return 18; // Vencedor e gols de um time
+    
+    // Descobrindo se ele acertou os gols do vencedor ou do perdedor
+    let acertouGolsDoVencedor = false;
+    let acertouGolsDoPerdedor = false;
+    
+    if (vencedorReal === 'home') {
+      acertouGolsDoVencedor = acertouGolsHome;
+      acertouGolsDoPerdedor = acertouGolsAway;
+    } else if (vencedorReal === 'away') {
+      acertouGolsDoVencedor = acertouGolsAway;
+      acertouGolsDoPerdedor = acertouGolsHome;
     }
 
+    // 3. Vencedor e Gols de um Time (Gols do Vencedor)
+    if (acertouGolsDoVencedor) {
+      return   regras.pt_vencedor_gols_time;
+    }
+
+    // 4. Vencedor e Saldo/Diferença de Gols
     if (saldoPalpite === saldoReal) {
-      return 15; // Vencedor e saldo
+      return regras.pt_vencedor_saldo;
     }
 
-    const golsPerdedorPalpite = vencedorReal === 'home' ? pAway : pHome;
-    const golsPerdedorReal = vencedorReal === 'home' ? rAway : rHome;
-    if (golsPerdedorPalpite === golsPerdedorReal) {
-      return 12; // Vencedor e gols do perdedor
+    // 5. Vencedor e Gols do Perdedor
+    if (acertouGolsDoPerdedor) {
+      return regras.pt_vencedor_gols_perdedor;
     }
 
-    return 4; // Vencedor
+    // 6. Apenas o Vencedor
+    return regras.pt_apenas_vencedor;
   } else {
+    // 7. Gols de um Time
     const acertouGolsHome = pHome === rHome;
     const acertouGolsAway = pAway === rAway;
     if (acertouGolsHome || acertouGolsAway) {
-      return 3; // Placar de algum time
+      return regras.pt_gols_um_time;
     }
   }
 
