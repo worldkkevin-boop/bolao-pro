@@ -1239,6 +1239,7 @@
 
     <!-- ================= MODAL PERGUNTAS BÔNUS ================= -->
     <div id="modal-perguntas-bonus" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+      
       <!-- Cabeçalho -->
       <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] flex-shrink-0">
         <button onclick="fecharPerguntasBonus()" class="w-8 h-8 bg-indigo-600/20 text-indigo-500 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors">
@@ -1253,30 +1254,33 @@
 
       <!-- Conteúdo Rolável -->
       <div class="flex-1 overflow-y-auto px-5 space-y-4">
+        
         <!-- Status Box -->
-        <div class="bg-[#171527] border border-indigo-900/50 rounded-xl p-4 flex items-center gap-4">
+        <div class="bg-[#171527] border border-indigo-900/50 rounded-xl p-4 flex items-center gap-4 transition-all">
           <div class="w-10 h-10 bg-indigo-600/20 rounded-lg flex items-center justify-center text-indigo-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           </div>
           <div>
-            <p class="text-indigo-400 font-bold text-sm">0/5 ATIVAS</p>
-            <p class="text-gray-400 text-[11px]">+0 pts totais possíveis</p>
+            <p id="contador-ativas-topo" class="text-indigo-400 font-bold text-sm uppercase tracking-widest">0/5 ATIVAS</p>
+            <p id="contador-pontos-topo" class="text-gray-400 text-[11px]">+0 pts totais possíveis</p>
           </div>
         </div>
 
         <!-- Prazo -->
         <div>
           <h3 class="text-white font-bold text-lg mb-3">Prazo para respostas</h3>
-          <div class="bg-[#222226] border border-white/5 rounded-xl p-4 flex justify-between items-center text-gray-400">
-            <span class="font-bold">Definir prazo</span>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <div class="bg-[#222226] border border-white/5 rounded-xl p-4 flex justify-between items-center text-gray-400 relative">
+            <span class="font-bold absolute pointer-events-none" id="label-prazo">Definir prazo</span>
+            <!-- Input de data e hora invisível mas clicável sobre o texto -->
+            <input type="datetime-local" id="prazo-bonus-input" onchange="atualizarTextoPrazo()" class="w-full bg-transparent text-transparent focus:outline-none z-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:left-0">
+            <svg class="w-5 h-5 relative z-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           </div>
         </div>
 
         <!-- Pergunta 1 -->
-        <div class="bg-[#151518] border border-white/5 rounded-xl p-4">
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-start gap-3">
-            <input type="radio" name="q1" class="mt-1 w-4 h-4 accent-indigo-500 bg-transparent border-gray-600">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">⚽</div>
             <div class="flex-1">
               <p class="text-gray-300 font-bold text-sm leading-snug">Quantos gols o campeão fará no campeonato?</p>
@@ -1284,53 +1288,63 @@
                 <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">&lt; 10</span>
                 <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">10-30</span>
                 <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">30-50</span>
-                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">50-70</span>
-                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">70-90</span>
-                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">&gt; 110</span>
               </div>
             </div>
           </div>
-        </div>
+        </label>
 
         <!-- Pergunta 2 -->
-        <div class="bg-[#151518] border border-white/5 rounded-xl p-4 flex items-center gap-3">
-          <input type="radio" name="q2" class="w-4 h-4 accent-indigo-500 bg-transparent border-gray-600">
-          <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
-          <p class="text-gray-300 font-bold text-sm">Quem será o último colocado (rebaixado)?</p>
-        </div>
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o último colocado (rebaixado)?</p>
+          </div>
+        </label>
 
         <!-- Pergunta 3 -->
-        <div class="bg-[#151518] border border-white/5 rounded-xl p-4 flex items-center gap-3">
-          <input type="radio" name="q3" class="w-4 h-4 accent-indigo-500 bg-transparent border-gray-600">
-          <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
-          <p class="text-gray-300 font-bold text-sm">Quem será o terceiro colocado?</p>
-        </div>
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥉</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o terceiro colocado?</p>
+          </div>
+        </label>
 
         <!-- Pergunta 4 -->
-        <div class="bg-[#151518] border border-white/5 rounded-xl p-4 flex items-center gap-3">
-          <input type="radio" name="q4" class="w-4 h-4 accent-indigo-500 bg-transparent border-gray-600">
-          <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥈</div>
-          <p class="text-gray-300 font-bold text-sm">Quem será o vice-campeão?</p>
-        </div>
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥈</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o vice-campeão?</p>
+          </div>
+        </label>
 
         <!-- Pergunta 5 -->
-        <div class="bg-[#151518] border border-white/5 rounded-xl p-4 flex items-center gap-3">
-          <input type="radio" name="q5" class="w-4 h-4 accent-indigo-500 bg-transparent border-gray-600">
-          <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🏆</div>
-          <p class="text-gray-300 font-bold text-sm">Quem será o campeão?</p>
-        </div>
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🏆</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o campeão?</p>
+          </div>
+        </label>
+
       </div>
 
       <!-- Rodapé Fixo (Sticky Bottom) -->
-      <div class="bg-[#0d0d12] border-t border-white/5 p-5 flex-shrink-0">
+      <div class="bg-[#0d0d12] border-t border-white/5 p-5 z-20 flex-shrink-0">
         <div class="flex justify-between items-center mb-4">
-          <p class="text-indigo-400 font-black"><span class="text-lg">0</span> <span class="text-xs text-gray-400 uppercase tracking-widest font-bold">ativas</span></p>
-          <p class="text-gray-400 text-xs font-bold">+0 pts</p>
+          <p class="text-indigo-400 font-black flex items-baseline gap-1">
+            <span id="contador-ativas-rodape" class="text-lg">0</span> 
+            <span class="text-xs text-gray-400 uppercase tracking-widest font-bold">ativas</span>
+          </p>
+          <p id="contador-pontos-rodape" class="text-gray-400 text-xs font-bold">+0 pts</p>
         </div>
-        <button class="w-full bg-[#3f3c4d] hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-colors">
-          Salvar
+        <button onclick="salvarPerguntasBonus()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-colors active:scale-95 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+          Salvar Configurações
         </button>
       </div>
+    </div>
     </div>
 
     <!-- ================= MODAL HISTÓRICO DE PONTUAÇÃO ================= -->
@@ -1453,13 +1467,13 @@
 
   </div>
 
-  <script src="js/config.js?v=18"></script>
-  <script src="js/auth.js?v=18"></script>
-  <script src="js/api.js?v=18"></script>
-  <script src="js/groups.js?v=18"></script>
-  <script src="js/ui.js?v=18"></script>
-  <script src="js/gm.js?v=18"></script>
-  <script src="js/aovivo.js?v=18"></script>
+  <script src="js/config.js?v=19"></script>
+  <script src="js/auth.js?v=19"></script>
+  <script src="js/api.js?v=19"></script>
+  <script src="js/groups.js?v=19"></script>
+  <script src="js/ui.js?v=19"></script>
+  <script src="js/gm.js?v=19"></script>
+  <script src="js/aovivo.js?v=19"></script>
 
   <!-- Registro do Service Worker -->
   <script>

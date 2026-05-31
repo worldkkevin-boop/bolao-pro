@@ -3172,6 +3172,8 @@ function abrirPerguntasBonus() {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    // Inicializa contador caso tenha algo selecionado
+    atualizarContadorBonus();
   }
 }
 
@@ -3197,4 +3199,74 @@ function fecharHistoricoPontos() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
+}
+
+// ==================== LÓGICA DAS PERGUNTAS BÔNUS ====================
+
+const PONTOS_POR_PERGUNTA = 10; 
+
+function atualizarContadorBonus() {
+  const checkboxes = document.querySelectorAll('.chk-pergunta-bonus');
+  let qtdAtivas = 0;
+
+  checkboxes.forEach(chk => {
+    const card = chk.closest('.card-pergunta');
+    if (card) {
+      if (chk.checked) {
+        qtdAtivas++;
+        card.classList.remove('border-white/5');
+        card.classList.add('border-indigo-500', 'bg-indigo-500/5');
+      } else {
+        card.classList.add('border-white/5');
+        card.classList.remove('border-indigo-500', 'bg-indigo-500/5');
+      }
+    }
+  });
+
+  const totalPontos = qtdAtivas * PONTOS_POR_PERGUNTA;
+
+  document.getElementById('contador-ativas-topo').innerText = `${qtdAtivas}/5 ATIVAS`;
+  document.getElementById('contador-pontos-topo').innerText = `+${totalPontos} pts totais possíveis`;
+  
+  document.getElementById('contador-ativas-rodape').innerText = qtdAtivas;
+  document.getElementById('contador-pontos-rodape').innerText = `+${totalPontos} pts`;
+}
+
+function atualizarTextoPrazo() {
+  const input = document.getElementById('prazo-bonus-input');
+  const label = document.getElementById('label-prazo');
+  
+  if (input.value) {
+    const dataObj = new Date(input.value);
+    const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    label.innerText = dataFormatada;
+    label.classList.remove('text-gray-400');
+    label.classList.add('text-indigo-400');
+  } else {
+    label.innerText = 'Definir prazo';
+    label.classList.remove('text-indigo-400');
+    label.classList.add('text-gray-400');
+  }
+}
+
+async function salvarPerguntasBonus() {
+  const inputPrazo = document.getElementById('prazo-bonus-input').value;
+  const contador = document.getElementById('contador-ativas-rodape').innerText;
+
+  if (contador === "0") {
+     showToast("Selecione pelo menos uma pergunta para ativar!", "error");
+     return;
+  }
+
+  if (!inputPrazo) {
+    showToast("Você precisa definir um prazo de resposta!", "error");
+    return;
+  }
+
+  showToast("Salvando perguntas bônus...", "success");
+  
+  setTimeout(() => {
+    fecharPerguntasBonus();
+    showToast("Regras aplicadas com sucesso!", "success");
+  }, 1000);
 }
