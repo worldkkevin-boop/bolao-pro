@@ -582,7 +582,7 @@
             <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1">
               <span>👥</span> Participantes
             </p>
-            <p class="text-3xl font-black text-indigo-400 mt-1" id="config-gm-qtd-users">0</p>
+            <p class="text-3xl font-black text-brand-green mt-1" id="config-gm-qtd-users">0</p>
           </div>
           <div class="text-right">
             <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 justify-end">
@@ -604,26 +604,26 @@
           
           <button onclick="abrirEditorRegras()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
             <div class="flex items-center gap-3">
-              <div class="text-indigo-400 text-lg">⚖️</div>
+              <div class="text-brand-green text-lg">⚖️</div>
               <span class="text-white font-bold text-sm">Regras de Pontuação</span>
             </div>
-            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-regras">›</span>
+            <span class="text-brand-green font-bold text-lg" id="seta-ajustes-regras">›</span>
           </button>
 
           <button onclick="abrirHistoricoPontos()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
             <div class="flex items-center gap-3">
-              <div class="text-indigo-400 text-lg">📄</div>
+              <div class="text-brand-green text-lg">📄</div>
               <span class="text-white font-bold text-sm">Histórico de pontuação</span>
             </div>
-            <span class="text-indigo-400 font-bold text-lg">›</span>
+            <span class="text-brand-green font-bold text-lg">›</span>
           </button>
 
           <button onclick="abrirPerguntasBonus()" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
             <div class="flex items-center gap-3">
-              <div class="text-indigo-400 text-lg">⭐</div>
+              <div class="text-brand-green text-lg">⭐</div>
               <span class="text-white font-bold text-sm">Configurar Perguntas Bônus</span>
             </div>
-            <span class="text-indigo-400 font-bold text-lg">›</span>
+            <span class="text-brand-green font-bold text-lg">›</span>
           </button>
         </div>
       </div>
@@ -636,10 +636,10 @@
           <!-- Membros do Bolão -->
           <button onclick="toggleAjustesMembros()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
             <div class="flex items-center gap-3">
-              <div class="text-indigo-400 text-lg">👥</div>
+              <div class="text-brand-green text-lg">👥</div>
               <span class="text-white font-bold text-sm">Gerenciar Participantes</span>
             </div>
-            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-membros">›</span>
+            <span class="text-brand-green font-bold text-lg" id="seta-ajustes-membros">›</span>
           </button>
 
           <!-- Lista de Membros (Colapsável) -->
@@ -652,10 +652,10 @@
           <!-- Configurações Gerais -->
           <button onclick="toggleAjustesGerais()" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
             <div class="flex items-center gap-3">
-              <div class="text-indigo-400 text-lg">⚙️</div>
+              <div class="text-brand-green text-lg">⚙️</div>
               <span class="text-white font-bold text-sm">Configurações Gerais</span>
             </div>
-            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-gerais">›</span>
+            <span class="text-brand-green font-bold text-lg" id="seta-ajustes-gerais">›</span>
           </button>
 
           <!-- Configurações Gerais (Colapsável) -->
@@ -1141,7 +1141,7 @@
     <div id="modal-regras-pontuacao" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
       <!-- Cabeçalho -->
       <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border-white/5 flex-shrink-0">
-        <button onclick="fecharEditorRegras()" class="w-8 h-8 bg-indigo-600/20 text-indigo-500 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors">
+        <button onclick="fecharEditorRegras()" class="w-8 h-8 bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <div>
@@ -1162,8 +1162,8 @@
                 <p class="text-white font-bold text-sm">Placar Exato</p>
                 <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou o vencedor e os gols exatos.</p>
               </div>
-              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-indigo-500/30">
-                <input type="number" id="regra-pt-placar-exato" value="30" class="w-10 bg-transparent text-indigo-400 font-black text-center outline-none text-sm appearance-none">
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-brand-green/30">
+                <input type="number" id="regra-pt-placar-exato" value="30" class="w-10 bg-transparent text-brand-green font-black text-center outline-none text-sm appearance-none">
                 <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
               </div>
             </div>
@@ -1208,17 +1208,17 @@
 
         <!-- Bloco 2: Regras Especiais (Toggles) -->
         <div>
-          <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-3 ml-1">Regras Especiais (Opcional)</p>
-          <div class="bg-[#151518] border border-indigo-900/50 rounded-2xl p-2 space-y-2">
+          <p class="text-[10px] text-brand-green font-black uppercase tracking-widest mb-3 ml-1">Regras Especiais (Opcional)</p>
+          <div class="bg-[#151518] border border-brand-green/20 rounded-2xl p-2 space-y-2">
             <!-- Toggle: Bônus de Empate Exato -->
-            <label class="flex items-center justify-between p-3 bg-indigo-900/10 rounded-xl border border-indigo-500/20 cursor-pointer">
+            <label class="flex items-center justify-between p-3 bg-brand-green/5 rounded-xl border border-brand-green/20 cursor-pointer">
               <div class="pr-4">
-                <p class="text-indigo-300 font-bold text-sm">Super Empate (+2 pts)</p>
+                <p class="text-brand-green font-bold text-sm">Super Empate (+2 pts)</p>
                 <p class="text-gray-400 text-[10px] leading-tight mt-0.5">Bônus extra para quem cravar o placar exato de um empate.</p>
               </div>
               <div class="relative">
                 <input type="checkbox" id="toggle-super-empate" class="peer sr-only">
-                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green"></div>
               </div>
             </label>
 
@@ -1230,7 +1230,7 @@
               </div>
               <div class="relative">
                 <input type="checkbox" id="toggle-consolacao" class="peer sr-only" checked>
-                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green"></div>
               </div>
             </label>
           </div>
@@ -1239,7 +1239,7 @@
 
       <!-- Rodapé Fixo (Sticky Bottom) -->
       <div class="bg-[#0d0d12] border-t border-white/5 p-5 z-20 flex-shrink-0">
-        <button onclick="salvarRegrasPontuacao()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-colors active:scale-95 shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2">
+        <button onclick="salvarRegrasPontuacao()" class="w-full bg-brand-green hover:opacity-90 text-black font-black py-3.5 rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           Salvar Novas Regras
         </button>
@@ -1247,11 +1247,12 @@
     </div>
 
     <!-- ================= MODAL PERGUNTAS BÔNUS ================= -->
+    <!-- ================= MODAL PERGUNTAS BÔNUS ================= -->
     <div id="modal-perguntas-bonus" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
       
       <!-- Cabeçalho -->
       <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] flex-shrink-0">
-        <button onclick="fecharPerguntasBonus()" class="w-8 h-8 bg-indigo-600/20 text-indigo-500 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors">
+        <button onclick="fecharPerguntasBonus()" class="w-8 h-8 bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="text-white font-black text-xl tracking-wide">Perguntas Bônus</h1>
@@ -1265,12 +1266,12 @@
       <div class="flex-1 overflow-y-auto px-5 space-y-4">
         
         <!-- Status Box -->
-        <div class="bg-[#171527] border border-indigo-900/50 rounded-xl p-4 flex items-center gap-4 transition-all">
-          <div class="w-10 h-10 bg-indigo-600/20 rounded-lg flex items-center justify-center text-indigo-400">
+        <div class="bg-[#12221c] border border-brand-green/30 rounded-xl p-4 flex items-center gap-4 transition-all">
+          <div class="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center text-brand-green">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           </div>
           <div>
-            <p id="contador-ativas-topo" class="text-indigo-400 font-bold text-sm uppercase tracking-widest">0/5 ATIVAS</p>
+            <p id="contador-ativas-topo" class="text-brand-green font-bold text-sm uppercase tracking-widest">0/5 ATIVAS</p>
             <p id="contador-pontos-topo" class="text-gray-400 text-[11px]">+0 pts totais possíveis</p>
           </div>
         </div>
@@ -1289,7 +1290,7 @@
         <!-- Pergunta 1 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-start gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">⚽</div>
             <div class="flex-1">
               <p class="text-gray-300 font-bold text-sm leading-snug">Quantos gols o campeão fará no campeonato?</p>
@@ -1305,7 +1306,7 @@
         <!-- Pergunta 2 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o último colocado (rebaixado)?</p>
           </div>
@@ -1314,7 +1315,7 @@
         <!-- Pergunta 3 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥉</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o terceiro colocado?</p>
           </div>
@@ -1323,7 +1324,7 @@
         <!-- Pergunta 4 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥈</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o vice-campeão?</p>
           </div>
@@ -1332,7 +1333,7 @@
         <!-- Pergunta 5 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-indigo-500 bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🏆</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o campeão?</p>
           </div>
@@ -1343,13 +1344,13 @@
       <!-- Rodapé Fixo (Sticky Bottom) -->
       <div class="bg-[#0d0d12] border-t border-white/5 p-5 z-20 flex-shrink-0">
         <div class="flex justify-between items-center mb-4">
-          <p class="text-indigo-400 font-black flex items-baseline gap-1">
+          <p class="text-brand-green font-black flex items-baseline gap-1">
             <span id="contador-ativas-rodape" class="text-lg">0</span> 
             <span class="text-xs text-gray-400 uppercase tracking-widest font-bold">ativas</span>
           </p>
           <p id="contador-pontos-rodape" class="text-gray-400 text-xs font-bold">+0 pts</p>
         </div>
-        <button onclick="salvarPerguntasBonus()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-colors active:scale-95 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+        <button onclick="salvarPerguntasBonus()" class="w-full bg-brand-green hover:bg-emerald-500 text-black font-bold py-3.5 rounded-xl transition-colors active:scale-95 shadow-[0_0_20px_rgba(0,255,163,0.2)]">
           Salvar Configurações
         </button>
       </div>
@@ -1360,7 +1361,7 @@
     <div id="modal-historico-pontos" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
       <!-- Cabeçalho -->
       <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border-white/5 flex-shrink-0">
-        <button onclick="fecharHistoricoPontos()" class="w-8 h-8 bg-indigo-600/20 text-indigo-500 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors">
+        <button onclick="fecharHistoricoPontos()" class="w-8 h-8 bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="text-white font-black text-xl tracking-wide">Histórico de pontuação</h1>
@@ -1476,13 +1477,13 @@
 
   </div>
 
-  <script src="js/config.js?v=20"></script>
-  <script src="js/auth.js?v=20"></script>
-  <script src="js/api.js?v=20"></script>
-  <script src="js/groups.js?v=20"></script>
-  <script src="js/ui.js?v=20"></script>
-  <script src="js/gm.js?v=20"></script>
-  <script src="js/aovivo.js?v=20"></script>
+  <script src="js/config.js?v=21"></script>
+  <script src="js/auth.js?v=21"></script>
+  <script src="js/api.js?v=21"></script>
+  <script src="js/groups.js?v=21"></script>
+  <script src="js/ui.js?v=21"></script>
+  <script src="js/gm.js?v=21"></script>
+  <script src="js/aovivo.js?v=21"></script>
 
   <!-- Registro do Service Worker -->
   <script>

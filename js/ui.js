@@ -187,7 +187,7 @@ function switchView(targetViewId) {
           badgeStatus.innerHTML = `Plano Gratuito (Limite de ${maxP} pessoas)`;
         } else {
           configLimite.innerText = maxP;
-          badgeStatus.className = 'w-full bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2 mt-4';
+          badgeStatus.className = 'w-full bg-brand-green/10 border border-brand-green/30 text-brand-green text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2 mt-4';
           badgeStatus.innerHTML = `Plano Premium (Limite de ${maxP} pessoas)`;
         }
       }
@@ -3215,10 +3215,10 @@ function atualizarContadorBonus() {
       if (chk.checked) {
         qtdAtivas++;
         card.classList.remove('border-white/5');
-        card.classList.add('border-indigo-500', 'bg-indigo-500/5');
+        card.classList.add('border-brand-green', 'bg-brand-green/5');
       } else {
         card.classList.add('border-white/5');
-        card.classList.remove('border-indigo-500', 'bg-indigo-500/5');
+        card.classList.remove('border-brand-green', 'bg-brand-green/5');
       }
     }
   });
@@ -3241,10 +3241,10 @@ function atualizarTextoPrazo() {
     const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     label.innerText = dataFormatada;
     label.classList.remove('text-gray-400');
-    label.classList.add('text-indigo-400');
+    label.classList.add('text-brand-green');
   } else {
     label.innerText = 'Definir prazo';
-    label.classList.remove('text-indigo-400');
+    label.classList.remove('text-brand-green');
     label.classList.add('text-gray-400');
   }
 }
