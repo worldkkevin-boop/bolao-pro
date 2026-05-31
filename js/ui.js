@@ -2837,6 +2837,48 @@ function toggleMenuRegras() {
   }
 }
 
+function toggleAjustesRegras() {
+  const container = document.getElementById('container-ajustes-regras');
+  const seta = document.getElementById('seta-ajustes-regras');
+  if (container && seta) {
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      seta.innerText = '▼';
+    } else {
+      container.classList.add('hidden');
+      seta.innerText = '›';
+    }
+  }
+}
+
+function toggleAjustesMembros() {
+  const container = document.getElementById('container-ajustes-membros');
+  const seta = document.getElementById('seta-ajustes-membros');
+  if (container && seta) {
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      seta.innerText = '▼';
+    } else {
+      container.classList.add('hidden');
+      seta.innerText = '›';
+    }
+  }
+}
+
+function toggleAjustesGerais() {
+  const container = document.getElementById('container-ajustes-gerais');
+  const seta = document.getElementById('seta-ajustes-gerais');
+  if (container && seta) {
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      seta.innerText = '▼';
+    } else {
+      container.classList.add('hidden');
+      seta.innerText = '›';
+    }
+  }
+}
+
 function toggleInputRegra(inputId, checkbox) {
   const input = document.getElementById(inputId);
   if (input) {

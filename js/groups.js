@@ -790,6 +790,43 @@ async function alterarNomeGrupoPrompt() {
   }
 }
 
+async function excluirGrupoReal() {
+  if (!grupoAtual || !sbClient) return;
+  const isOwner = usuarioAtual && usuarioAtual.id === grupoAtual.owner_id;
+  if (!isOwner) {
+    showToast("Apenas o criador do grupo pode excluí-lo.", "error");
+    return;
+  }
+  
+  if (confirm("ALERTA DE PERIGO! 🚨\nVocê tem certeza que quer excluir o bolão \"" + grupoAtual.nome + "\"? Todos os palpites, pontuações e membros serão permanentemente apagados. ISSO NÃO TEM VOLTA!")) {
+    try {
+      showToast("Excluindo grupo...", "info");
+      const { error } = await sbClient
+        .from('groups')
+        .delete()
+        .eq('id', grupoAtual.id);
+        
+      if (error) {
+        console.error("Erro ao deletar grupo:", error.message);
+        showToast("Erro ao excluir o grupo. Tente novamente.", "error");
+        return;
+      }
+      
+      showToast("Grupo excluído com sucesso!", "success");
+      
+      // Reseta estado local
+      grupoAtual = null;
+      
+      // Redireciona para a view de grupos
+      switchView('view-grupos');
+      carregarGrupos();
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao processar a exclusão.", "error");
+    }
+  }
+}
+
 async function salvarRegrasGrupoReal() {
   if (!grupoAtual || !sbClient) return;
 
@@ -900,9 +937,13 @@ async function carregarParticipantesGrupo() {
     }
 
     const countTitleEl = document.getElementById('contador-participantes-titulo');
+    const activeCount = members.filter(m => m.role !== 'pending').length;
     if (countTitleEl) {
-      const activeCount = members.filter(m => m.role !== 'pending').length;
       countTitleEl.innerText = `(${activeCount})`;
+    }
+    const configQtdUsers = document.getElementById('config-gm-qtd-users');
+    if (configQtdUsers) {
+      configQtdUsers.innerText = activeCount;
     }
 
     const userIds = members.map(m => m.user_id);

@@ -553,15 +553,18 @@
     </div>
 
     <div id="view-painel" class="fade-in hidden">
+      <!-- Cabeçalho Premium -->
       <div class="flex items-center justify-between mb-6 mt-2">
         <div class="flex items-center gap-4">
-          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+          <button onclick="switchView('view-grupo-home')" class="w-8 h-8 bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white rounded-full flex items-center justify-center hover:bg-zinc-800 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
           </button>
-          <h1 class="text-xl font-black tracking-tight">Ajustes do Bolão</h1>
+          <h1 class="text-white font-black text-xl tracking-wide">Configurações</h1>
         </div>
       </div>
-      <div class="bg-card-bg rounded-2xl p-4 flex items-center justify-between border border-[#2a2a35]">
+
+      <!-- Card do Usuário (Logado) -->
+      <div class="bg-card-bg rounded-2xl p-4 flex items-center justify-between border border-[#2a2a35] mb-5">
         <div class="flex items-center gap-4">
           <div class="w-11 h-11 rounded-full overflow-hidden"><img id="painel-foto-usuario" src="" class="w-full h-full object-cover"></div>
           <div>
@@ -572,182 +575,271 @@
         <span id="painel-badge-admin" class="border border-brand-green/50 text-brand-green text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10 hidden">Admin</span>
       </div>
 
-      <!-- Lista de Participantes (Galera) Colapsável -->
-      <div class="mb-5 mt-6">
-        <button onclick="toggleMenuParticipantes()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
-          <span class="flex items-center gap-2">👥 Membros do Bolão <span id="contador-participantes-titulo" class="text-text-muted font-normal text-[10px] ml-1"></span></span>
-          <span id="seta-menu-participantes" class="text-[10px] transition-transform duration-200">▼</span>
-        </button>
+      <!-- Card de Participantes & Limite -->
+      <div class="bg-[#151518] border border-white/5 rounded-2xl p-5 mb-5 shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <span>👥</span> Participantes
+            </p>
+            <p class="text-3xl font-black text-indigo-400 mt-1" id="config-gm-qtd-users">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 justify-end">
+              <span>✅</span> Limite
+            </p>
+            <p class="text-3xl font-black text-brand-green mt-1" id="config-gm-limite">Ilimitado</p>
+          </div>
+        </div>
+        <div id="badge-status-plano" class="w-full bg-brand-green/10 border border-brand-green/30 text-brand-green text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Voucher ativo · limite ampliado
+        </div>
+      </div>
 
-        <div id="menu-participantes-custom" class="hidden mt-3 space-y-3 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800/80 transition-all">
-          <div id="lista-participantes-grupo" class="space-y-3">
-            <!-- Renderizado dinamicamente -->
+      <!-- Seção: PONTUAÇÃO -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Pontuação</p>
+        <div class="bg-[#151518] border border-white/5 rounded-2xl overflow-hidden flex flex-col mb-5">
+          
+          <button onclick="toggleAjustesRegras()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-indigo-400 text-lg">⚖️</div>
+              <span class="text-white font-bold text-sm">Regras de Pontuação</span>
+            </div>
+            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-regras">›</span>
+          </button>
+
+          <!-- Regras de Pontuação (Colapsável) -->
+          <div id="container-ajustes-regras" class="hidden p-4 bg-zinc-950/40 border-b border-white/5 space-y-3 transition-all">
+              <p class="text-[9px] text-zinc-500 leading-relaxed mb-1">Marque os critérios ativos do seu Bolão e defina os pontos de cada um. Desmarque para anular a regra.</p>
+              
+              <!-- 1. Placar Exato -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-placar-exato" checked onchange="toggleInputRegra('num-pt-placar-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">🎯</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Placar Exato</p>
+                    <p class="text-[9px] text-text-muted">Cravou o placar exato (Ex: 2x1 -> 2x1)</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-placar-exato" value="30" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 2. Vencedor e gols de um time -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-vencedor-gols-time" checked onchange="toggleInputRegra('num-pt-vencedor-gols-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">⚽</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols de um Time</p>
+                    <p class="text-[9px] text-text-muted">Acertou vencedor + gols de uma equipe</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-vencedor-gols-time" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 3. Empate não exato -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-empate-nao-exato" checked onchange="toggleInputRegra('num-pt-empate-nao-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">🤝</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Empate Não-Exato</p>
+                    <p class="text-[9px] text-text-muted">Acertou o empate, mas errou placar (Ex: 2x2 -> 1x1)</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-empate-nao-exato" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 4. Vencedor e Saldo -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-vencedor-saldo" checked onchange="toggleInputRegra('num-pt-vencedor-saldo', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">📊</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Vencedor e Saldo de Gols</p>
+                    <p class="text-[9px] text-text-muted">Acertou vencedor + diferença de gols (Ex: 2x1 -> 1x0)</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-vencedor-saldo" value="15" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 5. Vencedor e Gols do Perdedor -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-vencedor-gols-perdedor" checked onchange="toggleInputRegra('num-pt-vencedor-gols-perdedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">📉</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols do Perdedor</p>
+                    <p class="text-[9px] text-text-muted">Acertou quem ganha + gols do derrotado (Ex: 2x0 -> 3x0)</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-vencedor-gols-perdedor" value="12" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 6. Apenas Vencedor -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-apenas-vencedor" checked onchange="toggleInputRegra('num-pt-apenas-vencedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">👑</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Apenas o Vencedor</p>
+                    <p class="text-[9px] text-text-muted">Só acertou o vencedor (Ex: 2x0 -> 3x2)</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-apenas-vencedor" value="4" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <!-- 7. Gols de um time -->
+              <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" id="chk-pt-gols-um-time" checked onchange="toggleInputRegra('num-pt-gols-um-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
+                  <span class="text-lg">⚽</span>
+                  <div>
+                    <p class="text-[12px] font-black text-white leading-tight">Placar de Algum Time</p>
+                    <p class="text-[9px] text-text-muted">Errou vencedor/empate, mas acertou os gols de um time</p>
+                  </div>
+                </div>
+                <input type="number" id="num-pt-gols-um-time" value="3" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
+              </div>
+
+              <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-gradient-to-r from-brand-green to-emerald-600 hover:from-brand-green/90 text-black font-black text-[11px] py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-widest mt-4 shadow-lg shadow-brand-green/10">
+                Salvar Regras de Pontuação
+              </button>
+          </div>
+
+          <button class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left opacity-50 cursor-not-allowed">
+            <div class="flex items-center gap-3">
+              <div class="text-indigo-400 text-lg">📄</div>
+              <span class="text-white font-bold text-sm">Histórico de pontuação</span>
+            </div>
+            <span class="text-indigo-400 font-bold text-lg">›</span>
+          </button>
+
+          <button class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left opacity-50 cursor-not-allowed">
+            <div class="flex items-center gap-3">
+              <div class="text-indigo-400 text-lg">⭐</div>
+              <span class="text-white font-bold text-sm">Configurar Perguntas Bônus</span>
+            </div>
+            <span class="text-indigo-400 font-bold text-lg">›</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seção: ADMINISTRAÇÃO -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Administração</p>
+        <div class="bg-[#151518] border border-white/5 rounded-2xl overflow-hidden flex flex-col mb-5">
+          
+          <!-- Membros do Bolão -->
+          <button onclick="toggleAjustesMembros()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-indigo-400 text-lg">👥</div>
+              <span class="text-white font-bold text-sm">Gerenciar Participantes</span>
+            </div>
+            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-membros">›</span>
+          </button>
+
+          <!-- Lista de Membros (Colapsável) -->
+          <div id="container-ajustes-membros" class="hidden p-4 bg-zinc-950/40 border-b border-white/5 transition-all">
+            <div id="lista-participantes-grupo" class="space-y-3">
+              <!-- Renderizado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Configurações Gerais -->
+          <button onclick="toggleAjustesGerais()" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-indigo-400 text-lg">⚙️</div>
+              <span class="text-white font-bold text-sm">Configurações Gerais</span>
+            </div>
+            <span class="text-indigo-400 font-bold text-lg" id="seta-ajustes-gerais">›</span>
+          </button>
+
+          <!-- Configurações Gerais (Colapsável) -->
+          <div id="container-ajustes-gerais" class="hidden p-4 bg-zinc-950/40 space-y-4 border-t border-white/5 transition-all">
+              <!-- Nome do Grupo -->
+              <div>
+                  <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Nome do Grupo</label>
+                  <button onclick="alterarNomeGrupoPrompt()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
+                      <span class="flex items-center gap-2">
+                          <span>📝</span>
+                          <span id="txt-nome-grupo-atual" class="text-white font-black normal-case text-sm"></span>
+                      </span>
+                      <span class="text-[10px] text-brand-green font-black uppercase tracking-wider">Alterar</span>
+                  </button>
+              </div>
+
+              <!-- Privacidade -->
+              <div class="border-t border-zinc-800 pt-4 flex items-center justify-between">
+                <div>
+                  <label class="block text-xs font-bold text-white uppercase tracking-wider mb-1">Grupo Privado 🔒</label>
+                  <p class="text-[9px] text-text-muted leading-tight">Novos membros precisarão de aprovação para entrar</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="chk-grupo-privado" onchange="alterarPrivacidadeGrupoReal()" class="sr-only peer">
+                  <div class="w-9 h-5 bg-zinc-850 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-green"></div>
+                </label>
+              </div>
+
+              <!-- Ícone do Grupo -->
+              <div class="border-t border-zinc-800 pt-4">
+                <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
+                    <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
+                        <svg id="icon-upload-normal" class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Alterar Ícone do Grupo
+                    </span>
+                    <input type="file" id="upload-icone" accept="image/*" class="hidden" onchange="uploadIcone(event)">
+                    <div id="upload-spinner" class="absolute inset-0 bg-brand-green text-black flex items-center justify-center font-bold text-sm hidden transition-all">
+                      <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Enviando...
+                    </div>
+                </label>
+              </div>
           </div>
         </div>
       </div>
 
-
-      <!-- Configurações de Admin (Visível apenas para o dono do grupo) -->
-      <div id="admin-settings-section" class="mt-6 p-4 border border-zinc-800 rounded-xl hidden">
-          <h3 class="font-bold mb-4 text-sm text-text-muted uppercase tracking-wider">Configurações do Admin</h3>
-          
-          <div class="mb-5">
-              <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Nome do Grupo</label>
-              <button onclick="alterarNomeGrupoPrompt()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
-                  <span class="flex items-center gap-2">
-                      <span>📝</span>
-                      <span id="txt-nome-grupo-atual" class="text-white font-black normal-case text-sm"></span>
-                  </span>
-                  <span class="text-[10px] text-brand-green font-black uppercase tracking-wider">Alterar</span>
-              </button>
-          </div>
-
-          <div class="mb-5 border-t border-zinc-800 pt-4 flex items-center justify-between">
-            <div>
-              <label class="block text-xs font-bold text-white uppercase tracking-wider mb-1">Grupo Privado 🔒</label>
-              <p class="text-[9px] text-text-muted leading-tight">Novos membros precisarão de aprovação para entrar</p>
+      <!-- Seção: ZONA DE PERIGO (Visível apenas para o dono do grupo) -->
+      <div id="admin-settings-section" class="hidden">
+        <p class="text-[10px] text-red-500/80 font-black uppercase tracking-widest mb-3 ml-1">Zona de Perigo</p>
+        <div class="bg-[#150a0a] border border-red-500/20 rounded-2xl overflow-hidden mb-6">
+          <button onclick="excluirGrupoReal()" class="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors active:bg-red-500/20 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-red-500 text-lg">🗑️</div>
+              <span class="text-red-500 font-bold text-sm">Excluir grupo</span>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="chk-grupo-privado" onchange="alterarPrivacidadeGrupoReal()" class="sr-only peer">
-              <div class="w-9 h-5 bg-zinc-850 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-green"></div>
-            </label>
-          </div>
-
-          <div class="mb-5 border-t border-zinc-800 pt-4">
-              <!-- Botão para abrir o menu colapsável de regras -->
-              <button onclick="toggleMenuRegras()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
-                <span class="flex items-center gap-2">⚙️ Customizar Regras de Pontuação</span>
-                <span id="seta-menu-regras" class="text-[10px] transition-transform duration-200">▼</span>
-              </button>
-
-              <!-- Container colapsável (oculto por padrão) -->
-              <div id="menu-regras-custom" class="hidden mt-3 space-y-3 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800/80 transition-all">
-                  <p class="text-[9px] text-zinc-500 leading-relaxed mb-1">Marque os critérios ativos do seu Bolão e defina os pontos de cada um. Desmarque para anular a regra.</p>
-                  
-                  <!-- 1. Placar Exato -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-placar-exato" checked onchange="toggleInputRegra('num-pt-placar-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">🎯</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Placar Exato</p>
-                        <p class="text-[9px] text-text-muted">Cravou o placar exato (Ex: 2x1 -> 2x1)</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-placar-exato" value="30" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 2. Vencedor e gols de um time -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-vencedor-gols-time" checked onchange="toggleInputRegra('num-pt-vencedor-gols-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">⚽</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols de um Time</p>
-                        <p class="text-[9px] text-text-muted">Acertou vencedor + gols de uma equipe</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-vencedor-gols-time" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 3. Empate não exato -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-empate-nao-exato" checked onchange="toggleInputRegra('num-pt-empate-nao-exato', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">🤝</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Empate Não-Exato</p>
-                        <p class="text-[9px] text-text-muted">Acertou o empate, mas errou placar (Ex: 2x2 -> 1x1)</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-empate-nao-exato" value="18" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 4. Vencedor e Saldo -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-vencedor-saldo" checked onchange="toggleInputRegra('num-pt-vencedor-saldo', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">📊</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Saldo de Gols</p>
-                        <p class="text-[9px] text-text-muted">Acertou vencedor + diferença de gols (Ex: 2x1 -> 1x0)</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-vencedor-saldo" value="15" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 5. Vencedor e Gols do Perdedor -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-vencedor-gols-perdedor" checked onchange="toggleInputRegra('num-pt-vencedor-gols-perdedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">📉</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Vencedor e Gols do Perdedor</p>
-                        <p class="text-[9px] text-text-muted">Acertou quem ganha + gols do derrotado (Ex: 2x0 -> 3x0)</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-vencedor-gols-perdedor" value="12" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 6. Apenas Vencedor -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-apenas-vencedor" checked onchange="toggleInputRegra('num-pt-apenas-vencedor', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">👑</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Apenas o Vencedor</p>
-                        <p class="text-[9px] text-text-muted">Só acertou o vencedor (Ex: 2x0 -> 3x2)</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-apenas-vencedor" value="4" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <!-- 7. Gols de um time -->
-                  <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <input type="checkbox" id="chk-pt-gols-um-time" checked onchange="toggleInputRegra('num-pt-gols-um-time', this)" class="w-4 h-4 accent-brand-green bg-zinc-950 border-zinc-800 rounded focus:ring-brand-green">
-                      <span class="text-lg">⚽</span>
-                      <div>
-                        <p class="text-[12px] font-black text-white leading-tight">Placar de Algum Time</p>
-                        <p class="text-[9px] text-text-muted">Errou vencedor/empate, mas acertou os gols de um time</p>
-                      </div>
-                    </div>
-                    <input type="number" id="num-pt-gols-um-time" value="3" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
-                  </div>
-
-                  <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-gradient-to-r from-brand-green to-emerald-600 hover:from-brand-green/90 text-black font-black text-[11px] py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-widest mt-4 shadow-lg shadow-brand-green/10">
-                    Salvar Regras de Pontuação
-                  </button>
-              </div>
-          </div>
-
-          <div class="border-t border-zinc-800 pt-4">
-            <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
-                <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
-                    <svg id="icon-upload-normal" class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Alterar Ícone do Grupo
-                </span>
-                <input type="file" id="upload-icone" accept="image/*" class="hidden" onchange="uploadIcone(event)">
-                <div id="upload-spinner" class="absolute inset-0 bg-brand-green text-black flex items-center justify-center font-bold text-sm hidden transition-all">
-                  <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  Enviando...
-                </div>
-            </label>
-          </div>
+            <span class="text-red-500 font-bold text-lg">›</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Suporte por WhatsApp -->
-      <button onclick="abrirSuporteWhatsapp()" class="mt-6 w-full bg-[#25D366]/10 border border-[#25D366]/25 text-[#25D366] font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 hover:bg-[#25D366]/20 transition-all active:scale-95">
-        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.858.002-2.634-1.013-5.11-2.861-6.958C16.626 1.94 14.154.925 11.522.925 6.082.925 1.66 5.347 1.656 10.785c-.001 1.708.47 3.327 1.365 4.79l-1.002 3.655 3.748-.982zM17.65 14.86c-.303-.151-1.793-.884-2.072-.985-.278-.102-.48-.152-.68.151-.2.303-.775.985-.95 1.185-.175.202-.35.227-.653.076-1.51-.758-2.673-1.397-3.729-2.311-.277-.24-.424-.49-.24-.757.147-.22.303-.429.454-.58.151-.152.202-.253.303-.454.101-.202.05-.379-.025-.53-.076-.152-.68-1.642-.93-2.248-.244-.587-.492-.507-.68-.507-.175-.008-.378-.008-.58-.008-.202 0-.53.076-.808.379-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.085 2.931 1.237 3.133.152.202 2.137 3.262 5.176 4.57.722.311 1.285.498 1.724.638.725.23 1.385.197 1.907.12.582-.087 1.793-.733 2.046-1.44.252-.708.252-1.314.177-1.44-.076-.127-.278-.203-.581-.354z"/>
-        </svg>
-        Suporte no WhatsApp
-      </button>
-
-      <button onclick="deslogar()" class="mt-4 w-full bg-card-bg border border-red-500/20 text-red-400 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors active:scale-95">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        Sair da conta
-      </button>
+      <!-- Conta & Suporte -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Suporte & Conta</p>
+        <div class="bg-[#151518] border border-white/5 rounded-2xl overflow-hidden flex flex-col mb-8">
+          <button onclick="abrirSuporteWhatsapp()" class="flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3 text-[#25D366]">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.858.002-2.634-1.013-5.11-2.861-6.958C16.626 1.94 14.154.925 11.522.925 6.082.925 1.66 5.347 1.656 10.785c-.001 1.708.47 3.327 1.365 4.79l-1.002 3.655 3.748-.982zM17.65 14.86c-.303-.151-1.793-.884-2.072-.985-.278-.102-.48-.152-.68.151-.2.303-.775.985-.95 1.185-.175.202-.35.227-.653.076-1.51-.758-2.673-1.397-3.729-2.311-.277-.24-.424-.49-.24-.757.147-.22.303-.429.454-.58.151-.152.202-.253.303-.454.101-.202.05-.379-.025-.53-.076-.152-.68-1.642-.93-2.248-.244-.587-.492-.507-.68-.507-.175-.008-.378-.008-.58-.008-.202 0-.53.076-.808.379-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.085 2.931 1.237 3.133.152.202 2.137 3.262 5.176 4.57.722.311 1.285.498 1.724.638.725.23 1.385.197 1.907.12.582-.087 1.793-.733 2.046-1.44.252-.708.252-1.314.177-1.44-.076-.127-.278-.203-.581-.354z"/>
+              </svg>
+              <span class="font-bold text-sm">Suporte no WhatsApp</span>
+            </div>
+            <span class="text-zinc-500 font-bold text-lg">›</span>
+          </button>
+          
+          <button onclick="deslogar()" class="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors active:bg-red-500/20 w-full text-left text-red-400">
+            <div class="flex items-center gap-3">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+              <span class="font-bold text-sm">Sair da conta</span>
+            </div>
+            <span class="text-red-450 font-bold text-lg">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
 
     <!-- View: Desafios do GM (Histórico e Ativos) -->
