@@ -24,6 +24,13 @@ function fecharModal(id) {
 }
 
 function switchView(targetViewId) {
+  if (targetViewId === 'view-inicio') {
+    localStorage.removeItem('last_active_group');
+    localStorage.removeItem('last_active_view');
+  } else {
+    localStorage.setItem('last_active_view', targetViewId);
+  }
+
   const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');

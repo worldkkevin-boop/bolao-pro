@@ -54,6 +54,7 @@ function renderListaGrupos(grupos) {
 
 function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1) {
   grupoAtual = { id: grupoId, nome: grupoNome, invite_code: conviteCodigo, owner_id: ownerId, league_id: leagueId };
+  localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
   todosOsJogos = [];
   rodadaSelecionada = null; // Reseta para detectar a rodada atual ao carregar jogos
 

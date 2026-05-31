@@ -25,6 +25,8 @@ async function entrarComGoogle() {
 async function deslogar() {
   if (sbClient) await sbClient.auth.signOut();
   usuarioAtual = null;
+  localStorage.removeItem('last_active_group');
+  localStorage.removeItem('last_active_view');
   document.getElementById('screen-app').classList.add('hidden');
   document.getElementById('screen-login').classList.remove('hidden');
   document.getElementById('lista-jogos').innerHTML = '';
@@ -55,7 +57,32 @@ function entrarNoApp(usuario) {
 
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('screen-app').classList.remove('hidden');
-  processarConvitePendente();
+  // Restaura grupo e view anteriores se existirem
+  const savedGroup = localStorage.getItem('last_active_group');
+  const savedView = localStorage.getItem('last_active_view');
+
+  if (savedGroup && !localStorage.getItem('pending_invite_code')) {
+    try {
+      const g = JSON.parse(savedGroup);
+      if (typeof entrarNoGrupo === 'function') {
+        entrarNoGrupo(g.id, g.nome, g.invite_code, g.owner_id, g.league_id || 1);
+      }
+      if (savedView && savedView !== 'view-grupo-home') {
+        setTimeout(() => {
+          if (typeof switchView === 'function') switchView(savedView);
+        }, 300);
+      }
+      if (typeof carregarGrupos === 'function') carregarGrupos();
+    } catch (e) {
+      console.error("Erro ao restaurar grupo salvo:", e);
+      localStorage.removeItem('last_active_group');
+      localStorage.removeItem('last_active_view');
+      processarConvitePendente();
+    }
+  } else {
+    processarConvitePendente();
+  }
+
   if (typeof verificarBannerPWA === 'function') verificarBannerPWA();
   if (typeof verificarUsuarioGM === 'function') verificarUsuarioGM();
 }
