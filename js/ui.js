@@ -2166,51 +2166,79 @@ function fecharOnboarding() {
 // ============ TELA DE UPGRADE (CHECKOUT) ============
 
 function abrirModalUpgrade() {
+  const ehDono = usuarioAtual && grupoAtual && (usuarioAtual.id === grupoAtual.owner_id);
   const overlay = document.createElement('div');
   overlay.id = 'upgrade-overlay';
   overlay.className = 'fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] flex items-center justify-center p-4 transition-all duration-300';
 
-  overlay.innerHTML = `
-    <div class="bg-card-bg border border-purple-500/30 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(147,51,234,0.15)] overflow-hidden transform transition-all duration-300 scale-100 opacity-100">
-      
-      <!-- Cabeçalho do Modal -->
-      <div class="bg-gradient-to-br from-purple-900/40 to-black p-6 text-center border-b border-white/5 relative">
-        <button onclick="fecharModalUpgrade()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
-        <div class="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center border border-purple-500/50 mx-auto mb-3">
-          <span class="text-3xl">👑</span>
-        </div>
-        <h2 class="text-white font-black text-xl uppercase tracking-widest">Plano Resenha</h2>
-        <p class="text-brand-green font-bold mt-1 text-sm">Apenas R$ 9,90 <span class="text-text-muted text-xs font-normal">(Pagamento Único)</span></p>
-      </div>
-      
-      <!-- Benefícios -->
-      <div class="p-6">
-        <div class="space-y-4 mb-8">
-          <div class="flex items-center gap-3">
-            <span class="text-brand-green text-lg">✅</span>
-            <p class="text-[13px] text-gray-200">Aumenta o limite para <strong class="text-white">20 participantes</strong></p>
+  if (ehDono) {
+    overlay.innerHTML = `
+      <div class="bg-card-bg border border-purple-500/30 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(147,51,234,0.15)] overflow-hidden transform transition-all duration-300 scale-100 opacity-100">
+        
+        <!-- Cabeçalho do Modal -->
+        <div class="bg-gradient-to-br from-purple-900/40 to-black p-6 text-center border-b border-white/5 relative">
+          <button onclick="fecharModalUpgrade()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center border border-purple-500/50 mx-auto mb-3">
+            <span class="text-3xl">👑</span>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="text-purple-400 text-lg">⚡</span>
-            <p class="text-[13px] text-gray-200">Libera os <strong class="text-purple-400">Desafios do Mago</strong> ao vivo</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-brand-green text-lg">📺</span>
-            <p class="text-[13px] text-gray-200">Acesso total ao <strong class="text-white">Modo TV</strong> e Ranking</p>
-          </div>
+          <h2 class="text-white font-black text-xl uppercase tracking-widest">Plano Resenha</h2>
+          <p class="text-brand-green font-bold mt-1 text-sm">Apenas R$ 9,90 <span class="text-text-muted text-xs font-normal">(Pagamento Único)</span></p>
         </div>
         
-        <!-- Botão Mercado Pago -->
-        <button onclick="iniciarPagamentoMercadoPago()" class="w-full bg-[#009EE3] hover:bg-[#0080B7] text-white font-black py-3.5 rounded-xl uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2">
-          <img src="https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png" alt="MP" class="w-5 h-5 brightness-0 invert">
-          Pagar com Mercado Pago
-        </button>
-        <p class="text-[10px] text-center text-gray-500 mt-3 flex items-center justify-center gap-1">
-          🔒 Pagamento 100% seguro
-        </p>
+        <!-- Benefícios -->
+        <div class="p-6">
+          <div class="space-y-4 mb-8">
+            <div class="flex items-center gap-3">
+              <span class="text-brand-green text-lg">✅</span>
+              <p class="text-[13px] text-gray-200">Aumenta o limite para <strong class="text-white">20 participantes</strong></p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-purple-400 text-lg">⚡</span>
+              <p class="text-[13px] text-gray-200">Libera os <strong class="text-purple-400">Desafios do Mago</strong> ao vivo</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-brand-green text-lg">📺</span>
+              <p class="text-[13px] text-gray-200">Acesso total ao <strong class="text-white">Modo TV</strong> e Ranking</p>
+            </div>
+          </div>
+          
+          <!-- Botão Mercado Pago -->
+          <button onclick="iniciarPagamentoMercadoPago()" class="w-full bg-[#009EE3] hover:bg-[#0080B7] text-white font-black py-3.5 rounded-xl uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2">
+            <img src="https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png" alt="MP" class="w-5 h-5 brightness-0 invert">
+            Pagar com Mercado Pago
+          </button>
+          <p class="text-[10px] text-center text-gray-500 mt-3 flex items-center justify-center gap-1">
+            🔒 Pagamento 100% seguro
+          </p>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    overlay.innerHTML = `
+      <div class="bg-card-bg border border-white/5 rounded-2xl w-full max-w-sm shadow-[0_0_30px_rgba(255,255,255,0.02)] overflow-hidden transform transition-all duration-300 scale-100 opacity-100">
+        
+        <!-- Cabeçalho do Modal -->
+        <div class="p-6 text-center border-b border-white/5 relative">
+          <button onclick="fecharModalUpgrade()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center border border-white/5 mx-auto mb-3">
+            <span class="text-3xl">📺</span>
+          </div>
+          <h2 class="text-white font-black text-lg uppercase tracking-wide">Recurso Premium</h2>
+          <p class="text-text-muted text-xs mt-1">Modo TV e Desafios são exclusivos para grupos Premium</p>
+        </div>
+        
+        <!-- Mensagem de bloqueio -->
+        <div class="p-6 text-center">
+          <p class="text-gray-300 text-xs leading-relaxed mb-6">
+            Este grupo está no plano gratuito (Várzea). Para liberar o acesso ao Modo TV Ao Vivo, Ranking Completo e Desafios do Mago, peça ao criador do grupo para fazer o upgrade do bolão.
+          </p>
+          <button onclick="fecharModalUpgrade()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
+            Entendido
+          </button>
+        </div>
+      </div>
+    `;
+  }
 
   document.body.appendChild(overlay);
 }
