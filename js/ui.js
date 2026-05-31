@@ -3270,3 +3270,87 @@ async function salvarPerguntasBonus() {
     showToast("Regras aplicadas com sucesso!", "success");
   }, 1000);
 }
+
+// ==================== LÓGICA DO EDITOR DE REGRAS ====================
+
+function abrirEditorRegras() {
+  if (!grupoAtual) return;
+  
+  const modal = document.getElementById('modal-regras-pontuacao');
+  if (modal) {
+    // Carrega dados da memória
+    document.getElementById('regra-pt-placar-exato').value = grupoAtual.pt_placar_exato !== undefined ? grupoAtual.pt_placar_exato : 30;
+    document.getElementById('regra-pt-vencedor-gols').value = grupoAtual.pt_vencedor_gols_time !== undefined ? grupoAtual.pt_vencedor_gols_time : 18;
+    document.getElementById('regra-pt-empate').value = grupoAtual.pt_empate_nao_exato !== undefined ? grupoAtual.pt_empate_nao_exato : 18;
+    document.getElementById('regra-pt-saldo').value = grupoAtual.pt_vencedor_saldo !== undefined ? grupoAtual.pt_vencedor_saldo : 15;
+    
+    // Toggles
+    const toggleConsolacao = document.getElementById('toggle-consolacao');
+    if (toggleConsolacao) {
+      toggleConsolacao.checked = (grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time > 0);
+    }
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function fecharEditorRegras() {
+  const modal = document.getElementById('modal-regras-pontuacao');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+async function salvarRegrasPontuacao() {
+  if (!grupoAtual || !sbClient) return;
+  
+  const pt_placar_exato = parseInt(document.getElementById('regra-pt-placar-exato').value) || 0;
+  const pt_vencedor_gols_time = parseInt(document.getElementById('regra-pt-vencedor-gols').value) || 0;
+  const pt_empate_nao_exato = parseInt(document.getElementById('regra-pt-empate').value) || 0;
+  const pt_vencedor_saldo = parseInt(document.getElementById('regra-pt-saldo').value) || 0;
+  
+  const toggleConsolacao = document.getElementById('toggle-consolacao');
+  const pt_gols_um_time = (toggleConsolacao && toggleConsolacao.checked) ? 3 : 0;
+  
+  // Mantém outros pesos padrão para não zerar as outras regras no banco
+  const pt_vencedor_gols_perdedor = grupoAtual.pt_vencedor_gols_perdedor !== undefined ? grupoAtual.pt_vencedor_gols_perdedor : 12;
+  const pt_apenas_vencedor = grupoAtual.pt_apenas_vencedor !== undefined ? grupoAtual.pt_apenas_vencedor : 4;
+  
+  showToast("Salvando regras...", "info");
+  
+  try {
+    const { error } = await sbClient
+      .from('groups')
+      .update({
+        pt_placar_exato,
+        pt_vencedor_gols_time,
+        pt_empate_nao_exato,
+        pt_vencedor_saldo,
+        pt_gols_um_time,
+        pt_vencedor_gols_perdedor,
+        pt_apenas_vencedor
+      })
+      .eq('id', grupoAtual.id);
+      
+    if (error) {
+      console.error("Erro ao salvar regras de pontuação:", error.message);
+      showToast("Erro ao salvar novas regras.", "error");
+      return;
+    }
+    
+    // Atualiza estado local
+    grupoAtual.pt_placar_exato = pt_placar_exato;
+    grupoAtual.pt_vencedor_gols_time = pt_vencedor_gols_time;
+    grupoAtual.pt_empate_nao_exato = pt_empate_nao_exato;
+    grupoAtual.pt_vencedor_saldo = pt_vencedor_saldo;
+    grupoAtual.pt_gols_um_time = pt_gols_um_time;
+    
+    showToast("Novas regras aplicadas com sucesso!", "success");
+    fecharEditorRegras();
+  } catch (e) {
+    console.error(e);
+    showToast("Erro ao processar as alterações.", "error");
+  }
+}
