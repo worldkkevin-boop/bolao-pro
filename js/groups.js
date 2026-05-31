@@ -2,7 +2,11 @@
 
 async function carregarGrupos() {
   if (!sbClient) return;
-  const { data: { user } } = await sbClient.auth.getUser();
+  let user = usuarioAtual;
+  if (!user) {
+    const { data: { session } } = await sbClient.auth.getSession();
+    user = session ? session.user : null;
+  }
   if (!user) return;
 
   // Pega os IDs de todos os grupos que o usuário é membro
@@ -526,6 +530,7 @@ async function compartilharGrupo() {
     } catch (err) {
       console.log('Erro ao compartilhar:', err);
     }
+  } else {
     try {
       await navigator.clipboard.writeText(textoShare);
       showToast("Link de convite copiado!", "success");
@@ -533,6 +538,7 @@ async function compartilharGrupo() {
       console.error('Erro ao copiar:', err);
       showToast(`Código: ${codigo} | Link copiado para transferência!`, "success");
     }
+  }
 }
 
 async function uploadIcone(event) {
