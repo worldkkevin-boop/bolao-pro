@@ -57,7 +57,27 @@ function renderListaGrupos(grupos) {
 }
 
 function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1, targetView = null) {
-  grupoAtual = { id: grupoId, nome: grupoNome, invite_code: conviteCodigo, owner_id: ownerId, league_id: leagueId };
+  // Recupera o limite salvo em cache para evitar flashes na UI
+  let savedLimit = null;
+  const savedGroupStr = localStorage.getItem('last_active_group');
+  if (savedGroupStr) {
+    try {
+      const sg = JSON.parse(savedGroupStr);
+      if (sg && sg.id === grupoId && sg.max_participants !== undefined) {
+        savedLimit = sg.max_participants;
+      }
+    } catch (e) {}
+  }
+
+  grupoAtual = { 
+    id: grupoId, 
+    nome: grupoNome, 
+    invite_code: conviteCodigo, 
+    owner_id: ownerId, 
+    league_id: leagueId,
+    max_participants: savedLimit !== null ? savedLimit : 3 // Padrão grátis
+  };
+  
   localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
   todosOsJogos = [];
   rodadaSelecionada = null; // Reseta para detectar a rodada atual ao carregar jogos
@@ -106,6 +126,24 @@ async function atualizarBadgeVagas(grupoId) {
       .single();
 
     const limite = (grp && grp.max_participants) ? grp.max_participants : 3;
+    
+    // Atualiza o limite no estado global e salva no cache local
+    if (grupoAtual && grupoAtual.id === grupoId) {
+      const limiteAntes = grupoAtual.max_participants;
+      grupoAtual.max_participants = limite;
+      localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
+      
+      // Se o limite mudou ou foi resolvido agora, e a aba ativa for desafios ou ranking, re-renderiza para aplicar/retirar travas
+      if (limiteAntes !== limite) {
+        const savedView = localStorage.getItem('last_active_view');
+        if (savedView === 'view-desafios' && typeof carregarDesafiosUsuarioView === 'function') {
+          carregarDesafiosUsuarioView();
+        } else if (savedView === 'view-ranking' && typeof exibirRankingSelecionado === 'function') {
+          exibirRankingSelecionado();
+        }
+      }
+    }
+
     const vagas = limite - count;
 
     badge.classList.remove('hidden');
