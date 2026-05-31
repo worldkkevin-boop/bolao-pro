@@ -107,6 +107,7 @@ function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1,
 
   // Atualiza badge de vagas
   atualizarBadgeVagas(grupoId);
+  carregarPoteBanner();
 }
 
 async function atualizarBadgeVagas(grupoId) {
@@ -1092,8 +1093,109 @@ async function lancarPote() {
   } else {
     showToast("Pote Lançado! A galera já pode apostar.", "success");
     // Atualiza a tela pra mostrar o painel de gerenciamento
-    carregarDadosTesouraria(); 
+    carregarDadosTesouraria();
+    carregarPoteBanner();
   }
+}
+
+async function carregarPoteBanner() {
+  const container = document.getElementById('pote-banner-container');
+  if (!container) return;
+  container.innerHTML = ''; // Limpa antes de começar
+
+  if (!grupoAtual || !usuarioAtual) return;
+
+  // 1. Busca se tem algum Pote "Aberto" rolando neste grupo
+  const { data: pote, error: erroPote } = await sbClient
+    .from('potes')
+    .select('*')
+    .eq('group_id', grupoAtual.id)
+    .eq('status', 'aberto')
+    .maybeSingle();
+
+  // Se não tem pote ou deu erro, sai silenciosamente
+  if (erroPote || !pote) return; 
+
+  // 2. Conta quem já pagou para calcular o montante do prêmio!
+  const { data: participantes, error: erroPart } = await sbClient
+    .from('potes_participantes')
+    .select('*')
+    .eq('pote_id', pote.id);
+
+  // Calcula quanto dinheiro já tem no pote (Só conta os 'pago')
+  const qtdPagantes = participantes ? participantes.filter(p => p.status_pagamento === 'pago').length : 0;
+  const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
+
+  // 3. Descobre o que mostrar pro usuário que está olhando a tela
+  const meuStatus = participantes ? participantes.find(p => p.user_id === usuarioAtual.id) : null;
+  let botaoHTML = '';
+
+  if (!meuStatus) {
+    // Não entrou ainda: Botão Dourado pra comprar
+    botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-black py-3 rounded-xl text-sm uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(234,179,8,0.4)] active:scale-95 animate-pulse">
+      🔥 Entrar na Disputa (R$ ${parseFloat(pote.valor_entrada).toFixed(2)})
+    </button>`;
+  } else if (meuStatus.status_pagamento === 'pendente') {
+    // Entrou, mas o GM não aprovou ou ele não pagou: Mostra botão laranja
+    botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 border border-orange-500 text-orange-500 font-black py-3 rounded-xl text-xs uppercase tracking-widest active:scale-95">
+      ⏳ PIX Pendente (Ver Chave)
+    </button>`;
+  } else {
+    // Já tá pago, só alegria
+    botaoHTML = `<div class="w-full bg-brand-green/10 border border-brand-green/30 text-brand-green font-black py-3 rounded-xl text-xs uppercase tracking-widest text-center">
+      ✅ Pagamento Confirmado! Sorte!
+    </div>`;
+  }
+
+  // 4. Desenha o Espetáculo na Tela
+  const bannerHTML = `
+    <div id="pote-banner-disputa" class="my-4 bg-gradient-to-br from-yellow-900/40 to-black border border-yellow-500/40 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_30px_rgba(234,179,8,0.1)]">
+      <!-- Fundo de Efeito -->
+      <div class="absolute -right-6 -top-6 text-8xl opacity-10 blur-[2px]">💰</div>
+      
+      <div class="relative z-10 flex flex-col items-center text-center">
+        <span class="text-yellow-500 text-[10px] font-black tracking-widest uppercase bg-yellow-500/10 px-2 py-1 rounded-md mb-2 border border-yellow-500/20">
+          🏆 Prêmio Acumulado
+        </span>
+        <h2 class="text-4xl font-black text-white mb-1 tracking-tight" style="text-shadow: 0 0 15px rgba(234,179,8,0.5);">
+          R$ ${valorAcumulado.toFixed(2)}
+        </h2>
+        <p class="text-xs text-gray-400 mb-5">${pote.nome}</p>
+        
+        ${botaoHTML}
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = bannerHTML;
+}
+
+async function entrarNoPote(poteId, chavePixGm, valor) {
+  showToast("Separando sua vaga...", "success");
+
+  // Insere o cara no banco como 'pendente'
+  const { error } = await sbClient.from('potes_participantes').insert([{
+    pote_id: poteId,
+    user_id: usuarioAtual.id,
+    status_pagamento: 'pendente'
+  }]);
+
+  if (error) {
+    showToast("Erro ao entrar. Tente de novo.", "error");
+    return;
+  }
+
+  // Já recarrega o banner para trocar o botão e abre a chave pra ele pagar
+  await carregarPoteBanner();
+  verChavePix(chavePixGm, valor);
+}
+
+function verChavePix(chavePix, valor) {
+  alert(`Envie o PIX de R$ ${parseFloat(valor).toFixed(2)} para a chave:\n\n${chavePix}\n\nAperte OK para copiar a chave e envie o comprovante para o Administrador!`);
+  
+  // Copia pro teclado do celular
+  navigator.clipboard.writeText(chavePix);
+  showToast("Chave PIX copiada! Envie o comprovante ao GM.", "success");
 }
 
 
