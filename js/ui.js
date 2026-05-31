@@ -3304,18 +3304,6 @@ function atualizarTextoPrazo() {
 
 async function salvarPerguntasBonus() {
   const inputPrazo = document.getElementById('prazo-bonus-input').value;
-  const contador = document.getElementById('contador-ativas-rodape').innerText;
-
-  if (contador === "0") {
-     showToast("Selecione pelo menos uma pergunta para ativar!", "error");
-     return;
-  }
-  if (!inputPrazo) {
-    showToast("Você precisa definir um prazo de resposta!", "error");
-    return;
-  }
-
-  showToast("Salvando perguntas bônus...", "info");
 
   const q1 = document.querySelector('input[name="q1"]')?.checked || false;
   const q2 = document.querySelector('input[name="q2"]')?.checked || false;
@@ -3323,23 +3311,38 @@ async function salvarPerguntasBonus() {
   const q4 = document.querySelector('input[name="q4"]')?.checked || false;
   const q5 = document.querySelector('input[name="q5"]')?.checked || false;
 
-  const { error } = await sbClient.from('bonus_config').upsert({
+  const temAtiva = (q1 || q2 || q3 || q4 || q5);
+
+  if (temAtiva && !inputPrazo) {
+    showToast("Você precisa definir um prazo de resposta!", "error");
+    return;
+  }
+
+  showToast("Salvando perguntas bônus...", "info");
+
+  const payload = {
     group_id: grupoAtual.id,
-    prazo: new Date(inputPrazo).toISOString(),
+    prazo: temAtiva ? new Date(inputPrazo).toISOString() : null,
     q1_ativa: q1,
     q2_ativa: q2,
     q3_ativa: q3,
     q4_ativa: q4,
     q5_ativa: q5,
     pontos: PONTOS_POR_PERGUNTA
-  }, { onConflict: 'group_id' });
+  };
+
+  const { error } = await sbClient.from('bonus_config').upsert(payload, { onConflict: 'group_id' });
 
   if (error) {
     showToast("Erro ao salvar regras no banco.", "error");
     console.error(error);
   } else {
     fecharPerguntasBonus();
-    showToast("Perguntas Bônus salvas com sucesso!", "success");
+    if (temAtiva) {
+      showToast("Perguntas Bônus salvas com sucesso!", "success");
+    } else {
+      showToast("Perguntas Bônus desativadas com sucesso!", "success");
+    }
     verificarExibicaoBotaoBonusJogador();
   }
 }
