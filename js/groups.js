@@ -1331,14 +1331,20 @@ async function carregarPoteBanner() {
       .in('pote_id', vencidosIds);
 
     potesVencidos.forEach(poteGanho => {
+      // Se o usuário já dispensou este card localmente, pula a renderização
+      if (localStorage.getItem('pote_resgatado_' + poteGanho.id) === 'true') return;
+
       const partsPote = partsVencidos ? partsVencidos.filter(p => p.pote_id === poteGanho.id) : [];
       const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
       const premio = qtdPagantes * parseFloat(poteGanho.valor_entrada);
 
       vitoriasHTML += `
-        <div class="bg-gradient-to-br from-green-600 to-brand-green border border-white/30 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_40px_rgba(0,255,100,0.3)] mb-4 relative overflow-hidden transform hover:scale-[1.02] transition-all">
+        <div id="card-vitoria-${poteGanho.id}" class="bg-gradient-to-br from-green-600 to-brand-green border border-white/30 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_40px_rgba(0,255,100,0.3)] mb-4 relative overflow-hidden transform hover:scale-[1.02] transition-all">
           <div class="absolute -left-4 -top-4 text-7xl opacity-20">🏆</div>
           <div class="absolute -right-4 -bottom-4 text-7xl opacity-20">💸</div>
+          
+          <!-- Botão fechar no canto superior direito -->
+          <button onclick="dispensarCardVitoria('${poteGanho.id}')" class="absolute top-3 right-3 z-30 bg-black/10 hover:bg-black/30 text-green-950 hover:text-black w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-all" aria-label="Fechar">✕</button>
           
           <span class="text-black bg-white/30 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-2 relative z-10 backdrop-blur-sm border border-white/20">
             Você Venceu: ${poteGanho.nome}
@@ -1495,6 +1501,20 @@ function resgatarPremio(nomePote, valor) {
   
   // Abre direto (no celular, isso abre o App do WhatsApp na hora sem ser bloqueado por popup)
   window.location.href = urlBase;
+}
+
+function dispensarCardVitoria(poteId) {
+  localStorage.setItem('pote_resgatado_' + poteId, 'true');
+  const card = document.getElementById('card-vitoria-' + poteId);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transform = 'scale(0.95)';
+    card.style.transition = 'all 0.3s ease';
+    setTimeout(() => {
+      card.remove();
+      carregarPoteBanner();
+    }, 300);
+  }
 }
 
 
