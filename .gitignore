@@ -4,3 +4,4 @@ node_modules/
 *.log
 .vscode/
 Thumbs.db
+test-push.js
