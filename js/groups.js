@@ -880,11 +880,19 @@ async function carregarParticipantesGrupo() {
       return 0;
     });
 
+    const souDono = usuarioAtual && grupoAtual && usuarioAtual.id === grupoAtual.owner_id;
+
     members.forEach(member => {
       const profile = profiles ? profiles.find(p => p.id === member.user_id) : null;
       const nome = profile ? profile.full_name : 'Participante';
       const foto = (profile && profile.avatar_url) ? profile.avatar_url : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=10b981&color=fff';
       const isAdmin = member.role === 'owner';
+
+      const removeBtn = (souDono && !isAdmin) ? `
+        <button onclick="removerMembroGrupo('${member.user_id}', '${nome.replace(/'/g,"\\'")}')" class="text-red-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0 ml-2" title="Remover jogador">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      ` : '';
 
       container.innerHTML += `
         <div class="bg-card-bg/60 rounded-xl p-3 flex items-center justify-between border border-white/5 mb-2">
@@ -895,9 +903,12 @@ async function carregarParticipantesGrupo() {
               <p class="text-[11px] text-text-muted truncate">${isAdmin ? 'Organizador do Bolão' : 'Participante'}</p>
             </div>
           </div>
-          ${isAdmin ? `
-            <span class="border border-brand-green/30 text-brand-green text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/5 flex-shrink-0">Admin</span>
-          ` : ''}
+          <div class="flex items-center">
+            ${isAdmin ? `
+              <span class="border border-brand-green/30 text-brand-green text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/5 flex-shrink-0">Admin</span>
+            ` : ''}
+            ${removeBtn}
+          </div>
         </div>
       `;
     });
@@ -1674,6 +1685,43 @@ function dispensarCardVitoria(poteId) {
       card.remove();
       carregarPoteBanner();
     }, 300);
+  }
+}
+
+async function removerMembroGrupo(userId, userName) {
+  if (!confirm(`Deseja realmente remover o jogador "${userName}" deste grupo?`)) {
+    return;
+  }
+
+  showToast(`Removendo ${userName}...`, "success");
+
+  try {
+    // 1. Remove da tabela group_members
+    const { error: errM } = await sbClient
+      .from('group_members')
+      .delete()
+      .eq('group_id', grupoAtual.id)
+      .eq('user_id', userId);
+
+    if (errM) throw errM;
+
+    // 2. Remove palpites deste usuário no grupo
+    await sbClient
+      .from('guesses')
+      .delete()
+      .eq('group_id', grupoAtual.id)
+      .eq('user_id', userId);
+
+    showToast("Jogador removido com sucesso!", "success");
+    
+    // 3. Recarrega dados na tela
+    carregarParticipantesGrupo();
+    if (typeof atualizarBadgeVagas === 'function') {
+      atualizarBadgeVagas(grupoAtual.id);
+    }
+  } catch (err) {
+    console.error("Erro ao remover jogador:", err.message);
+    showToast("Erro ao remover jogador. Tente novamente.", "error");
   }
 }
 
