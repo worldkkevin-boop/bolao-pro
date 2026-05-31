@@ -1188,6 +1188,17 @@ async function lancarPote() {
     showToast("Erro ao lançar o Pote. Tente novamente.", "error");
   } else {
     showToast("Pote Lançado!", "success");
+    
+    // Dispara a notificação de novo pote lançado para o grupo
+    if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+      dispararNotificacaoPush({
+        groupId: grupoAtual.id,
+        title: '💰 Novo Pote no ar!',
+        body: `Novo Pote: "${nome}"! O prêmio já está acumulando. Vai ficar de fora?`,
+        url: '/'
+      });
+    }
+    
     document.getElementById('tesouraria-novo-pote-area').classList.add('hidden');
     carregarDadosTesouraria();
     if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
@@ -1200,6 +1211,28 @@ async function lancarPote() {
 async function aprovarPagamentoPote(participanteId) {
   showToast("Aprovando...", "success");
   
+  // Busca o user_id e pote_id antes de atualizar o status
+  const { data: partData } = await sbClient
+    .from('potes_participantes')
+    .select('user_id, pote_id')
+    .eq('id', participanteId)
+    .single();
+
+  let targetUserId = null;
+  let poteNome = 'Disputa';
+
+  if (partData) {
+    targetUserId = partData.user_id;
+    const { data: poteData } = await sbClient
+      .from('potes')
+      .select('nome')
+      .eq('id', partData.pote_id)
+      .single();
+    if (poteData) {
+      poteNome = poteData.nome;
+    }
+  }
+  
   const { error } = await sbClient
     .from('potes_participantes')
     .update({ status_pagamento: 'pago' })
@@ -1208,6 +1241,16 @@ async function aprovarPagamentoPote(participanteId) {
   if (error) {
     showToast("Erro ao aprovar.", "error");
   } else {
+    // Dispara a notificação de confirmação para o jogador
+    if (targetUserId && typeof dispararNotificacaoPush === 'function') {
+      dispararNotificacaoPush({
+        userId: targetUserId,
+        title: '✅ PIX Confirmado!',
+        body: `Sua vaga na disputa "${poteNome}" está garantida. Boa sorte!`,
+        url: '/'
+      });
+    }
+
     // Recarrega a Tesouraria e também o Banner Dourado que fica no fundo!
     await carregarDadosTesouraria();
     if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
@@ -1288,6 +1331,36 @@ async function confirmarVencedor(poteId) {
   }
 
   showToast("Coroando campeão...", "success");
+
+  // Busca informações do pote e do campeão para a notificação
+  const { data: poteData } = await sbClient
+    .from('potes')
+    .select('nome, valor_entrada, group_id')
+    .eq('id', poteId)
+    .single();
+
+  const { data: profileData } = await sbClient
+    .from('profiles')
+    .select('full_name')
+    .eq('id', vencedorId)
+    .single();
+
+  const { data: pagantes } = await sbClient
+    .from('potes_participantes')
+    .select('id')
+    .eq('pote_id', poteId)
+    .eq('status_pagamento', 'pago');
+
+  let winnerName = 'Um jogador';
+  if (profileData) {
+    winnerName = profileData.full_name;
+  }
+
+  let premio = 0;
+  if (poteData && pagantes) {
+    premio = pagantes.length * parseFloat(poteData.valor_entrada);
+  }
+
   const { error } = await sbClient
     .from('potes')
     .update({ status: 'encerrado', vencedor_id: vencedorId })
@@ -1295,6 +1368,17 @@ async function confirmarVencedor(poteId) {
 
   if(!error) {
     showToast("Disputa Encerrada! O Campeão foi notificado.", "success");
+    
+    // Dispara a notificação de coroação para o grupo todo!
+    if (poteData && typeof dispararNotificacaoPush === 'function') {
+      dispararNotificacaoPush({
+        groupId: poteData.group_id,
+        title: '👑 Temos um campeão!',
+        body: `${winnerName} acabou de faturar R$ ${premio.toFixed(2)} no pote "${poteData.nome}". Veja a classificação final!`,
+        url: '/'
+      });
+    }
+
     fecharTesouraria();
     if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
     if(typeof verificarPremiosGanhos === 'function') verificarPremiosGanhos(); // Checa se o GM mesmo ganhou

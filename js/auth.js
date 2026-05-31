@@ -517,3 +517,19 @@ function urlB64ToUint8Array(base64String) {
   return outputArray;
 }
 
+async function dispararNotificacaoPush({ userId, groupId, title, body, url }) {
+  console.log('[PUSH] Disparando notificação push:', { userId, groupId, title, body, url });
+  try {
+    const { data, error } = await sbClient.functions.invoke('send-push', {
+      body: { userId, groupId, title, body, url }
+    });
+    if (error) {
+      console.error('[PUSH] Erro ao invocar send-push:', error);
+    } else {
+      console.log('[PUSH] Retorno do envio de push:', data);
+    }
+  } catch (err) {
+    console.error('[PUSH] Erro de rede ao enviar push:', err);
+  }
+}
+

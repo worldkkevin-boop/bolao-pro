@@ -218,6 +218,23 @@ async function criarDesafioReal() {
       return;
     }
 
+    // Dispara notificação push para o grupo sobre o Desafio Relâmpago
+    if (typeof grupoAtual !== 'undefined' && grupoAtual) {
+      if (typeof dispararNotificacaoPush === 'function') {
+        let tipoTexto = 'Próximo Gol';
+        if (eventType.startsWith('card_red')) tipoTexto = 'Cartão Vermelho';
+        else if (eventType.startsWith('card_yellow')) tipoTexto = 'Cartão Amarelo';
+        else if (eventType.startsWith('penalty')) tipoTexto = 'Próximo Pênalti';
+        
+        dispararNotificacaoPush({
+          groupId: grupoAtual.id,
+          title: '⚡ Desafio Relâmpago!',
+          body: `O Mago lançou um desafio de ${tipoTexto} valendo ${points} pts no jogo ${matchName}! Responda rápido!`,
+          url: '/'
+        });
+      }
+    }
+
     // Limpa os inputs e redefine permissões de escrita
     for (let i = 1; i <= 4; i++) {
       const el = document.getElementById(`input-gm-player-${i}`);
