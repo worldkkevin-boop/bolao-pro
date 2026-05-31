@@ -1024,6 +1024,7 @@ async function carregarPalpitesDosAmigos(matchId) {
 }
 
 async function abrirTelaPalpite(id) {
+  localStorage.setItem('last_active_match_id', id);
   jogoAtual = todosOsJogos.find(j => j.fixture.id === id);
   if (!jogoAtual) return;
 
@@ -1213,6 +1214,27 @@ async function abrirTelaPalpite(id) {
       }
 
       const listaContainer = document.getElementById('lista-palpites-amigos');
+      
+      const isFree = grupoAtual.max_participants <= 3;
+      if (isFree) {
+        const ehDono = usuarioAtual && (usuarioAtual.id === grupoAtual.owner_id);
+        const actionButton = ehDono 
+          ? `<button onclick="abrirModalUpgrade()" class="mt-4 bg-gradient-to-r from-purple-600 to-brand-green hover:opacity-90 text-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 shadow-[0_0_15px_rgba(147,51,234,0.3)]">⚡ Desbloquear Recursos</button>`
+          : `<p class="mt-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-center">Fale com o dono para liberar</p>`;
+
+        listaContainer.innerHTML = `
+          <div class="mt-2 p-5 bg-purple-900/10 border border-purple-500/20 rounded-2xl flex flex-col items-center text-center shadow-[0_0_25px_rgba(147,51,234,0.05)] w-full">
+            <span class="text-2xl mb-2">🔒</span>
+            <h4 class="text-white font-black text-sm uppercase tracking-wide">Palpites Ocultados</h4>
+            <p class="text-zinc-400 text-[11px] leading-relaxed mt-1 max-w-[260px]">
+              O acesso aos palpites detalhados dos seus amigos é um recurso exclusivo do Plano Resenha. Faça o upgrade para desbloquear!
+            </p>
+            ${actionButton}
+          </div>
+        `;
+        return;
+      }
+
       if (isLocked) {
         if (!guesses || guesses.length === 0) {
           listaContainer.innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Nenhum palpite enviado ainda.</p>';

@@ -35,6 +35,18 @@ async function carregarJogos() {
     if (typeof filtrarPorRodada === 'function') filtrarPorRodada(rodadaSelecionada);
     if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
 
+    // Restaura a tela de detalhes da partida se a página foi recarregada (F5) nela
+    const lastActiveView = localStorage.getItem('last_active_view');
+    const lastActiveMatchId = localStorage.getItem('last_active_match_id');
+    if (lastActiveView === 'view-palpite' && lastActiveMatchId) {
+      const matchId = parseInt(lastActiveMatchId);
+      if (todosOsJogos && todosOsJogos.some(j => j.fixture.id === matchId)) {
+        if (typeof abrirTelaPalpite === 'function') {
+          abrirTelaPalpite(matchId);
+        }
+      }
+    }
+
     // Redirecionamento automático para partida específica se solicitado (via link de desafio)
     const redirectMatch = localStorage.getItem('redirect_match');
     if (redirectMatch) {
