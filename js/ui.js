@@ -2095,7 +2095,7 @@ function atualizarStatusBannerTV(temJogoAoVivo) {
     const banner = document.getElementById('btn-ao-vivo-tv');
     if (!banner) return;
 
-    const dotContainer = banner.querySelector('.relative.flex.h-2.5.w-2.5') || banner.querySelector('.relative');
+    const dotContainer = banner.querySelector('.relative.flex.h-2\\.5.w-2\\.5') || banner.querySelector('.relative');
     const btnSpan = banner.querySelector('span.text-red-400') || banner.querySelector('span.text-zinc-500') || banner.querySelector('#tv-banner-btn');
     
     if (temJogoAoVivo) {
