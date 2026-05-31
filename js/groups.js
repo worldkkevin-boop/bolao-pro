@@ -1933,6 +1933,36 @@ async function responderSolicitacaoGrupo(userId, aceitar, userName) {
   }
 }
 
+function copiarTextoParaClipboard(text) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    return navigator.clipboard.writeText(text);
+  }
+  
+  // Fallback legível e funcional em qualquer navegador/ambiente (incluindo HTTP e webviews)
+  return new Promise((resolve, reject) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        resolve();
+      } else {
+        reject(new Error("Falha ao copiar com execCommand"));
+      }
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 async function compartilharListaPoteWhatsApp() {
   const select = document.getElementById('seletor-potes-gm');
   if (!select) return;
@@ -2031,7 +2061,7 @@ async function compartilharListaPoteWhatsApp() {
     }
 
     if (!compartilhado) {
-      await navigator.clipboard.writeText(texto);
+      await copiarTextoParaClipboard(texto);
       showToast("Lista copiada com sucesso! Só colar no WhatsApp.", "success");
     }
   } catch (err) {
