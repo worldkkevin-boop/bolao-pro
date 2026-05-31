@@ -58,6 +58,9 @@ function entrarNoApp(usuario) {
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('screen-app').classList.remove('hidden');
   if (typeof verificarPermissaoPush === 'function') verificarPermissaoPush();
+  if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+    inicializarNotificacoesPush(true);
+  }
   // Restaura grupo e view anteriores se existirem
   const savedGroup = localStorage.getItem('last_active_group');
   const savedView = localStorage.getItem('last_active_view') || 'view-grupo-home';
@@ -396,9 +399,6 @@ function verificarPermissaoPush() {
       banner.classList.remove('hidden');
     } else {
       banner.classList.add('hidden');
-      if (Notification.permission === 'granted') {
-        inicializarNotificacoesPush(true); // Registra silenciosamente no banco
-      }
     }
   } else {
     banner.classList.add('hidden');
