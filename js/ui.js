@@ -2940,11 +2940,11 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
   // Carrega detalhes no header
   if (fotoEl) fotoEl.src = userFoto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userName) + '&background=random&color=fff';
   if (nomeEl) nomeEl.innerText = userName;
-  if (resumoEl) resumoEl.innerText = "Carregando histórico...";
+  if (resumoEl) resumoEl.innerText = "Calculando resumo de pontos...";
   listaEl.innerHTML = `
     <div class="flex flex-col items-center justify-center py-10 space-y-2">
       <svg class="animate-spin h-6 w-6 text-brand-green" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-      <span class="text-xs text-text-muted">Buscando palpites no banco...</span>
+      <span class="text-xs text-text-muted">Calculando estatísticas no banco...</span>
     </div>
   `;
 
@@ -2953,7 +2953,7 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
   modal.classList.add('flex');
 
   try {
-    // 1. Busca palpites do usuário
+    // 1. Busca todos os palpites do usuário
     const { data: guesses, error: errG } = await sbClient
       .from('guesses')
       .select('*')
@@ -2969,140 +2969,109 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
       .eq('group_id', grupoAtual.id)
       .eq('user_id', userId);
 
-    const now = new Date();
-    const matchesList = [];
+    // Configuração de regras do grupo
+    const regras = {
+      pt_placar_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 30,
+      pt_vencedor_gols_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? Number(grupoAtual.pt_vencedor_gols_time) : 18,
+      pt_empate_nao_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 18,
+      pt_vencedor_saldo: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 15,
+      pt_vencedor_gols_perdedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? Number(grupoAtual.pt_vencedor_gols_perdedor) : 12,
+      pt_apenas_vencedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 4,
+      pt_gols_um_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? Number(grupoAtual.pt_gols_um_time) : 3
+    };
 
-    // Junta palpites
+    // Objeto para consolidar a contagem por regras
+    const counts = {
+      placar_exato: { name: "Placar Exato 🎯", ptsEach: regras.pt_placar_exato, count: 0 },
+      vencedor_gols_time: { name: "Vencedor e Gols de um Time ⚽", ptsEach: regras.pt_vencedor_gols_time, count: 0 },
+      empate_nao_exato: { name: "Empate Não-Exato 🤝", ptsEach: regras.pt_empate_nao_exato, count: 0 },
+      vencedor_saldo: { name: "Vencedor e Saldo de Gols 📊", ptsEach: regras.pt_vencedor_saldo, count: 0 },
+      vencedor_gols_perdedor: { name: "Vencedor e Gols do Perdedor 📉", ptsEach: regras.pt_vencedor_gols_perdedor, count: 0 },
+      apenas_vencedor: { name: "Apenas o Vencedor 👑", ptsEach: regras.pt_apenas_vencedor, count: 0 },
+      gols_um_time: { name: "Placar de Algum Time ⚽", ptsEach: regras.pt_gols_um_time, count: 0 },
+      desafios: { name: "Desafios do GM (Bônus) ⚡", ptsEach: null, count: 0, totalPts: 0 }
+    };
+
+    // Processa palpites dos jogos encerrados
     if (guesses) {
       guesses.forEach(g => {
         const match = todosOsJogos.find(j => j.fixture.id === g.match_id);
         if (!match) return;
 
-        const matchDate = new Date(match.fixture.date);
-        // Só mostra se o jogo já começou ou terminou
-        if (matchDate <= now) {
-          matchesList.push({
-            type: 'match',
-            date: matchDate,
-            homeTeam: match.teams.home.name,
-            awayTeam: match.teams.away.name,
-            homeLogo: match.teams.home.logo,
-            awayLogo: match.teams.away.logo,
-            guessHome: g.score_home,
-            guessAway: g.score_away,
-            realHome: match.goals.home,
-            realAway: match.goals.away,
-            status: match.fixture.status.short
-          });
-        }
-      });
-    }
-
-    // Junta desafios do GM
-    if (desafios) {
-      desafios.forEach(d => {
-        matchesList.push({
-          type: 'challenge',
-          date: new Date(d.created_at || now),
-          title: (d.challenges && d.challenges.title) ? d.challenges.title : 'Desafio Cumprido',
-          points: d.points_awarded || 0
-        });
-      });
-    }
-
-    // Ordena pela data mais recente
-    matchesList.sort((a, b) => b.date - a.date);
-
-    if (matchesList.length === 0) {
-      listaEl.innerHTML = '<p class="text-text-muted text-[12px] text-center py-8">Nenhum palpite revelado ou pontos extras ainda.</p>';
-      if (resumoEl) resumoEl.innerText = "Sem pontuação acumulada";
-      return;
-    }
-
-    // Renderiza lista
-    listaEl.innerHTML = '';
-    let totalPontos = 0;
-    let placaresExatos = 0;
-
-    matchesList.forEach(item => {
-      if (item.type === 'challenge') {
-        totalPontos += item.points;
-        listaEl.innerHTML += `
-          <div class="bg-purple-950/20 border border-purple-500/10 p-3 rounded-xl flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <span class="text-base">✨</span>
-              <div>
-                <h4 class="text-xs font-black text-white leading-none">${item.title}</h4>
-                <p class="text-[9px] text-purple-400 mt-1 uppercase font-bold tracking-wider">Pontos Extras do GM</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="text-xs font-black text-brand-green">+${item.points} pts</span>
-            </div>
-          </div>
-        `;
-      } else {
-        const isFinished = ['FT', 'AET', 'PEN'].includes(item.status);
-        let ptDetails = { pts: 0, desc: 'Jogo em andamento' };
-        
-        if (isFinished && item.realHome !== null && item.realAway !== null) {
-          ptDetails = detalharPontosPalpite(item.guessHome, item.guessAway, item.realHome, item.realAway);
-          totalPontos += ptDetails.pts;
-          if (ptDetails.pts === (grupoAtual.pt_placar_exato !== undefined ? Number(grupoAtual.pt_placar_exato) : 30)) {
-            placaresExatos++;
+        const isFinished = ['FT', 'AET', 'PEN'].includes(match.fixture.status.short);
+        if (isFinished && match.goals.home !== null && match.goals.away !== null) {
+          const ptDetails = detalharPontosPalpite(g.score_home, g.score_away, match.goals.home, match.goals.away);
+          if (ptDetails.pts > 0) {
+            if (ptDetails.desc === 'Placar Exato') counts.placar_exato.count++;
+            else if (ptDetails.desc === 'Vencedor + Gols Time') counts.vencedor_gols_time.count++;
+            else if (ptDetails.desc === 'Empate Não-Exato') counts.empate_nao_exato.count++;
+            else if (ptDetails.desc === 'Vencedor + Saldo') counts.vencedor_saldo.count++;
+            else if (ptDetails.desc === 'Vencedor + Gols Perdedor') counts.vencedor_gols_perdedor.count++;
+            else if (ptDetails.desc === 'Apenas Vencedor') counts.apenas_vencedor.count++;
+            else if (ptDetails.desc === 'Placar de um Time') counts.gols_um_time.count++;
           }
         }
+      });
+    }
 
-        const realScoreText = isFinished ? `${item.realHome} x ${item.realAway}` : 'vs';
-        const badgeColor = ptDetails.pts > 0 
-          ? (ptDetails.pts === (grupoAtual.pt_placar_exato !== undefined ? Number(grupoAtual.pt_placar_exato) : 30)
-              ? 'bg-gold/20 text-gold border border-gold/30' 
-              : 'bg-brand-green/20 text-brand-green border border-brand-green/15')
-          : 'bg-zinc-800/80 text-zinc-500 border border-transparent';
+    // Processa pontos extras de desafios
+    if (desafios) {
+      desafios.forEach(d => {
+        counts.desafios.count++;
+        counts.desafios.totalPts += d.points_awarded || 0;
+      });
+    }
 
-        listaEl.innerHTML += `
-          <div class="bg-zinc-900/30 border border-zinc-800/60 p-3 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[9px] text-text-muted font-bold tracking-wide">${item.date.toLocaleDateString('pt-BR')} às ${item.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-              <span class="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badgeColor}">
-                +${ptDetails.pts} pts • ${ptDetails.desc}
-              </span>
-            </div>
-            <div class="flex items-center justify-between px-1 mb-2">
-              <!-- Mandante -->
-              <div class="flex items-center gap-2 w-[42%]">
-                <img src="${item.homeLogo}" class="w-3.5 h-3.5 object-contain">
-                <span class="text-[11.5px] text-zinc-200 font-bold truncate">${item.homeTeam}</span>
-              </div>
-              
-              <!-- Placar Real -->
-              <div class="w-[16%] text-center">
-                <span class="text-[11px] font-bold text-white bg-zinc-950 px-1.5 py-0.5 rounded border border-white/5">${realScoreText}</span>
-              </div>
-              
-              <!-- Visitante -->
-              <div class="flex items-center justify-end gap-2 w-[42%] text-right">
-                <span class="text-[11.5px] text-zinc-200 font-bold truncate">${item.awayTeam}</span>
-                <img src="${item.awayLogo}" class="w-3.5 h-3.5 object-contain">
-              </div>
-            </div>
-            <!-- Palpite do Usuário -->
-            <div class="mt-2 pt-2 border-t border-zinc-800/40 flex items-center justify-between text-[10px]">
-              <span class="text-text-muted font-medium">Palpite do jogador:</span>
-              <span class="font-bold text-white bg-[#0e0e13] px-2 py-0.5 rounded border border-white/5">${item.guessHome} x ${item.guessAway}</span>
-            </div>
+    // Gera o HTML das linhas do resumo
+    listaEl.innerHTML = '';
+    let html = '';
+    let totalPontos = 0;
+    let placaresExatos = counts.placar_exato.count;
+
+    const renderRow = (name, ptsEach, countVal, totalVal, isPurple = false) => {
+      const total = totalVal !== undefined ? totalVal : (ptsEach * countVal);
+      const sub = ptsEach !== null ? `${ptsEach} pts por acerto` : 'Pontos de desafios extras';
+      const borderTheme = isPurple ? 'border-purple-500/20 bg-purple-950/10' : 'border-zinc-800/80 bg-zinc-900/30';
+      const ptsTheme = isPurple ? 'text-purple-400 bg-purple-500/10' : 'text-brand-green bg-brand-green/10';
+
+      return `
+        <div class="border p-4 rounded-xl flex items-center justify-between ${borderTheme} transition-colors">
+          <div>
+            <h4 class="text-[12.5px] font-black text-white leading-tight">${name}</h4>
+            <p class="text-[10px] text-text-muted mt-1.5 font-medium">${sub}</p>
           </div>
-        `;
+          <div class="text-right flex flex-col items-end flex-shrink-0">
+            <span class="text-[12px] text-zinc-300 font-bold">${countVal}x acertos</span>
+            <span class="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg mt-1.5 ${ptsTheme}">+${total} pts</span>
+          </div>
+        </div>
+      `;
+    };
+
+    Object.keys(counts).forEach(k => {
+      const cat = counts[k];
+      if (k === 'desafios') {
+        if (cat.count > 0) {
+          html += renderRow(cat.name, null, cat.count, cat.totalPts, true);
+          totalPontos += cat.totalPts;
+        }
+      } else {
+        if (cat.ptsEach > 0 || cat.count > 0) {
+          html += renderRow(cat.name, cat.ptsEach, cat.count);
+          totalPontos += (cat.ptsEach * cat.count);
+        }
       }
     });
+
+    listaEl.innerHTML = html || '<p class="text-text-muted text-[12.5px] text-center py-8">Nenhum palpite computado ou ponto extra recebido ainda.</p>';
 
     if (resumoEl) {
       resumoEl.innerText = `${totalPontos} pts • ${placaresExatos} placares exatos`;
     }
 
   } catch (err) {
-    console.error("Erro ao carregar histórico do jogador:", err);
-    listaEl.innerHTML = '<p class="text-red-400 text-[12px] text-center py-8">Erro ao obter palpites do jogador.</p>';
+    console.error("Erro ao carregar resumo de pontos do jogador:", err);
+    listaEl.innerHTML = '<p class="text-red-400 text-[12px] text-center py-8">Erro ao calcular resumo do jogador.</p>';
     if (resumoEl) resumoEl.innerText = "Erro ao buscar resumo";
   }
 }
