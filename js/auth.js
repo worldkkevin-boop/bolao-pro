@@ -406,13 +406,16 @@ function verificarPermissaoPush() {
 }
 
 async function inicializarNotificacoesPush(silencioso = false) {
+  console.log('[PUSH] inicializarNotificacoesPush chamada, silencioso:', silencioso);
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn('[PUSH] Service Worker ou PushManager não suportados');
     if (!silencioso) showToast('Push não é suportado neste dispositivo.', 'error');
     return;
   }
 
   try {
     const permission = await Notification.requestPermission();
+    console.log('[PUSH] Permissão de notificação atual:', permission);
     if (permission !== 'granted') {
       if (!silencioso) showToast('Permissão de notificações negada pelo usuário.', 'error');
       verificarPermissaoPush();
@@ -421,7 +424,9 @@ async function inicializarNotificacoesPush(silencioso = false) {
 
     if (!silencioso) showToast("Ativando notificações...", "success");
 
+    console.log('[PUSH] Esperando Service Worker ready...');
     const reg = await navigator.serviceWorker.ready;
+    console.log('[PUSH] Service Worker ready. Registrando inscrição push...');
     
     // NOTA: Esta chave pública VAPID deve ser a mesma configurada nas suas Edge Functions.
     const VAPID_PUBLIC_KEY = 'BFCw-pZSKdzpQ8q96ckZh_zQiKEebh1agLg6S0xVni0SNpi6P18Z27w57EmmU8Nauxu8r0Q6fxY0_H_FkvvcmUI';
@@ -431,20 +436,34 @@ async function inicializarNotificacoesPush(silencioso = false) {
       userVisibleOnly: true,
       applicationServerKey: convertedVapidKey
     });
+    console.log('[PUSH] Inscrição obtida:', subscription);
 
     const parsedSub = JSON.parse(JSON.stringify(subscription));
     const p256dh = parsedSub.keys.p256dh;
     const auth = parsedSub.keys.auth;
+    console.log('[PUSH] Dados parsedSub:', parsedSub);
 
     // Evita duplicar no banco se o endpoint já existir para este usuário
-    const { data: existente } = await sbClient
+    console.log('[PUSH] Verificando se já existe no Supabase para o user:', usuarioAtual ? usuarioAtual.id : 'NENHUM USUÁRIO');
+    
+    if (!usuarioAtual) {
+      console.warn('[PUSH] Usuário atual não está logado no estado global.');
+      return;
+    }
+
+    const { data: existente, error: erroCheck } = await sbClient
       .from('push_subscriptions')
       .select('id')
       .eq('endpoint', subscription.endpoint)
       .eq('user_id', usuarioAtual.id)
       .maybeSingle();
 
+    if (erroCheck) {
+      console.error('[PUSH] Erro ao checar inscrição existente:', erroCheck);
+    }
+
     if (!existente) {
+      console.log('[PUSH] Inscrição não existe no banco, inserindo...');
       // Salva no banco push_subscriptions do Supabase
       const { error } = await sbClient
         .from('push_subscriptions')
@@ -455,7 +474,13 @@ async function inicializarNotificacoesPush(silencioso = false) {
           auth: auth
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PUSH] Erro ao inserir inscrição:', error);
+        throw error;
+      }
+      console.log('[PUSH] Inscrição salva com sucesso no Supabase!');
+    } else {
+      console.log('[PUSH] Inscrição já existia no banco para este endpoint.');
     }
 
     if (!silencioso) {
@@ -463,7 +488,7 @@ async function inicializarNotificacoesPush(silencioso = false) {
     }
     verificarPermissaoPush(); // Oculta o banner
   } catch (err) {
-    console.error('Erro ao ativar Push:', err);
+    console.error('[PUSH] Erro ao ativar Push:', err);
     if (!silencioso) {
       showToast('Erro ao ativar notificações: ' + err.message, 'error');
     }
