@@ -59,18 +59,13 @@ function entrarNoApp(usuario) {
   document.getElementById('screen-app').classList.remove('hidden');
   // Restaura grupo e view anteriores se existirem
   const savedGroup = localStorage.getItem('last_active_group');
-  const savedView = localStorage.getItem('last_active_view');
+  const savedView = localStorage.getItem('last_active_view') || 'view-grupo-home';
 
   if (savedGroup && !localStorage.getItem('pending_invite_code')) {
     try {
       const g = JSON.parse(savedGroup);
       if (typeof entrarNoGrupo === 'function') {
-        entrarNoGrupo(g.id, g.nome, g.invite_code, g.owner_id, g.league_id || 1);
-      }
-      if (savedView && savedView !== 'view-grupo-home') {
-        setTimeout(() => {
-          if (typeof switchView === 'function') switchView(savedView);
-        }, 300);
+        entrarNoGrupo(g.id, g.nome, g.invite_code, g.owner_id, g.league_id || 1, savedView);
       }
       if (typeof carregarGrupos === 'function') carregarGrupos();
     } catch (e) {

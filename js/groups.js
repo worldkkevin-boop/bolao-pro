@@ -56,7 +56,7 @@ function renderListaGrupos(grupos) {
   });
 }
 
-function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1) {
+function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1, targetView = null) {
   grupoAtual = { id: grupoId, nome: grupoNome, invite_code: conviteCodigo, owner_id: ownerId, league_id: leagueId };
   localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
   todosOsJogos = [];
@@ -82,7 +82,8 @@ function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1)
     };
   }
 
-  if (typeof switchView === 'function') switchView('view-grupo-home');
+  const finalView = targetView || 'view-grupo-home';
+  if (typeof switchView === 'function') switchView(finalView);
 
   // Atualiza badge de vagas
   atualizarBadgeVagas(grupoId);
