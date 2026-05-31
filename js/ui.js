@@ -2299,12 +2299,223 @@ function fecharModalUpgrade() {
 }
 
 // Função que fará a ponte com o Mercado Pago
-async function iniciarPagamentoMercadoPago() {
-  if (typeof showToast === 'function') {
-    showToast("Gerando link de pagamento...", "success");
+// Função que fará a ponte com o Mercado Pago
+let paymentPollInterval = null;
+
+function fecharModalPagamento() {
+  const overlay = document.getElementById('payment-overlay');
+  if (overlay) {
+    overlay.classList.add('opacity-0');
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-100', 'opacity-100');
+      child.classList.add('scale-95', 'opacity-0');
+    }
+    setTimeout(() => overlay.remove(), 300);
   }
-  // TODO: Chamar Edge Function do Supabase
+  if (paymentPollInterval) {
+    clearInterval(paymentPollInterval);
+    paymentPollInterval = null;
+  }
 }
 
+async function iniciarPagamentoMercadoPago() {
+  if (!grupoAtual) {
+    showToast("Nenhum grupo ativo selecionado.", "error");
+    return;
+  }
+  
+  if (typeof showToast === 'function') {
+    showToast("Gerando Pix de R$ 9,90...", "success");
+  }
 
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) {
+      showToast("Você precisa estar logado para efetuar o pagamento.", "error");
+      return;
+    }
 
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-pix`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ groupId: grupoAtual.id })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Erro MP:", data);
+      showToast(data.error || "Erro ao gerar pagamento.", "error");
+      return;
+    }
+
+    // Fechar o modal de upgrade anterior se estiver aberto
+    fecharModalUpgrade();
+
+    // Criar o overlay de checkout PIX
+    const overlay = document.createElement('div');
+    overlay.id = 'payment-overlay';
+    overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] transition-all duration-300 opacity-0';
+    
+    // Animação de entrada
+    setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+    const qrCodeImageSrc = `data:image/png;base64,${data.qr_code_base64}`;
+    const qrCodeCopyPaste = data.qr_code;
+
+    overlay.innerHTML = `
+      <div class="bg-[#121214] border border-brand-purple/20 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(139,92,246,0.15)] overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+        
+        <!-- Cabeçalho -->
+        <div class="p-5 text-center border-b border-white/5 relative">
+          <button onclick="fecharModalPagamento()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="w-12 h-12 bg-brand-purple/10 rounded-full flex items-center justify-center border border-brand-purple/30 mx-auto mb-2 text-xl">
+            👑
+          </div>
+          <h2 class="text-white font-black text-base uppercase tracking-wide">Plano Resenha</h2>
+          <p class="text-brand-purple text-[11px] font-bold">Upgrade de Bolão — 20 Vagas</p>
+        </div>
+        
+        <!-- Checkout -->
+        <div class="p-6 flex flex-col items-center">
+          <p class="text-gray-300 text-xs text-center mb-4 leading-relaxed">
+            Escaneie o QR Code Pix abaixo ou copie o código "Copia e Cola" para pagar <strong class="text-white">R$ 9,90</strong>. O limite do grupo será atualizado imediatamente após o pagamento.
+          </p>
+
+          <!-- QR Code Container -->
+          <div class="bg-white p-3 rounded-xl mb-4 border-2 border-brand-purple/20 shadow-[0_0_20px_rgba(255,255,255,0.05)] w-44 h-44 flex items-center justify-center">
+            <img src="${qrCodeImageSrc}" alt="QR Code PIX" class="w-full h-full object-contain">
+          </div>
+
+          <!-- Pix Copia e Cola -->
+          <div class="w-full bg-[#18181b] border border-white/5 rounded-xl p-3 mb-5">
+            <label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Código Pix Copia e Cola</label>
+            <div class="flex gap-2">
+              <input type="text" id="pix-copia-cola" readonly value="${qrCodeCopyPaste}" class="bg-transparent border-0 text-white text-xs w-full focus:ring-0 focus:outline-none overflow-hidden text-ellipsis whitespace-nowrap">
+              <button onclick="copiarPixCodigo()" id="btn-copy-pix" class="bg-brand-purple hover:bg-brand-purple/80 text-white font-bold px-3 py-1 rounded-lg text-[10px] uppercase tracking-wide transition-all active:scale-95 shrink-0">
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <!-- Aguardando pagamento spinner -->
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-gray-400 font-medium">Aguardando confirmação do PIX...</span>
+          </div>
+          <p class="text-[10px] text-gray-500 text-center">Processado de forma 100% segura via Mercado Pago</p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    
+    // Animação de entrada do card
+    setTimeout(() => {
+      const child = overlay.firstElementChild;
+      if (child) {
+        child.classList.remove('scale-95', 'opacity-0');
+        child.classList.add('scale-100', 'opacity-100');
+      }
+    }, 100);
+
+    // Iniciar polling para verificar a confirmação do pagamento
+    if (paymentPollInterval) clearInterval(paymentPollInterval);
+    
+    paymentPollInterval = setInterval(async () => {
+      try {
+        const { data: grp, error: grpErr } = await sbClient
+          .from('groups')
+          .select('max_participants')
+          .eq('id', grupoAtual.id)
+          .single();
+
+        if (grpErr) {
+          console.error("Erro ao verificar status do grupo:", grpErr);
+          return;
+        }
+
+        if (grp && grp.max_participants > 3) {
+          // Upgrade detectado!
+          clearInterval(paymentPollInterval);
+          paymentPollInterval = null;
+          
+          // Atualizar estado local
+          grupoAtual.max_participants = grp.max_participants;
+          
+          // Atualizar o cache de grupo local
+          localStorage.setItem(`grupo_${grupoAtual.id}`, JSON.stringify(grupoAtual));
+
+          // Animação de Sucesso
+          showToast("Pagamento Confirmado! Grupo atualizado para Premium 👑", "success");
+          
+          const card = overlay.firstElementChild;
+          if (card) {
+            card.innerHTML = `
+              <div class="p-8 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mb-4 text-3xl animate-bounce">
+                  🎉
+                </div>
+                <h2 class="text-white font-black text-lg uppercase tracking-wide mb-2">Upgrade Concluído!</h2>
+                <p class="text-gray-300 text-xs leading-relaxed mb-6">
+                  Parabéns! O seu grupo agora é <strong class="text-white">Premium</strong> (Plano Resenha) com limite de até <strong class="text-white">20 participantes</strong>. Todos os recursos adicionais foram desbloqueados!
+                </p>
+                <button onclick="fecharModalPagamento(); recarregarGrupoAposUpgrade();" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
+                  Acessar Recursos Premium
+                </button>
+              </div>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling de pagamento:", err);
+      }
+    }, 4000);
+
+  } catch (error) {
+    console.error("Erro iniciarPagamentoMercadoPago:", error);
+    showToast("Erro de conexão ao gerar pagamento.", "error");
+  }
+}
+
+function copiarPixCodigo() {
+  const pixInput = document.getElementById('pix-copia-cola');
+  if (pixInput) {
+    pixInput.select();
+    pixInput.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(pixInput.value);
+    
+    const btn = document.getElementById('btn-copy-pix');
+    if (btn) {
+      btn.innerText = 'Copiado!';
+      btn.classList.remove('bg-brand-purple');
+      btn.classList.add('bg-green-600');
+      setTimeout(() => {
+        btn.innerText = 'Copiar';
+        btn.classList.remove('bg-green-600');
+        btn.classList.add('bg-brand-purple');
+      }, 2000);
+    }
+    showToast("Código Copia e Cola copiado!", "success");
+  }
+}
+
+function recarregarGrupoAposUpgrade() {
+  // Recarregar a tela atual para remover todas as travas e cadeados
+  if (typeof carregarJogos === 'function') {
+    carregarJogos();
+  }
+  if (typeof carregarInformacoesGrupo === 'function') {
+    carregarInformacoesGrupo();
+  }
+  // Se estiver em uma aba específica, re-renderizar
+  const activeView = document.querySelector('.view-section:not(.hidden)')?.id;
+  if (activeView === 'view-desafios' && typeof carregarDesafiosUsuarioView === 'function') {
+    carregarDesafiosUsuarioView();
+  } else if (activeView === 'view-ranking' && typeof carregarRanking === 'function') {
+    carregarRanking();
+  }
+}
