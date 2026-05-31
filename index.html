@@ -592,10 +592,16 @@
           </div>
 
           <div class="mb-5 border-t border-zinc-800 pt-4">
-              <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-3">Regras de Pontuação Premium</label>
-              <p class="text-[10px] text-zinc-500 mb-4 leading-relaxed">Customize os pontos distribuídos para cada critério. Se não quiser usar um critério, defina-o como 0.</p>
-              
-              <div class="space-y-3">
+              <!-- Botão para abrir o menu colapsável de regras -->
+              <button onclick="toggleMenuRegras()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
+                <span class="flex items-center gap-2">⚙️ Customizar Regras de Pontuação</span>
+                <span id="seta-menu-regras" class="text-[10px] transition-transform duration-200">▼</span>
+              </button>
+
+              <!-- Container colapsável (oculto por padrão) -->
+              <div id="menu-regras-custom" class="hidden mt-3 space-y-3 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800/80 transition-all">
+                  <p class="text-[9px] text-zinc-500 leading-relaxed mb-1">Customize os pontos distribuídos para cada critério. Se não quiser usar um critério, defina-o como 0.</p>
+                  
                   <!-- 1. Placar Exato -->
                   <div class="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80 hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-2.5">
@@ -679,11 +685,11 @@
                     </div>
                     <input type="number" id="num-pt-gols-um-time" value="3" min="0" max="100" class="w-12 bg-zinc-950 text-white rounded-lg border border-zinc-800 py-1 text-center text-xs font-bold focus:border-brand-green outline-none">
                   </div>
-              </div>
 
-              <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-gradient-to-r from-brand-green to-emerald-600 hover:from-brand-green/90 text-black font-black text-[11px] py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-widest mt-5 shadow-lg shadow-brand-green/10">
-                Salvar Regras de Pontuação
-              </button>
+                  <button onclick="salvarRegrasGrupoReal()" id="btn-salvar-regras-grupo" class="w-full bg-gradient-to-r from-brand-green to-emerald-600 hover:from-brand-green/90 text-black font-black text-[11px] py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-widest mt-4 shadow-lg shadow-brand-green/10">
+                    Salvar Regras de Pontuação
+                  </button>
+              </div>
           </div>
 
           <div class="border-t border-zinc-800 pt-4">

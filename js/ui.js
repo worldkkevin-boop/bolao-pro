@@ -2803,3 +2803,19 @@ async function iniciarPagamentoPasseLivre() {
     showToast("Erro de conexão ao gerar pagamento.", "error");
   }
 }
+
+function toggleMenuRegras() {
+  const menu = document.getElementById('menu-regras-custom');
+  const seta = document.getElementById('seta-menu-regras');
+  if (menu && seta) {
+    if (menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+      seta.style.transform = 'rotate(180deg)';
+      seta.innerText = '▲';
+    } else {
+      menu.classList.add('hidden');
+      seta.style.transform = 'rotate(0deg)';
+      seta.innerText = '▼';
+    }
+  }
+}
