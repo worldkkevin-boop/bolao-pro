@@ -10,6 +10,19 @@ let tvDados = {
 let tvUltimoEstadoJogos = null;
 
 async function abrirTVAoVivo() {
+  // Trava do Plano Free (limite <= 3)
+  if (grupoAtual && grupoAtual.max_participants <= 3) {
+    if (typeof abrirModalUpgrade === 'function') {
+      abrirModalUpgrade();
+      if (typeof showToast === 'function') {
+        showToast("O Modo TV Ao Vivo é um recurso premium!", "error");
+      }
+    } else {
+      alert("O Modo TV Ao Vivo é um recurso premium! Faça o upgrade do grupo.");
+    }
+    return;
+  }
+
   if (typeof switchView === 'function') {
     switchView('view-ao-vivo');
   }

@@ -832,11 +832,15 @@ async function exibirRankingSelecionado() {
         bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-bronze"></div>';
       }
 
+      const isFree = grupoAtual.max_participants <= 3;
+      const isLockedRow = isFree && index >= 3;
+      const rowStyle = isLockedRow ? 'style="filter: blur(4px); opacity: 0.35; pointer-events: none; user-select: none;"' : '';
+
       const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
       const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
 
       container.innerHTML += `
-        <div class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3">
+        <div ${rowStyle} class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3">
           ${bgGlow}
           <div class="flex items-center gap-4 pl-2">
             <div class="w-6 flex flex-col items-center"><span class="${medalhaClass}">${badgePosicao}</span></div>
@@ -857,6 +861,25 @@ async function exibirRankingSelecionado() {
         </div>
       `;
     });
+
+    const isFree = grupoAtual.max_participants <= 3;
+    if (isFree && rankingList.length > 3) {
+      const ehDono = usuarioAtual && (usuarioAtual.id === grupoAtual.owner_id);
+      const actionButton = ehDono 
+        ? `<button onclick="abrirModalUpgrade()" class="mt-4 bg-gradient-to-r from-purple-600 to-brand-green hover:opacity-90 text-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 shadow-[0_0_15px_rgba(147,51,234,0.3)]">⚡ Desbloquear Ranking</button>`
+        : `<p class="mt-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-center">Fale com o dono para liberar a lista completa</p>`;
+
+      container.innerHTML += `
+        <div class="mt-4 p-5 bg-purple-900/10 border border-purple-500/20 rounded-2xl flex flex-col items-center text-center shadow-[0_0_25px_rgba(147,51,234,0.05)] relative z-10">
+          <span class="text-2xl mb-2">🔒</span>
+          <h4 class="text-white font-black text-sm uppercase tracking-wide">Ranking Completo Bloqueado</h4>
+          <p class="text-zinc-400 text-[11px] leading-relaxed mt-1 max-w-[260px]">
+            No plano gratuito, apenas o Top 3 é visível. Faça o upgrade para liberar a classificação de todos os participantes!
+          </p>
+          ${actionButton}
+        </div>
+      `;
+    }
 
   } catch (err) {
     console.error("Erro inesperado ao renderizar ranking:", err);
@@ -1844,6 +1867,36 @@ async function carregarDesafiosUsuarioView() {
   const listaHistorico = document.getElementById('lista-desafios-historico-usuario');
 
   if (!listaAtivos || !listaHistorico || !sbClient || !grupoAtual || !usuarioAtual) return;
+
+  const isFree = grupoAtual.max_participants <= 3;
+  if (isFree) {
+    const ehDono = usuarioAtual && (usuarioAtual.id === grupoAtual.owner_id);
+    const actionButton = ehDono 
+      ? `<button onclick="abrirModalUpgrade()" class="bg-gradient-to-r from-purple-600 to-brand-green hover:opacity-90 text-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 shadow-[0_0_15px_rgba(147,51,234,0.3)]">⚡ Desbloquear Desafios</button>`
+      : `<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl">Fale com o dono do grupo para liberar</p>`;
+
+    const htmlLock = `
+      <div class="bg-card-bg border border-purple-500/20 rounded-2xl p-6 text-center my-6 flex flex-col items-center shadow-[0_0_30px_rgba(147,51,234,0.05)] w-full">
+        <div class="w-14 h-14 bg-purple-500/10 rounded-full flex items-center justify-center border border-purple-500/20 mb-4 animate-pulse">
+          <svg width="24" height="24" fill="none" stroke="#a855f7" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+        </div>
+        <h3 class="text-white font-black text-[16px] uppercase tracking-wide mb-2">Desafios Premium 🪄</h3>
+        <p class="text-text-muted text-xs leading-relaxed mb-6 max-w-[280px]">
+          Os Desafios do Mago estão bloqueados! Faça o upgrade do seu grupo para liberar palpites relâmpago ao vivo e ganhar pontos extras.
+        </p>
+        ${actionButton}
+      </div>
+    `;
+    listaAtivos.innerHTML = htmlLock;
+    listaHistorico.innerHTML = htmlLock;
+    
+    const tabController = document.querySelector('#view-desafios .flex.border-b');
+    if (tabController) tabController.classList.add('hidden');
+    return;
+  } else {
+    const tabController = document.querySelector('#view-desafios .flex.border-b');
+    if (tabController) tabController.classList.remove('hidden');
+  }
 
   if (abaDesafiosAtiva === 'ativos') {
     listaAtivos.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Buscando desafios disponíveis...</p>';
