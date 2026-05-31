@@ -99,8 +99,14 @@
     </div>
   </div>
 
+  <!-- Tela de Carregamento Inicial -->
+  <div id="screen-loading" class="fixed inset-0 bg-[#09090b] z-[20000] flex flex-col items-center justify-center gap-4">
+    <div class="w-12 h-12 border-4 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Iniciando o App...</span>
+  </div>
+
   <!-- ===================== TELA DE LOGIN ===================== -->
-  <div id="screen-login" class="min-h-screen flex flex-col items-center justify-center relative p-6 overflow-x-hidden">
+  <div id="screen-login" class="min-h-screen flex flex-col items-center justify-center relative p-6 overflow-x-hidden hidden">
 
     <div class="bg-glow"></div>
     <div class="bg-glow-2"></div>

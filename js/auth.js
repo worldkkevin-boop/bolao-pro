@@ -265,3 +265,72 @@ function inicializarConvitePorUrl() {
   }
 }
 inicializarConvitePorUrl();
+
+// ============ GERENCIADOR DE ESTADO E INICIALIZAÇÃO ============
+async function inicializarApp() {
+  const elLoading = document.getElementById('screen-loading');
+  if (!sbClient) {
+    if (elLoading) elLoading.classList.add('hidden');
+    document.getElementById('screen-login').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    // 1. PRIMEIRA coisa a fazer no F5: Esperar o Supabase checar o token salvo
+    const { data: { session }, error } = await sbClient.auth.getSession();
+    if (error) throw error;
+
+    if (session && session.user) {
+      // ✅ O usuário já estava logado antes de apertar F5
+      const user = session.user;
+      console.log("Sessão recuperada:", user.email);
+      entrarNoApp({
+        id:    user.id,
+        nome:  user.user_metadata.full_name || user.email,
+        email: user.email,
+        foto:  user.user_metadata.avatar_url || null
+      });
+      if (elLoading) elLoading.classList.add('hidden');
+    } else {
+      // ❌ Ninguém logado de verdade. Agora sim mostramos o Login.
+      usuarioAtual = null;
+      document.getElementById('screen-login').classList.remove('hidden');
+      if (elLoading) elLoading.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error("Erro ao verificar memória da sessão:", err.message);
+    usuarioAtual = null;
+    document.getElementById('screen-login').classList.remove('hidden');
+    if (elLoading) elLoading.classList.add('hidden');
+  }
+
+  // 2. O 'onAuthStateChange' agora fica SÓ DE VIGIA para eventos futuros
+  sbClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      usuarioAtual = null;
+      grupoAtual = null; 
+      todosOsJogos = [];
+      document.getElementById('screen-app').classList.add('hidden');
+      document.getElementById('screen-login').classList.remove('hidden');
+      document.getElementById('lista-jogos').innerHTML = '';
+      document.getElementById('lista-grupos').innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>';
+      switchView_login();
+    } else if (event === 'SIGNED_IN' && session && session.user && !usuarioAtual) {
+       // Usuário acabou de fazer login na interface
+       const user = session.user;
+       entrarNoApp({
+         id:    user.id,
+         nome:  user.user_metadata.full_name || user.email,
+         email: user.email,
+         foto:  user.user_metadata.avatar_url || null
+       });
+       if (elLoading) elLoading.classList.add('hidden');
+    }
+  });
+}
+
+// Dispara a inicialização assim que o HTML terminar de ser lido
+document.addEventListener('DOMContentLoaded', () => {
+  inicializarApp();
+});
+

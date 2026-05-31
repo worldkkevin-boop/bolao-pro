@@ -40,37 +40,6 @@ function getFlagUrl(teamId) {
 // Inicializa o cliente do Supabase
 try {
   sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // Escuta mudanças de sessão — dispara quando o Google redireciona de volta
-  sbClient.auth.onAuthStateChange(function(event, session) {
-    if (session && session.user) {
-      const user = session.user;
-      if (typeof entrarNoApp === 'function') {
-        entrarNoApp({
-          id:    user.id,
-          nome:  user.user_metadata.full_name || user.email,
-          email: user.email,
-          foto:  user.user_metadata.avatar_url || null
-        });
-      }
-    }
-  });
-
-  // Verifica se já tem sessão ativa ao carregar a página
-  sbClient.auth.getSession().then(function(result) {
-    const session = result.data.session;
-    if (session && session.user) {
-      const user = session.user;
-      if (typeof entrarNoApp === 'function') {
-        entrarNoApp({
-          id:    user.id,
-          nome:  user.user_metadata.full_name || user.email,
-          email: user.email,
-          foto:  user.user_metadata.avatar_url || null
-        });
-      }
-    }
-  });
 } catch (e) {
   console.error('Supabase não inicializou:', e);
 }
