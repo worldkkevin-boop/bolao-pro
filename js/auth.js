@@ -396,27 +396,30 @@ function verificarPermissaoPush() {
       banner.classList.remove('hidden');
     } else {
       banner.classList.add('hidden');
+      if (Notification.permission === 'granted') {
+        inicializarNotificacoesPush(true); // Registra silenciosamente no banco
+      }
     }
   } else {
     banner.classList.add('hidden');
   }
 }
 
-async function inicializarNotificacoesPush() {
+async function inicializarNotificacoesPush(silencioso = false) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    showToast('Push não é suportado neste dispositivo.', 'error');
+    if (!silencioso) showToast('Push não é suportado neste dispositivo.', 'error');
     return;
   }
 
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      showToast('Permissão de notificações negada pelo usuário.', 'error');
+      if (!silencioso) showToast('Permissão de notificações negada pelo usuário.', 'error');
       verificarPermissaoPush();
       return;
     }
 
-    showToast("Ativando notificações...", "success");
+    if (!silencioso) showToast("Ativando notificações...", "success");
 
     const reg = await navigator.serviceWorker.ready;
     
@@ -433,23 +436,37 @@ async function inicializarNotificacoesPush() {
     const p256dh = parsedSub.keys.p256dh;
     const auth = parsedSub.keys.auth;
 
-    // Salva no banco push_subscriptions do Supabase
-    const { error } = await sbClient
+    // Evita duplicar no banco se o endpoint já existir para este usuário
+    const { data: existente } = await sbClient
       .from('push_subscriptions')
-      .insert([{
-        user_id: usuarioAtual.id,
-        endpoint: subscription.endpoint,
-        p256dh: p256dh,
-        auth: auth
-      }]);
+      .select('id')
+      .eq('endpoint', subscription.endpoint)
+      .eq('user_id', usuarioAtual.id)
+      .maybeSingle();
 
-    if (error) throw error;
+    if (!existente) {
+      // Salva no banco push_subscriptions do Supabase
+      const { error } = await sbClient
+        .from('push_subscriptions')
+        .insert([{
+          user_id: usuarioAtual.id,
+          endpoint: subscription.endpoint,
+          p256dh: p256dh,
+          auth: auth
+        }]);
 
-    showToast('Notificações ativadas com sucesso! 🔔', 'success');
+      if (error) throw error;
+    }
+
+    if (!silencioso) {
+      showToast('Notificações ativadas com sucesso! 🔔', 'success');
+    }
     verificarPermissaoPush(); // Oculta o banner
   } catch (err) {
     console.error('Erro ao ativar Push:', err);
-    showToast('Erro ao ativar notificações: ' + err.message, 'error');
+    if (!silencioso) {
+      showToast('Erro ao ativar notificações: ' + err.message, 'error');
+    }
   }
 }
 
