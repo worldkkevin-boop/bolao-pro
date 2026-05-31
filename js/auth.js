@@ -421,8 +421,7 @@ async function inicializarNotificacoesPush() {
     const reg = await navigator.serviceWorker.ready;
     
     // NOTA: Esta chave pública VAPID deve ser a mesma configurada nas suas Edge Functions.
-    // Usamos uma chave padrão do ecossistema que você pode alterar ou manter caso o servidor use esta correspondente.
-    const VAPID_PUBLIC_KEY = 'BHzl9Wf2kFzaL9z_uA_2d5X_n4r1Z2X_aL9z_uA_2d5X_n4r1Z2X_aL9z_uA_2d5X_n4r1Z2X_';
+    const VAPID_PUBLIC_KEY = 'BFCw-pZSKdzpQ8q96ckZh_zQiKEebh1agLg6S0xVni0SNpi6P18Z27w57EmmU8Nauxu8r0Q6fxY0_H_FkvvcmUI';
     const convertedVapidKey = urlB64ToUint8Array(VAPID_PUBLIC_KEY);
 
     const subscription = await reg.pushManager.subscribe({
