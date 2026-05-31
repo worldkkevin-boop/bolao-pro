@@ -905,6 +905,12 @@ async function carregarParticipantesGrupo() {
       return;
     }
 
+    const countTitleEl = document.getElementById('contador-participantes-titulo');
+    if (countTitleEl) {
+      const activeCount = members.filter(m => m.role !== 'pending').length;
+      countTitleEl.innerText = `(${activeCount})`;
+    }
+
     const userIds = members.map(m => m.user_id);
 
     // 2. Busca os perfis

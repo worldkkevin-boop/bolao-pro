@@ -572,10 +572,18 @@
         <span id="painel-badge-admin" class="border border-brand-green/50 text-brand-green text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10 hidden">Admin</span>
       </div>
 
-      <!-- Lista de Participantes (Galera) -->
-      <h3 class="font-bold mt-6 mb-3 text-sm text-text-muted uppercase tracking-wider">Membros do Bolão</h3>
-      <div id="lista-participantes-grupo" class="space-y-3">
-        <!-- Renderizado dinamicamente -->
+      <!-- Lista de Participantes (Galera) Colapsável -->
+      <div class="mb-5 mt-6">
+        <button onclick="toggleMenuParticipantes()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
+          <span class="flex items-center gap-2">👥 Membros do Bolão <span id="contador-participantes-titulo" class="text-text-muted font-normal text-[10px] ml-1"></span></span>
+          <span id="seta-menu-participantes" class="text-[10px] transition-transform duration-200">▼</span>
+        </button>
+
+        <div id="menu-participantes-custom" class="hidden mt-3 space-y-3 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800/80 transition-all">
+          <div id="lista-participantes-grupo" class="space-y-3">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
       </div>
 
 
@@ -1175,13 +1183,13 @@
 
   </div>
 
-  <script src="js/config.js?v=14"></script>
-  <script src="js/auth.js?v=14"></script>
-  <script src="js/api.js?v=14"></script>
-  <script src="js/groups.js?v=14"></script>
-  <script src="js/ui.js?v=14"></script>
-  <script src="js/gm.js?v=14"></script>
-  <script src="js/aovivo.js?v=14"></script>
+  <script src="js/config.js?v=15"></script>
+  <script src="js/auth.js?v=15"></script>
+  <script src="js/api.js?v=15"></script>
+  <script src="js/groups.js?v=15"></script>
+  <script src="js/ui.js?v=15"></script>
+  <script src="js/gm.js?v=15"></script>
+  <script src="js/aovivo.js?v=15"></script>
 
   <!-- Registro do Service Worker -->
   <script>
