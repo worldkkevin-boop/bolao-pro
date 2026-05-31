@@ -214,11 +214,15 @@ async function entrarPorCodigoApp() {
 }
 
 function atualizarDestaquesHomeGrupo() {
-  // Atualiza status do banner da TV Ao Vivo
-  const statusAoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
-  const temJogoAoVivo = todosOsJogos.length > 0 && todosOsJogos.some(j => statusAoVivo.includes(j.fixture.status.short));
-  if (typeof atualizarStatusBannerTV === 'function') {
-    atualizarStatusBannerTV(temJogoAoVivo);
+  // Atualiza status do banner da TV Ao Vivo de forma segura
+  try {
+    const statusAoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+    const temJogoAoVivo = todosOsJogos && todosOsJogos.length > 0 && todosOsJogos.some(j => j && j.fixture && j.fixture.status && statusAoVivo.includes(j.fixture.status.short));
+    if (typeof atualizarStatusBannerTV === 'function') {
+      atualizarStatusBannerTV(temJogoAoVivo);
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar banner da TV:", err);
   }
 
   if (todosOsJogos.length === 0) return;
