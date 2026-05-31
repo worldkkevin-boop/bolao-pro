@@ -1004,121 +1004,144 @@ function fecharTesouraria() {
   modal.classList.remove('flex');
 }
 
-// 2. Busca no Supabase se tem grana rolando
+// Variável global para guardar os potes carregados e evitar chamar o banco à toa
+let potesTesourariaAtivos = []; 
+
 async function carregarDadosTesouraria() {
   const container = document.getElementById('tesouraria-content');
-  container.innerHTML = '<p class="text-center text-gray-400 py-4 animate-pulse">Abrindo o cofre...</p>';
+  container.innerHTML = '<p class="text-center text-gray-400 py-4 animate-pulse">Abrindo os cofres...</p>';
 
-  // Procura um pote "aberto" neste grupo
-  const { data: poteAberto, error } = await sbClient
+  // 1. Busca todos os potes abertos
+  const { data: potes, error } = await sbClient
     .from('potes')
     .select('*')
     .eq('group_id', grupoAtual.id)
     .eq('status', 'aberto')
-    .maybeSingle();
+    .order('created_at', { ascending: false });
 
-  // SE NÃO TEM POTE, MOSTRA A TELA DE CRIAÇÃO
-  if (!poteAberto) {
-    container.innerHTML = `
-      <div class="space-y-4">
-        <p class="text-sm text-gray-300 text-center mb-4">Nenhuma premiação ativa. Crie o Pote da rodada para a galera apostar!</p>
-        
-        <div>
-          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Nome da Disputa</label>
-          <input type="text" id="novo-pote-nome" placeholder="Ex: Rodada 17 ou Fim de Semana" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
-        </div>
-        
-        <div>
-          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Valor da Entrada (R$)</label>
-          <input type="number" id="novo-pote-valor" placeholder="Ex: 10.00" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
-        </div>
-        
-        <div>
-          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Sua Chave PIX (Onde o dinheiro vai cair)</label>
-          <input type="text" id="novo-pote-pix" placeholder="CPF, Telefone ou E-mail" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
-        </div>
-        
-        <button onclick="lancarPote()" class="w-full mt-2 bg-brand-green hover:bg-green-500 text-black font-black py-3 rounded-xl uppercase tracking-wide transition-all active:scale-95 shadow-[0_0_15px_rgba(0,255,100,0.4)]">
-          🚀 Lançar Pote Oficial
-        </button>
-      </div>
+  potesTesourariaAtivos = potes || [];
+
+  // 2. Interface Base (Sempre mostra o botão de criar um novo)
+  let htmlBase = `
+    <div class="flex justify-between items-center mb-4 pb-4 border-b border-white/5">
+      <h3 class="text-white font-bold text-sm">Suas Disputas Ativas</h3>
+      <button onclick="mostrarFormularioNovoPote()" class="bg-brand-green/20 text-brand-green border border-brand-green hover:bg-brand-green text-black px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1">
+        <span>➕</span> Novo Pote
+      </button>
+    </div>
+  `;
+
+  // Onde o formulário de criação vai aparecer quando clicar no botão acima
+  htmlBase += `<div id="tesouraria-novo-pote-area" class="hidden mb-6 p-4 bg-black/50 border border-brand-green/30 rounded-xl"></div>`;
+
+  if (potesTesourariaAtivos.length === 0) {
+    htmlBase += `<p class="text-sm text-gray-400 text-center py-6">Nenhum pote ativo. Crie um novo para arrecadar!</p>`;
+    container.innerHTML = htmlBase;
+  } else {
+    // 3. Monta o Seletor de Potes (Dropdown)
+    let seletorHTML = `
+      <div class="mb-5">
+        <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Selecione o Pote para Gerenciar</label>
+        <select id="seletor-potes-gm" onchange="trocarPoteGerenciado()" class="w-full bg-black/80 border border-yellow-500/40 rounded-xl p-3 text-white focus:border-yellow-500 outline-none appearance-none font-bold">
     `;
-  } 
-  // SE JÁ TEM POTE, MOSTRA O PAINEL DE CONTROLE
-  else {
-    // Busca todo mundo que tentou entrar nesse Pote e faz um 'join' com a tabela de profiles para pegar os nomes e fotos
-    const { data: participantes, error: partError } = await sbClient
-      .from('potes_participantes')
-      .select('*, user_id (id, full_name, avatar_url)')
-      .eq('pote_id', poteAberto.id);
-
-    let listaParticipantesHTML = '';
-    let totalArrecadado = 0;
-
-    if (!participantes || participantes.length === 0) {
-      listaParticipantesHTML = '<p class="text-[11px] text-gray-500 text-center py-4">Ninguém entrou no pote ainda.</p>';
-    } else {
-      participantes.forEach(part => {
-        const nomeUser = part.user_id ? (part.user_id.full_name || 'Jogador Misterioso') : 'Jogador Misterioso';
-        const avatarUrl = part.user_id ? part.user_id.avatar_url : null;
-        const isPago = part.status_pagamento === 'pago';
-        
-        if (isPago) totalArrecadado += parseFloat(poteAberto.valor_entrada);
-
-        listaParticipantesHTML += `
-          <div class="flex items-center justify-between p-2 bg-black/40 border border-white/5 rounded-lg mb-2 ${isPago ? 'border-brand-green/30' : 'border-orange-500/30'}">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs overflow-hidden">
-                ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover">` : '⚽'}
-              </div>
-              <div>
-                <p class="text-white text-xs font-bold">${nomeUser}</p>
-                <p class="text-[9px] uppercase tracking-widest ${isPago ? 'text-brand-green' : 'text-orange-500'}">
-                  ${isPago ? '✅ PAGO' : '⏳ PENDENTE'}
-                </p>
-              </div>
-            </div>
-            
-            ${!isPago ? `
-              <button onclick="aprovarPagamentoPote('${part.id}')" class="bg-brand-green/20 text-brand-green border border-brand-green hover:bg-brand-green text-black px-3 py-1 rounded text-[10px] font-black uppercase transition-all">
-                Aprovar
-              </button>
-            ` : `
-              <button onclick="desfazerPagamentoPote('${part.id}')" class="text-gray-500 hover:text-red-500 text-xs px-2" title="Desfazer">
-                ✖
-              </button>
-            `}
-          </div>
-        `;
-      });
-    }
-
-    container.innerHTML = `
-      <!-- Cabeçalho do Pote -->
-      <div class="text-center mb-4 bg-black/30 p-4 rounded-xl border border-brand-green/20 relative overflow-hidden">
-        <div class="absolute -right-4 -top-4 text-6xl opacity-10 blur-[1px]">💰</div>
-        <h3 class="text-white font-black text-xl uppercase tracking-widest relative z-10">${poteAberto.nome}</h3>
-        <p class="text-brand-green font-bold text-sm mt-1 relative z-10">Arrecadado: R$ ${totalArrecadado.toFixed(2)}</p>
-      </div>
-      
-      <!-- Lista de Pagamentos -->
-      <div class="mt-4">
-        <div class="flex justify-between items-center mb-3">
-          <h4 class="text-white font-bold text-sm">Controle de PIX</h4>
-          <span class="text-[10px] bg-white/10 text-gray-300 px-2 py-0.5 rounded">${participantes ? participantes.length : 0} inscritos</span>
-        </div>
-        
-        <div class="max-h-60 overflow-y-auto pr-1 space-y-1">
-          ${listaParticipantesHTML}
-        </div>
-
-        <!-- Botão Perigoso (Encerrar a Rodada) -->
-        <button onclick="encerrarPoteAtual('${poteAberto.id}')" class="w-full mt-6 bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all">
-          ⚠️ Encerrar Pote (Não aceitar mais)
-        </button>
-      </div>
-    `;
+    
+    potesTesourariaAtivos.forEach(p => {
+      seletorHTML += `<option value="${p.id}">${p.nome} - Entrada: R$ ${parseFloat(p.valor_entrada).toFixed(2)}</option>`;
+    });
+    
+    seletorHTML += `</select></div>`;
+    
+    // Div onde a lista de quem pagou vai ser desenhada
+    seletorHTML += `<div id="tesouraria-lista-participantes"></div>`;
+    
+    container.innerHTML = htmlBase + seletorHTML;
+    
+    // Força carregar a lista do primeiro pote do dropdown
+    trocarPoteGerenciado(); 
   }
+}
+
+// Quando o GM troca o Dropdown
+async function trocarPoteGerenciado() {
+  const select = document.getElementById('seletor-potes-gm');
+  if(!select) return;
+  const poteId = select.value;
+  const poteSelecionado = potesTesourariaAtivos.find(p => p.id === poteId);
+  
+  const containerLista = document.getElementById('tesouraria-lista-participantes');
+  containerLista.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Buscando PIXs...</p>';
+
+  // Reutiliza a lógica antiga que já criamos para listar os participantes
+  const { data: participantes } = await sbClient
+    .from('potes_participantes')
+    .select('*, user_id (id, full_name, avatar_url)')
+    .eq('pote_id', poteId);
+
+  let listaHTML = '';
+  let arrecadado = 0;
+
+  if (!participantes || participantes.length === 0) {
+    listaHTML = '<p class="text-[11px] text-gray-500 text-center py-4 bg-black/30 rounded-lg border border-white/5">Ninguém entrou nesta disputa ainda.</p>';
+  } else {
+    participantes.forEach(part => {
+      const isPago = part.status_pagamento === 'pago';
+      if (isPago) arrecadado += parseFloat(poteSelecionado.valor_entrada);
+
+      listaHTML += `
+        <div class="flex items-center justify-between p-2 bg-black/40 border border-white/5 rounded-lg mb-2 ${isPago ? 'border-brand-green/30' : 'border-orange-500/30'}">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gray-800 rounded-full overflow-hidden">
+               ${part.user_id && part.user_id.avatar_url ? `<img src="${part.user_id.avatar_url}" class="w-full h-full object-cover">` : '<span class="flex items-center justify-center w-full h-full text-xs">⚽</span>'}
+            </div>
+            <div>
+              <p class="text-white text-xs font-bold">${(part.user_id && part.user_id.full_name) || 'Jogador Misterioso'}</p>
+              <p class="text-[9px] uppercase tracking-widest ${isPago ? 'text-brand-green' : 'text-orange-500'}">
+                ${isPago ? '✅ PAGO' : '⏳ PENDENTE'}
+              </p>
+            </div>
+          </div>
+          ${!isPago ? 
+            `<button onclick="aprovarPagamentoPote('${part.id}')" class="bg-brand-green/20 text-brand-green hover:bg-brand-green text-black border border-brand-green px-3 py-1 rounded text-[10px] font-black uppercase transition-all">Aprovar</button>` : 
+            `<button onclick="desfazerPagamentoPote('${part.id}')" class="text-gray-500 hover:text-red-500 text-xs px-2">✖</button>`
+          }
+        </div>
+      `;
+    });
+  }
+
+  containerLista.innerHTML = `
+    <div class="flex justify-between items-end mb-3 mt-2 px-1">
+      <span class="text-xs text-gray-400">Total Arrecadado:</span>
+      <span class="text-brand-green font-black text-lg">R$ ${arrecadado.toFixed(2)}</span>
+    </div>
+    <div class="max-h-56 overflow-y-auto pr-1 space-y-1 mb-4 hide-scrollbar">
+      ${listaHTML}
+    </div>
+    <button onclick="encerrarPoteAtual('${poteSelecionado.id}')" class="w-full bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all">
+      ⚠️ Encerrar Este Pote
+    </button>
+  `;
+}
+
+// Mostra o formulário de criar pote na mesma tela
+function mostrarFormularioNovoPote() {
+  const div = document.getElementById('tesouraria-novo-pote-area');
+  if(!div) return;
+  div.classList.remove('hidden');
+  // Reutiliza o formulário que tínhamos antes
+  div.innerHTML = `
+    <p class="text-xs text-white font-bold mb-3 border-b border-white/10 pb-2">Lançar Nova Disputa</p>
+    <div class="space-y-3">
+      <input type="text" id="novo-pote-nome" placeholder="Nome (Ex: Pote Geral)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      <input type="number" id="novo-pote-valor" placeholder="Valor da Entrada (R$)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      <input type="text" id="novo-pote-pix" placeholder="Sua Chave PIX" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      <div class="flex gap-2 pt-1">
+        <button onclick="document.getElementById('tesouraria-novo-pote-area').classList.add('hidden')" class="w-1/3 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-lg text-[10px] uppercase transition-all">Cancelar</button>
+        <button onclick="lancarPote()" class="w-2/3 bg-brand-green hover:bg-green-500 text-black font-black py-2.5 rounded-lg text-[10px] uppercase transition-all shadow-[0_0_15px_rgba(0,255,100,0.4)]">Lançar Pote</button>
+      </div>
+    </div>
+  `;
+}
 }
 
 // 3. Salva o Pote no Banco de Dados
@@ -1202,6 +1225,8 @@ async function encerrarPoteAtual(poteId) {
   }
 }
 
+// ==================== O CARROSSEL DE POTES (TELA DOS JOGADORES) ====================
+
 async function carregarPoteBanner() {
   const container = document.getElementById('pote-banner-container');
   if (!container) return;
@@ -1209,69 +1234,77 @@ async function carregarPoteBanner() {
 
   if (!grupoAtual || !usuarioAtual) return;
 
-  // 1. Busca se tem algum Pote "Aberto" rolando neste grupo
-  const { data: pote, error: erroPote } = await sbClient
+  // 1. Busca TODOS os potes abertos do grupo
+  const { data: potes, error: erroPotes } = await sbClient
     .from('potes')
     .select('*')
     .eq('group_id', grupoAtual.id)
-    .eq('status', 'aberto')
-    .maybeSingle();
+    .eq('status', 'aberto');
 
-  // Se não tem pote ou deu erro, sai silenciosamente
-  if (erroPote || !pote) return; 
+  if (erroPotes || !potes || potes.length === 0) {
+    return;
+  }
 
-  // 2. Conta quem já pagou para calcular o montante do prêmio!
+  // 2. Busca os participantes de TODOS esses potes de uma vez só (Otimização de Banco)
+  const potesIds = potes.map(p => p.id);
   const { data: participantes, error: erroPart } = await sbClient
     .from('potes_participantes')
     .select('*')
-    .eq('pote_id', pote.id);
+    .in('pote_id', potesIds);
 
-  // Calcula quanto dinheiro já tem no pote (Só conta os 'pago')
-  const qtdPagantes = participantes ? participantes.filter(p => p.status_pagamento === 'pago').length : 0;
-  const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
+  // 3. Monta o Carrossel Deslizante
+  let carrosselHTML = `
+    <div id="potes-carousel-container" class="my-4">
+      <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 hide-scrollbar" style="scrollbar-width: none;">
+  `;
 
-  // 3. Descobre o que mostrar pro usuário que está olhando a tela
-  const meuStatus = participantes ? participantes.find(p => p.user_id === usuarioAtual.id) : null;
-  let botaoHTML = '';
+  potes.forEach(pote => {
+    // Filtra só a galera desse pote específico
+    const partsPote = participantes ? participantes.filter(p => p.pote_id === pote.id) : [];
+    
+    const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
+    const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
+    const meuStatus = partsPote.find(p => p.user_id === usuarioAtual.id);
 
-  if (!meuStatus) {
-    // Não entrou ainda: Botão Dourado pra comprar
-    botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-black py-3 rounded-xl text-sm uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(234,179,8,0.4)] active:scale-95 animate-pulse">
-      🔥 Entrar na Disputa (R$ ${parseFloat(pote.valor_entrada).toFixed(2)})
-    </button>`;
-  } else if (meuStatus.status_pagamento === 'pendente') {
-    // Entrou, mas o GM não aprovou ou ele não pagou: Mostra botão laranja
-    botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 border border-orange-500 text-orange-500 font-black py-3 rounded-xl text-xs uppercase tracking-widest active:scale-95">
-      ⏳ PIX Pendente (Ver Chave)
-    </button>`;
-  } else {
-    // Já tá pago, só alegria
-    botaoHTML = `<div class="w-full bg-brand-green/10 border border-brand-green/30 text-brand-green font-black py-3 rounded-xl text-xs uppercase tracking-widest text-center">
-      ✅ Pagamento Confirmado! Sorte!
-    </div>`;
-  }
+    let botaoHTML = '';
+    if (!meuStatus) {
+      botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-400 text-black font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(234,179,8,0.3)] active:scale-95">
+        🔥 Entrar (R$ ${parseFloat(pote.valor_entrada).toFixed(2)})
+      </button>`;
+    } else if (meuStatus.status_pagamento === 'pendente') {
+      botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 border border-orange-500 text-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase tracking-widest active:scale-95">
+        ⏳ PIX Pendente (Ver Chave)
+      </button>`;
+    } else {
+      botaoHTML = `<div class="w-full bg-brand-green/10 border border-brand-green/30 text-brand-green font-black py-2.5 rounded-xl text-[10px] uppercase tracking-widest text-center">
+        ✅ PIX Confirmado!
+      </div>`;
+    }
 
-  // 4. Desenha o Espetáculo na Tela
-  const bannerHTML = `
-    <div id="pote-banner-disputa" class="my-4 bg-gradient-to-br from-yellow-900/40 to-black border border-yellow-500/40 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_30px_rgba(234,179,8,0.1)]">
-      <!-- Fundo de Efeito -->
-      <div class="absolute -right-6 -top-6 text-8xl opacity-10 blur-[2px]">💰</div>
-      
-      <div class="relative z-10 flex flex-col items-center text-center">
-        <span class="text-yellow-500 text-[10px] font-black tracking-widest uppercase bg-yellow-500/10 px-2 py-1 rounded-md mb-2 border border-yellow-500/20">
-          🏆 Prêmio Acumulado
-        </span>
-        <h2 class="text-4xl font-black text-white mb-1 tracking-tight" style="text-shadow: 0 0 15px rgba(234,179,8,0.5);">
-          R$ ${valorAcumulado.toFixed(2)}
-        </h2>
-        <p class="text-xs text-gray-400 mb-5">${pote.nome}</p>
-        
-        ${botaoHTML}
+    // Monta o Card do Pote (Snap Center pra centralizar bonitinho na tela do celular)
+    carrosselHTML += `
+      <div class="min-w-[85%] sm:min-w-[300px] snap-center bg-gradient-to-br from-yellow-900/40 to-black border border-yellow-500/40 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_30px_rgba(234,179,8,0.1)] flex-shrink-0">
+        <div class="absolute -right-6 -top-6 text-7xl opacity-10 blur-[2px]">💰</div>
+        <div class="relative z-10 flex flex-col items-center text-center">
+          <span class="text-yellow-500 text-[9px] font-black tracking-widest uppercase bg-yellow-500/10 px-2 py-1 rounded-md mb-2 border border-yellow-500/20">
+            🏆 ${pote.nome}
+          </span>
+          <h2 class="text-3xl font-black text-white mb-4 tracking-tight" style="text-shadow: 0 0 15px rgba(234,179,8,0.5);">
+            R$ ${valorAcumulado.toFixed(2)}
+          </h2>
+          ${botaoHTML}
+        </div>
       </div>
+    `;
+  });
+
+  carrosselHTML += `
+      </div>
+      <p class="text-[9px] text-center text-gray-500 uppercase tracking-widest mt-1">Deslize para ver mais disputas ↔</p>
     </div>
   `;
 
-  container.innerHTML = bannerHTML;
+  container.innerHTML = carrosselHTML;
 }
 
 async function entrarNoPote(poteId, chavePixGm, valor) {
