@@ -205,7 +205,7 @@ async function entrarPorCodigoApp() {
     }
 
     // 2. Descobre qual é o limite do grupo atual
-    const limiteAtual = grupo.limite_membros || 3; 
+    const limiteAtual = grupo.max_participants || 3; 
 
     // 3. A TRAVA! Se estiver lotado, barra a entrada.
     if (totalMembros >= limiteAtual) {
