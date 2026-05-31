@@ -166,6 +166,33 @@ function switchView(targetViewId) {
       }
     }
 
+    if (grupoAtual) {
+      // Carrega lista de participantes para atualizar contagem e listagem
+      if (typeof carregarParticipantesGrupo === 'function') {
+        carregarParticipantesGrupo(grupoAtual.id);
+      }
+      
+      // Atualiza limite e badge do plano
+      const configLimite = document.getElementById('config-gm-limite');
+      const badgeStatus = document.getElementById('badge-status-plano');
+      if (configLimite && badgeStatus) {
+        const maxP = grupoAtual.max_participants;
+        if (maxP === null || maxP === undefined || maxP >= 999) {
+          configLimite.innerText = 'Ilimitado';
+          badgeStatus.className = 'w-full bg-brand-green/10 border border-brand-green/30 text-brand-green text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2 mt-4';
+          badgeStatus.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Voucher ativo · limite ampliado`;
+        } else if (maxP <= 3) {
+          configLimite.innerText = maxP;
+          badgeStatus.className = 'w-full bg-zinc-800/60 border border-zinc-700 text-gray-400 text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2 mt-4';
+          badgeStatus.innerHTML = `Plano Gratuito (Limite de ${maxP} pessoas)`;
+        } else {
+          configLimite.innerText = maxP;
+          badgeStatus.className = 'w-full bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2 mt-4';
+          badgeStatus.innerHTML = `Plano Premium (Limite de ${maxP} pessoas)`;
+        }
+      }
+    }
+
     if (adminSettings) {
       if (isOwner) {
         adminSettings.classList.remove('hidden');
@@ -3135,5 +3162,39 @@ function toggleMenuParticipantes() {
       seta.style.transform = 'rotate(0deg)';
       seta.innerText = '▼';
     }
+  }
+}
+
+// ==================== CONTROLE DAS NOVAS ABAS ====================
+
+function abrirPerguntasBonus() {
+  const modal = document.getElementById('modal-perguntas-bonus');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function fecharPerguntasBonus() {
+  const modal = document.getElementById('modal-perguntas-bonus');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function abrirHistoricoPontos() {
+  const modal = document.getElementById('modal-historico-pontos');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function fecharHistoricoPontos() {
+  const modal = document.getElementById('modal-historico-pontos');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
