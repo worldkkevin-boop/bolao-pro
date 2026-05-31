@@ -3278,16 +3278,16 @@ function abrirEditorRegras() {
   
   const modal = document.getElementById('modal-regras-pontuacao');
   if (modal) {
-    // Carrega dados da memória
-    document.getElementById('regra-pt-placar-exato').value = grupoAtual.pt_placar_exato !== undefined ? grupoAtual.pt_placar_exato : 30;
-    document.getElementById('regra-pt-vencedor-gols').value = grupoAtual.pt_vencedor_gols_time !== undefined ? grupoAtual.pt_vencedor_gols_time : 18;
-    document.getElementById('regra-pt-empate').value = grupoAtual.pt_empate_nao_exato !== undefined ? grupoAtual.pt_empate_nao_exato : 18;
-    document.getElementById('regra-pt-saldo').value = grupoAtual.pt_vencedor_saldo !== undefined ? grupoAtual.pt_vencedor_saldo : 15;
+    // Carrega dados da memória (trata undefined e null)
+    document.getElementById('regra-pt-placar-exato').value = (grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? grupoAtual.pt_placar_exato : 30;
+    document.getElementById('regra-pt-vencedor-gols').value = (grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? grupoAtual.pt_vencedor_gols_time : 18;
+    document.getElementById('regra-pt-empate').value = (grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? grupoAtual.pt_empate_nao_exato : 18;
+    document.getElementById('regra-pt-saldo').value = (grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? grupoAtual.pt_vencedor_saldo : 15;
     
     // Toggles
     const toggleConsolacao = document.getElementById('toggle-consolacao');
     if (toggleConsolacao) {
-      toggleConsolacao.checked = (grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time > 0);
+      toggleConsolacao.checked = (grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null && grupoAtual.pt_gols_um_time > 0);
     }
     
     modal.classList.remove('hidden');
@@ -3315,8 +3315,8 @@ async function salvarRegrasPontuacao() {
   const pt_gols_um_time = (toggleConsolacao && toggleConsolacao.checked) ? 3 : 0;
   
   // Mantém outros pesos padrão para não zerar as outras regras no banco
-  const pt_vencedor_gols_perdedor = grupoAtual.pt_vencedor_gols_perdedor !== undefined ? grupoAtual.pt_vencedor_gols_perdedor : 12;
-  const pt_apenas_vencedor = grupoAtual.pt_apenas_vencedor !== undefined ? grupoAtual.pt_apenas_vencedor : 4;
+  const pt_vencedor_gols_perdedor = (grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? grupoAtual.pt_vencedor_gols_perdedor : 12;
+  const pt_apenas_vencedor = (grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? grupoAtual.pt_apenas_vencedor : 4;
   
   showToast("Salvando regras...", "info");
   
