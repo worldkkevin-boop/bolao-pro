@@ -1071,30 +1071,41 @@ async function trocarPoteGerenciado() {
   const containerLista = document.getElementById('tesouraria-lista-participantes');
   containerLista.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Buscando PIXs...</p>';
 
-  // Reutiliza a lógica antiga que já criamos para listar os participantes
-  const { data: participantes } = await sbClient
+  // 1. Busca os participantes deste pote
+  const { data: participantes, error: erroPart } = await sbClient
     .from('potes_participantes')
-    .select('*, user_id (id, full_name, avatar_url)')
+    .select('*')
     .eq('pote_id', poteId);
 
   let listaHTML = '';
   let arrecadado = 0;
 
-  if (!participantes || participantes.length === 0) {
+  if (erroPart || !participantes || participantes.length === 0) {
     listaHTML = '<p class="text-[11px] text-gray-500 text-center py-4 bg-black/30 rounded-lg border border-white/5">Ninguém entrou nesta disputa ainda.</p>';
   } else {
+    // 2. Busca os perfis deles
+    const userIds = participantes.map(p => p.user_id);
+    const { data: profiles } = await sbClient
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds);
+
     participantes.forEach(part => {
+      const p = profiles ? profiles.find(prof => prof.id === part.user_id) : null;
+      const nomeUser = p ? (p.full_name || 'Jogador Misterioso') : 'Jogador Misterioso';
+      const avatarUrl = p ? p.avatar_url : null;
       const isPago = part.status_pagamento === 'pago';
+      
       if (isPago) arrecadado += parseFloat(poteSelecionado.valor_entrada);
 
       listaHTML += `
         <div class="flex items-center justify-between p-2 bg-black/40 border border-white/5 rounded-lg mb-2 ${isPago ? 'border-brand-green/30' : 'border-orange-500/30'}">
           <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-gray-800 rounded-full overflow-hidden">
-               ${part.user_id && part.user_id.avatar_url ? `<img src="${part.user_id.avatar_url}" class="w-full h-full object-cover">` : '<span class="flex items-center justify-center w-full h-full text-xs">⚽</span>'}
+            <div class="w-8 h-8 bg-gray-800 rounded-full overflow-hidden flex items-center justify-center text-xs">
+               ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover">` : '⚽'}
             </div>
             <div>
-              <p class="text-white text-xs font-bold">${(part.user_id && part.user_id.full_name) || 'Jogador Misterioso'}</p>
+              <p class="text-white text-xs font-bold">${nomeUser}</p>
               <p class="text-[9px] uppercase tracking-widest ${isPago ? 'text-brand-green' : 'text-orange-500'}">
                 ${isPago ? '✅ PAGO' : '⏳ PENDENTE'}
               </p>
@@ -1220,13 +1231,13 @@ async function desfazerPagamentoPote(participanteId) {
 
 async function encerrarPoteAtual(poteId) {
   // Busca apenas a galera que pagou (status_pagamento = 'pago') para listar
-  const { data: pagantes } = await sbClient
+  const { data: pagantes, error: erroPag } = await sbClient
     .from('potes_participantes')
-    .select('*, user_id (id, full_name)')
+    .select('*')
     .eq('pote_id', poteId)
     .eq('status_pagamento', 'pago');
 
-  if (!pagantes || pagantes.length === 0) {
+  if (erroPag || !pagantes || pagantes.length === 0) {
     if(confirm("Ninguém pagou este pote. Deseja encerrar sem vencedor?")) {
       await sbClient.from('potes').update({ status: 'encerrado' }).eq('id', poteId);
       fecharTesouraria();
@@ -1235,10 +1246,18 @@ async function encerrarPoteAtual(poteId) {
     return;
   }
 
+  // Busca os perfis de quem pagou
+  const userIds = pagantes.map(p => p.user_id);
+  const { data: profiles } = await sbClient
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', userIds);
+
   // Monta as opções com os nomes dos jogadores
   let opçõesHTML = pagantes.map(p => {
-    const nome = p.user_id ? (p.user_id.full_name || 'Jogador') : 'Jogador';
-    const id = p.user_id ? p.user_id.id : '';
+    const prof = profiles ? profiles.find(pr => pr.id === p.user_id) : null;
+    const nome = prof ? (prof.full_name || 'Jogador') : 'Jogador';
+    const id = p.user_id;
     return `<option value="${id}">⚽ ${nome}</option>`;
   }).join('');
   
