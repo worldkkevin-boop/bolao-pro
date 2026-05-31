@@ -119,6 +119,9 @@
           <button @click="abaAtiva = 'usuarios'; carregarUsuarios()" :class="abaAtiva === 'usuarios' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
             <span>👤</span> Gerenciar Usuários
           </button>
+          <button @click="abaAtiva = 'ferramentas'; carregarGrupos()" :class="abaAtiva === 'ferramentas' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span>🔄</span> Migrar Jogadores
+          </button>
           <div class="h-px bg-zinc-800 my-3"></div>
           <button @click="abaAtiva = 'desafios'; carregarDesafiosGM()" :class="abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? 'bg-amber-600/20 text-amber-300 font-bold border border-amber-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
             <span>⚡</span> Desafios do Mago
@@ -428,7 +431,7 @@
           </div>
 
           <!-- Info cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-4">
               <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Código de Convite</span>
               <span class="text-sm font-mono font-black text-purple-400" x-text="grupoSelecionado ? grupoSelecionado.invite_code : ''"></span>
@@ -438,8 +441,12 @@
               <span class="text-sm font-bold text-white" x-text="grupoSelecionado ? (grupoSelecionado.league_id === 71 ? 'Brasileirão Série A' : (grupoSelecionado.league_id === 13 ? 'Libertadores' : 'Copa do Mundo')) : ''"></span>
             </div>
             <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-4">
-              <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Total de Membros</span>
+              <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Membros Atuais</span>
               <span class="text-sm font-black text-white" x-text="grupoSelecionado ? (grupoSelecionado._membros || '0') : '0'"></span>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-4">
+              <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Limite de Vagas</span>
+              <input type="number" :value="grupoSelecionado ? grupoSelecionado.max_participants || 3 : 3" @change="atualizarLimiteGrupoManual(grupoSelecionado.id, $event.target.value)" class="bg-zinc-950 border border-zinc-800 rounded-lg w-full text-center text-xs text-white py-1 font-black mt-1 focus:border-purple-500 outline-none">
             </div>
             <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-4">
               <span class="text-[10px] uppercase text-zinc-500 font-bold block mb-0.5">Criado em</span>
@@ -527,13 +534,14 @@
                   <th class="py-3 px-4">E-mail</th>
                   <th class="py-3 px-4 text-center">Grupos</th>
                   <th class="py-3 px-4 text-center">Palpites</th>
+                  <th class="py-3 px-4 text-center">Limite Grupos</th>
                   <th class="py-3 px-4">Registrado em</th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="usuariosFiltrados().length === 0">
                   <tr>
-                    <td colspan="5" class="py-12 text-center text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
+                    <td colspan="6" class="py-12 text-center text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
                       Nenhum usuário encontrado.
                     </td>
                   </tr>
@@ -554,6 +562,9 @@
                     <td class="py-3 px-4 text-center">
                       <span class="text-white font-black" x-text="u._palpitesCount || 0"></span>
                     </td>
+                    <td class="py-3 px-4 text-center">
+                      <input type="number" :value="u.max_grupos || 1" @change="atualizarLimiteUsuarioManual(u.id, $event.target.value)" class="bg-zinc-950 border border-zinc-800 rounded-lg w-16 text-center text-[11px] text-white py-1 font-black focus:border-purple-500 outline-none">
+                    </td>
                     <td class="py-3 px-4 text-zinc-500 text-[10px]" x-text="new Date(u.created_at).toLocaleDateString('pt-BR') + ' ' + new Date(u.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })"></td>
                   </tr>
                 </template>
@@ -564,6 +575,50 @@
           <!-- Resumo -->
           <div class="text-[10px] text-zinc-500 font-medium">
             Total de registros: <strong class="text-zinc-300" x-text="usuariosFiltrados().length"></strong>
+          </div>
+        </div>
+
+        <!-- ABA: FERRAMENTAS / MIGRAÇÃO -->
+        <div x-show="abaAtiva === 'ferramentas'" class="space-y-6" x-cloak>
+          <div>
+            <h2 class="text-lg font-black text-white">Migração de Jogadores</h2>
+            <p class="text-[10px] text-zinc-500 font-medium">Copie ou mova jogadores de um bolão para outro em lote.</p>
+          </div>
+
+          <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="text-[10px] uppercase text-zinc-500 font-bold block mb-1.5">Grupo de Origem (Copiar de onde?)</label>
+                <select x-model="grupoOrigemId" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-purple-500 outline-none">
+                  <option value="">Selecione o grupo de origem</option>
+                  <template x-for="g in gruposLista" :key="g.id">
+                    <option :value="g.id" x-text="g.name + ' (#' + g.invite_code + ')'"></option>
+                  </template>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[10px] uppercase text-zinc-500 font-bold block mb-1.5">Grupo de Destino (Colocar em onde?)</label>
+                <select x-model="grupoDestinoId" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-purple-500 outline-none">
+                  <option value="">Selecione o grupo de destino</option>
+                  <template x-for="g in gruposLista" :key="g.id">
+                    <option :value="g.id" x-text="g.name + ' (#' + g.invite_code + ')'"></option>
+                  </template>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 py-2">
+              <input type="checkbox" x-model="deletarOrigem" id="check-deletar-origem" class="bg-zinc-950 border border-zinc-800 rounded text-purple-600 focus:ring-purple-500">
+              <label for="check-deletar-origem" class="text-xs text-zinc-300 cursor-pointer">Deletar da Origem após copiar (Mover jogadores)</label>
+            </div>
+
+            <button @click="migrarJogadores(grupoOrigemId, grupoDestinoId, deletarOrigem)" :disabled="migracaoLoading" class="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2">
+              <template x-if="migracaoLoading">
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              </template>
+              Executar Transferência de Jogadores 🚀
+            </button>
           </div>
         </div>
 

@@ -66,6 +66,12 @@ function adminApp() {
     usuariosLoading: false,
     usuariosFiltro: '',
 
+    // Migração de Jogadores
+    migracaoLoading: false,
+    grupoOrigemId: '',
+    grupoDestinoId: '',
+    deletarOrigem: false,
+
     // Desafios do GM
     desafiosListaGM: [],
     desafiosLoading: false,
@@ -754,6 +760,144 @@ function adminApp() {
         const duration = Date.now() - startTime;
         this.adicionarLog('Supabase', 'DELETE desafios', 'ERROR', duration, err.message);
         showToast('Erro ao excluir: ' + err.message, 'error');
+      }
+    },
+
+    async atualizarLimiteGrupoManual(grupoId, novoLimite) {
+      const limit = parseInt(novoLimite);
+      if (isNaN(limit) || limit < 1) {
+        showToast("Limite inválido", "error");
+        return;
+      }
+      const startTime = Date.now();
+      try {
+        const { error } = await sbClient
+          .from('groups')
+          .update({ max_participants: limit })
+          .eq('id', grupoId);
+
+        if (error) throw error;
+
+        showToast("Limite do grupo atualizado com sucesso!", "success");
+        this.adicionarLog('Supabase', `UPDATE groups SET max_participants = ${limit}`, 'SUCCESS', Date.now() - startTime, `Limite do grupo ${grupoId} atualizado para ${limit}`);
+        
+        // Atualiza a lista local
+        const g = this.gruposLista.find(item => item.id === grupoId);
+        if (g) g.max_participants = limit;
+        if (this.grupoSelecionado && this.grupoSelecionado.id === grupoId) {
+          this.grupoSelecionado.max_participants = limit;
+        }
+      } catch (err) {
+        showToast("Erro ao atualizar limite: " + err.message, "error");
+        this.adicionarLog('Supabase', `UPDATE groups`, 'ERROR', Date.now() - startTime, err.message);
+      }
+    },
+
+    async atualizarLimiteUsuarioManual(usuarioId, novoLimite) {
+      const limit = parseInt(novoLimite);
+      if (isNaN(limit) || limit < 1) {
+        showToast("Limite inválido", "error");
+        return;
+      }
+      const startTime = Date.now();
+      try {
+        const { error } = await sbClient
+          .from('profiles')
+          .update({ max_grupos: limit })
+          .eq('id', usuarioId);
+
+        if (error) throw error;
+
+        showToast("Limite de grupos do jogador atualizado com sucesso!", "success");
+        this.adicionarLog('Supabase', `UPDATE profiles SET max_grupos = ${limit}`, 'SUCCESS', Date.now() - startTime, `Limite de grupos do usuário ${usuarioId} atualizado para ${limit}`);
+        
+        // Atualiza a lista local
+        const u = this.usuariosLista.find(item => item.id === usuarioId);
+        if (u) u.max_grupos = limit;
+      } catch (err) {
+        showToast("Erro ao atualizar limite: " + err.message, "error");
+        this.adicionarLog('Supabase', `UPDATE profiles`, 'ERROR', Date.now() - startTime, err.message);
+      }
+    },
+
+    async migrarJogadores(grupoOrigemId, grupoDestinoId, deletarOrigem) {
+      if (!grupoOrigemId || !grupoDestinoId) {
+        showToast("Selecione os grupos de origem e destino!", "error");
+        return;
+      }
+      if (grupoOrigemId === grupoDestinoId) {
+        showToast("Os grupos de origem e destino não podem ser iguais!", "error");
+        return;
+      }
+      const startTime = Date.now();
+      this.migracaoLoading = true;
+      try {
+        // 1. Busca os membros do grupo de origem
+        const { data: dataMembros, error: errorOrigem } = await sbClient
+          .from('group_members')
+          .select('*')
+          .eq('group_id', grupoOrigemId);
+
+        if (errorOrigem) throw errorOrigem;
+        if (!dataMembros || dataMembros.length === 0) {
+          showToast("Nenhum jogador encontrado no grupo de origem!", "error");
+          return;
+        }
+
+        // 2. Busca os membros do grupo de destino para não duplicar
+        const { data: membrosDestino, error: errorDestino } = await sbClient
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', grupoDestinoId);
+
+        if (errorDestino) throw errorDestino;
+        const membrosDestinoSet = new Set(membrosDestino.map(m => m.user_id));
+
+        // 3. Prepara a lista de novos membros para inserção
+        const novosMembros = [];
+        dataMembros.forEach(m => {
+          if (!membrosDestinoSet.has(m.user_id)) {
+            novosMembros.push({
+              group_id: grupoDestinoId,
+              user_id: m.user_id,
+              role: m.role || 'member',
+              created_at: m.created_at
+            });
+          }
+        });
+
+        if (novosMembros.length > 0) {
+          const { error: insertError } = await sbClient
+            .from('group_members')
+            .insert(novosMembros);
+
+          if (insertError) throw insertError;
+        }
+
+        // 4. Se for para mover (deletar da origem), deleta os membros copiados
+        if (deletarOrigem) {
+          const userIdsParaDeletar = dataMembros.map(m => m.user_id);
+          const { error: deleteError } = await sbClient
+            .from('group_members')
+            .delete()
+            .eq('group_id', grupoOrigemId)
+            .in('user_id', userIdsParaDeletar);
+
+          if (deleteError) throw deleteError;
+          showToast(`Migração concluída! ${novosMembros.length} jogadores movidos com sucesso.`, "success");
+        } else {
+          showToast(`Cópia concluída! ${novosMembros.length} jogadores adicionados ao grupo de destino.`, "success");
+        }
+
+        this.adicionarLog('Supabase', `MIGRATION ${grupoOrigemId} -> ${grupoDestinoId}`, 'SUCCESS', Date.now() - startTime, `Transferidos ${novosMembros.length} membros.`);
+        
+        // Limpa e recarrega
+        this.carregarGrupos();
+      } catch (err) {
+        showToast("Erro na migração: " + err.message, "error");
+        this.adicionarLog('Supabase', `MIGRATION`, 'ERROR', Date.now() - startTime, err.message);
+      } finally {
+        this.migracaoLoading = false;
       }
     }
   };
