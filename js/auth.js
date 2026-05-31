@@ -432,7 +432,14 @@ async function inicializarNotificacoesPush(silencioso = false) {
     const VAPID_PUBLIC_KEY = 'BKVRm4BIW81Kf0FH0q2IrdW2iwfp4Cc7LOfuz8wab89MpHMvbLYXxqubTS_pnBfdPSUdI0LgrXXQrwFnmndcU9w';
     const convertedVapidKey = urlB64ToUint8Array(VAPID_PUBLIC_KEY);
 
-    const subscription = await reg.pushManager.subscribe({
+    let subscription = await reg.pushManager.getSubscription();
+    if (subscription) {
+      console.log('[PUSH] Já existe uma inscrição antiga no navegador. Desinscrevendo para renovar com a nova chave VAPID...');
+      await subscription.unsubscribe();
+    }
+
+    console.log('[PUSH] Criando nova inscrição com a chave VAPID atual...');
+    subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: convertedVapidKey
     });
