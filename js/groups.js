@@ -13,7 +13,8 @@ async function carregarGrupos() {
   const { data: memberships, error: errM } = await sbClient
     .from('group_members')
     .select('group_id')
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .neq('role', 'pending');
 
   if (errM) { console.error('Erro ao carregar memberships:', errM.message); return; }
   if (!memberships || memberships.length === 0) { renderListaGrupos([]); return; }
@@ -56,7 +57,7 @@ function renderListaGrupos(grupos) {
   });
 }
 
-function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1, targetView = null) {
+async function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1, targetView = null) {
   // Recupera o limite salvo em cache para evitar flashes na UI
   let savedLimit = null;
   const savedGroupStr = localStorage.getItem('last_active_group');
@@ -78,6 +79,24 @@ function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueId = 1,
     max_participants: savedLimit !== null ? savedLimit : 3 // Padrão grátis
   };
   
+  // Puxa a linha completa do banco para obter regras de pontuação atualizadas e se é privado
+  if (sbClient) {
+    try {
+      const { data: grpFull } = await sbClient
+        .from('groups')
+        .select('*')
+        .eq('id', grupoId)
+        .single();
+      if (grpFull) {
+        grupoAtual = grpFull;
+        grupoNome = grpFull.name;
+        conviteCodigo = grpFull.invite_code;
+      }
+    } catch (err) {
+      console.error("Erro ao carregar detalhes completos do grupo:", err);
+    }
+  }
+
   localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
   todosOsJogos = [];
   rodadaSelecionada = null; // Reseta para detectar a rodada atual ao carregar jogos
@@ -118,7 +137,8 @@ async function atualizarBadgeVagas(grupoId) {
     const { count } = await sbClient
       .from('group_members')
       .select('*', { count: 'exact', head: true })
-      .eq('group_id', grupoId);
+      .eq('group_id', grupoId)
+      .neq('role', 'pending');
 
     const { data: grp } = await sbClient
       .from('groups')
@@ -268,12 +288,22 @@ async function entrarPorCodigoApp() {
   // Verifica se o usuário já é membro (se for, só entra direto)
   const { data: jaEhMembro } = await sbClient
     .from('group_members')
-    .select('user_id')
+    .select('user_id, role')
     .eq('group_id', grupo.id)
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!jaEhMembro) {
+  if (jaEhMembro) {
+    if (jaEhMembro.role === 'pending') {
+      showToast("Sua solicitação de entrada para este grupo está pendente de aprovação.", "error");
+      const errorEl = document.getElementById('entrar-grupo-error');
+      if (errorEl) {
+        errorEl.innerText = "Solicitação pendente de aprovação pelo Administrador.";
+        errorEl.classList.remove('hidden');
+      }
+      return;
+    }
+  } else {
     // Trava de grupos por usuário (B2C Catraca)
     const limitePermitido = await checarLimiteGruposUsuario();
     if (!limitePermitido) {
@@ -281,11 +311,12 @@ async function entrarPorCodigoApp() {
       return;
     }
 
-    // 1. Conta quantos membros o grupo já tem
+    // 1. Conta quantos membros ativos o grupo já tem
     const { count: totalMembros, error: countError } = await sbClient
       .from('group_members')
       .select('*', { count: 'exact', head: true })
-      .eq('group_id', grupo.id);
+      .eq('group_id', grupo.id)
+      .neq('role', 'pending');
 
     if (countError) {
       console.error("Erro ao contar membros:", countError);
@@ -306,10 +337,26 @@ async function entrarPorCodigoApp() {
       return;
     }
 
-    // Adiciona como membro
-    await sbClient
+    // Se o grupo for privado, entra como 'pending'. Caso contrário, entra como 'member'.
+    const isPrivate = grupo.privado === true;
+    const insertRole = isPrivate ? 'pending' : 'member';
+
+    const { error: insertError } = await sbClient
       .from('group_members')
-      .insert([{ group_id: grupo.id, user_id: user.id }]);
+      .insert([{ group_id: grupo.id, user_id: user.id, role: insertRole }]);
+
+    if (insertError) {
+      console.error("Erro ao adicionar membro:", insertError.message);
+      showToast("Erro ao solicitar entrada no grupo.", "error");
+      return;
+    }
+
+    if (isPrivate) {
+      showToast("Solicitação de entrada enviada! Aguarde a aprovação do Administrador.", "success");
+      document.getElementById('input-codigo-entrar').value = '';
+      if (typeof fecharModal === 'function') fecharModal('modal-entrar-grupo');
+      return;
+    }
   }
 
   document.getElementById('input-codigo-entrar').value = '';
@@ -881,37 +928,77 @@ async function carregarParticipantesGrupo() {
     });
 
     const souDono = usuarioAtual && grupoAtual && usuarioAtual.id === grupoAtual.owner_id;
+    
+    let htmlMembros = '';
+    let htmlPendentes = '';
+    let pendingCount = 0;
 
     members.forEach(member => {
       const profile = profiles ? profiles.find(p => p.id === member.user_id) : null;
       const nome = profile ? profile.full_name : 'Participante';
       const foto = (profile && profile.avatar_url) ? profile.avatar_url : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=10b981&color=fff';
       const isAdmin = member.role === 'owner';
+      const isPending = member.role === 'pending';
 
-      const removeBtn = (souDono && !isAdmin) ? `
-        <button onclick="removerMembroGrupo('${member.user_id}', '${nome.replace(/'/g,"\\'")}')" class="text-red-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0 ml-2" title="Remover jogador">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      ` : '';
+      if (isPending) {
+        if (souDono) {
+          pendingCount++;
+          htmlPendentes += `
+            <div class="bg-purple-950/20 border border-purple-500/20 rounded-xl p-3 flex items-center justify-between mb-2">
+              <div class="flex items-center gap-3 min-w-0">
+                <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
+                <div class="min-w-0">
+                  <h4 class="font-bold text-[14px] text-white truncate">${nome}</h4>
+                  <p class="text-[11px] text-purple-400 font-bold truncate">Solicitou entrar ⏳</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="responderSolicitacaoGrupo('${member.user_id}', true, '${nome.replace(/'/g,"\\'")}')" class="bg-brand-green text-black font-black text-[10px] px-3 py-1.5 rounded-lg active:scale-95 transition-all uppercase tracking-wide">Aceitar</button>
+                <button onclick="responderSolicitacaoGrupo('${member.user_id}', false, '${nome.replace(/'/g,"\\'")}')" class="bg-zinc-800 text-red-500 font-black text-[10px] px-3 py-1.5 rounded-lg active:scale-95 transition-all uppercase tracking-wide border border-red-500/10">Recusar</button>
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        const removeBtn = (souDono && !isAdmin) ? `
+          <button onclick="removerMembroGrupo('${member.user_id}', '${nome.replace(/'/g,"\\'")}')" class="text-red-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0 ml-2" title="Remover jogador">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        ` : '';
 
-      container.innerHTML += `
-        <div class="bg-card-bg/60 rounded-xl p-3 flex items-center justify-between border border-white/5 mb-2">
-          <div class="flex items-center gap-3 min-w-0">
-            <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
-            <div class="min-w-0">
-              <h4 class="font-bold text-[14px] text-white truncate">${nome}</h4>
-              <p class="text-[11px] text-text-muted truncate">${isAdmin ? 'Organizador do Bolão' : 'Participante'}</p>
+        htmlMembros += `
+          <div class="bg-card-bg/60 rounded-xl p-3 flex items-center justify-between border border-white/5 mb-2">
+            <div class="flex items-center gap-3 min-w-0">
+              <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
+              <div class="min-w-0">
+                <h4 class="font-bold text-[14px] text-white truncate">${nome}</h4>
+                <p class="text-[11px] text-text-muted truncate">${isAdmin ? 'Organizador do Bolão' : 'Participante'}</p>
+              </div>
+            </div>
+            <div class="flex items-center">
+              ${isAdmin ? `
+                <span class="border border-brand-green/30 text-brand-green text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/5 flex-shrink-0">Admin</span>
+              ` : ''}
+              ${removeBtn}
             </div>
           </div>
-          <div class="flex items-center">
-            ${isAdmin ? `
-              <span class="border border-brand-green/30 text-brand-green text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-brand-green/5 flex-shrink-0">Admin</span>
-            ` : ''}
-            ${removeBtn}
-          </div>
+        `;
+      }
+    });
+
+    let htmlFinal = '';
+    if (htmlPendentes) {
+      htmlFinal += `
+        <div class="mb-4">
+          <label class="block text-xs font-black text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+            <span>⏳</span> Solicitações de Entrada (${pendingCount})
+          </label>
+          ${htmlPendentes}
         </div>
       `;
-    });
+    }
+    htmlFinal += htmlMembros;
+    container.innerHTML = htmlFinal || '<p class="text-text-muted text-[13px] text-center py-6">Nenhum participante encontrado.</p>';
 
   } catch (err) {
     console.error("Erro em carregarParticipantesGrupo:", err);
@@ -1722,6 +1809,74 @@ async function removerMembroGrupo(userId, userName) {
   } catch (err) {
     console.error("Erro ao remover jogador:", err.message);
     showToast("Erro ao remover jogador. Tente novamente.", "error");
+  }
+}
+
+async function alterarPrivacidadeGrupoReal() {
+  if (!grupoAtual || !sbClient) return;
+
+  const chk = document.getElementById('chk-grupo-privado');
+  if (!chk) return;
+
+  const novoEstado = chk.checked;
+  showToast(novoEstado ? "Privando o grupo..." : "Tornando o grupo público...", "success");
+
+  try {
+    const { error } = await sbClient
+      .from('groups')
+      .update({ privado: novoEstado })
+      .eq('id', grupoAtual.id);
+
+    if (error) throw error;
+
+    grupoAtual.privado = novoEstado;
+    localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
+    showToast(novoEstado ? "Grupo agora é privado!" : "Grupo agora é público!", "success");
+  } catch (err) {
+    console.error("Erro ao alterar privacidade do grupo:", err.message);
+    showToast("Erro ao alterar privacidade. Verifique as colunas do banco.", "error");
+    chk.checked = !novoEstado; // Reverte o checkbox na tela se falhar
+  }
+}
+
+async function responderSolicitacaoGrupo(userId, aceitar, userName) {
+  if (!confirm(`Deseja realmente ${aceitar ? 'aceitar' : 'recusar'} a entrada de "${userName}"?`)) {
+    return;
+  }
+
+  showToast(aceitar ? "Aprovando entrada..." : "Recusando entrada...", "success");
+
+  try {
+    if (aceitar) {
+      // 1. Atualiza role para member
+      const { error } = await sbClient
+        .from('group_members')
+        .update({ role: 'member' })
+        .eq('group_id', grupoAtual.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      showToast(`${userName} entrou no grupo!`, "success");
+    } else {
+      // 2. Remove o registro
+      const { error } = await sbClient
+        .from('group_members')
+        .delete()
+        .eq('group_id', grupoAtual.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      showToast("Solicitação recusada.", "success");
+    }
+
+    // Recarrega participantes e vagas
+    carregarParticipantesGrupo();
+    if (typeof atualizarBadgeVagas === 'function') {
+      atualizarBadgeVagas(grupoAtual.id);
+    }
+  } catch (err) {
+    console.error("Erro ao responder solicitação:", err.message);
+    showToast("Erro ao processar solicitação. Tente novamente.", "error");
   }
 }
 

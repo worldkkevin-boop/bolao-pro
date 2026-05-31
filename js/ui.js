@@ -173,6 +173,10 @@ function switchView(targetViewId) {
         if (nameInput) {
           nameInput.value = grupoAtual.nome || '';
         }
+        const chkPrivado = document.getElementById('chk-grupo-privado');
+        if (chkPrivado) {
+          chkPrivado.checked = grupoAtual.privado === true;
+        }
         
         // Carrega as regras de pontuação nos inputs e checkboxes
         const carregarRegraUI = (inputId, chkId, dbValue, defaultValue) => {
