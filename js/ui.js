@@ -2,6 +2,20 @@
 
 let intervaloAoVivo = null;
 
+// Função para renderizar Telas Vazias (Empty States) com padrão Premium
+function renderEmptyState(icone, titulo, descricao) {
+  return `
+    <div class="flex flex-col items-center justify-center py-16 text-center px-4 animate-fade-in">
+      <div class="w-20 h-20 bg-card-bg rounded-full flex items-center justify-center mb-5 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.15)]">
+        <span class="text-4xl opacity-80 drop-shadow-md">${icone}</span>
+      </div>
+      <h3 class="text-white font-black text-[15px] mb-2 tracking-wide uppercase">${titulo}</h3>
+      <p class="text-text-muted text-[12px] max-w-[260px] mx-auto leading-relaxed">${descricao}</p>
+    </div>
+  `;
+}
+
+
 function abrirModal(id) {
   document.getElementById(id).classList.remove('hidden');
 }
@@ -123,6 +137,16 @@ function formatarData(dateStr) {
 function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
   const container = document.getElementById('lista-jogos');
   container.innerHTML = '';
+
+  if (jogos.length === 0) {
+    container.innerHTML = renderEmptyState(
+      '⚽', 
+      'Fim de Jogo', 
+      'Não há partidas agendadas para esta rodada no momento.'
+    );
+    return;
+  }
+
 
   const aoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
   const terminados = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'WD'];
@@ -1777,7 +1801,11 @@ async function carregarDesafiosUsuarioView() {
       const desafiosGrupo = (desafios || []).filter(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
 
       if (desafiosGrupo.length === 0) {
-        listaAtivos.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum desafio ativo no momento.</p>';
+        listaAtivos.innerHTML = renderEmptyState(
+          '🪄', 
+          'Calmaria em Campo', 
+          'Nenhum desafio ativo no momento. Fique ligado, O Mago pode tirar uma aposta da cartola a qualquer momento!'
+        );
         return;
       }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bolão Pro | Painel do GM 👑</title>
+  <title>Bolão Pro | Painel do Mago 🔮</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -36,8 +36,8 @@
       <div class="w-20 h-20 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20 flex items-center justify-center mx-auto mb-6 text-3xl">
         👑
       </div>
-      <h1 class="text-3xl font-black tracking-tight mb-2">Painel do <span class="text-purple-400">GM</span></h1>
-      <p class="text-sm text-zinc-400 mb-8">Acesso exclusivo do Game Master para computadores.</p>
+      <h1 class="text-3xl font-black tracking-tight mb-2">Painel do <span class="text-purple-400">Mago</span></h1>
+      <p class="text-sm text-zinc-400 mb-8">Acesso exclusivo do Mago para computadores.</p>
 
       <button @click="entrarComGoogle()" class="w-full bg-white text-black font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-200 transition-colors active:scale-95 shadow-xl mb-4">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -94,9 +94,9 @@
     <aside class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between flex-shrink-0">
       <div class="p-6">
         <div class="flex items-center gap-3 mb-8">
-          <span class="text-2xl">👑</span>
+          <span class="text-2xl">🔮</span>
           <div>
-            <h2 class="font-black text-sm uppercase leading-tight tracking-wider">Painel do GM</h2>
+            <h2 class="font-black text-sm uppercase leading-tight tracking-wider">Painel do Mago</h2>
             <span class="text-[10px] text-purple-400 font-bold tracking-widest uppercase">Modo Desktop</span>
           </div>
         </div>
@@ -113,7 +113,7 @@
           </button>
           <div class="h-px bg-zinc-800 my-3"></div>
           <button @click="abaAtiva = 'desafios'; carregarDesafiosGM()" :class="abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? 'bg-amber-600/20 text-amber-300 font-bold border border-amber-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>⚡</span> Desafios do GM
+            <span>⚡</span> Desafios do Mago
           </button>
         </nav>
       </div>
@@ -121,9 +121,9 @@
       <!-- Rodapé da Sidebar (Usuário Logado) -->
       <div class="p-4 border-t border-zinc-800 bg-zinc-950/40 flex items-center justify-between">
         <div class="flex items-center gap-2 min-w-0">
-          <img :src="usuario ? (usuario.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=GM&background=8b5cf6&color=fff') : ''" class="w-8 h-8 rounded-full border border-purple-500/30 flex-shrink-0">
+          <img :src="usuario ? (usuario.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=Mago&background=8b5cf6&color=fff') : ''" class="w-8 h-8 rounded-full border border-purple-500/30 flex-shrink-0">
           <div class="min-w-0">
-            <p class="text-xs font-bold truncate" x-text="usuario ? (usuario.user_metadata.full_name || usuario.email) : ''">GM</p>
+            <p class="text-xs font-bold truncate" x-text="usuario ? (usuario.user_metadata.full_name || usuario.email) : ''">Mago</p>
             <button @click="deslogar()" class="text-[10px] text-red-400 hover:underline font-semibold block text-left">Sair da Conta</button>
           </div>
         </div>
@@ -134,7 +134,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-zinc-950/90">
       <!-- Top header -->
       <header class="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/40">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? 'Gerenciador de Grupos' : (abaAtiva === 'usuarios' ? 'Gerenciador de Perfis' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do GM' : 'Painel')))"></h1>
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? 'Gerenciador de Grupos' : (abaAtiva === 'usuarios' ? 'Gerenciador de Perfis' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : 'Painel')))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
         </div>
@@ -188,7 +188,7 @@
             <!-- Card: Desafios -->
             <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
               <div>
-                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Desafios do GM</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Desafios do Mago</span>
                 <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.desafios">0</h3>
                 <span class="text-[10px] text-zinc-400 font-medium mt-1 block">Desafios especiais abertos</span>
               </div>

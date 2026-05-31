@@ -122,12 +122,11 @@ async function atualizarTVAoVivo() {
 
   // 1. RENDERIZA JOGOS AO VIVO
   if (jogosAtivosGrupo.length === 0) {
-    const htmlSemJogos = `
-      <div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold flex flex-col items-center justify-center gap-2">
-        <span>⏰</span>
-        <span>Nenhum jogo do seu bolão está rolando ao vivo agora.</span>
-      </div>
-    `;
+    const htmlSemJogos = renderEmptyState(
+      '📺', 
+      'Fora do Ar', 
+      'A bola não está rolando agora. Aproveite para estudar as estatísticas e preparar seus próximos palpites.'
+    );
     if (jogosContainer.innerHTML !== htmlSemJogos) {
       jogosContainer.innerHTML = htmlSemJogos;
     }
