@@ -3346,6 +3346,20 @@ async function salvarPerguntasBonus() {
 
 // ==================== A VISÃO DO JOGADOR (RESPONDER BÔNUS) ====================
 
+function obterTimesDoGrupo() {
+  if (Array.isArray(todosOsJogos) && todosOsJogos.length > 0) {
+    return [...new Set(todosOsJogos.flatMap(j => {
+      const names = [];
+      if (j && j.teams) {
+        if (j.teams.home && j.teams.home.name) names.push(j.teams.home.name);
+        if (j.teams.away && j.teams.away.name) names.push(j.teams.away.name);
+      }
+      return names;
+    }))].sort((a, b) => a.localeCompare(b));
+  }
+  return [];
+}
+
 async function abrirResponderBonus() {
   if (!grupoAtual || !usuarioAtual || !sbClient) return;
 
@@ -3355,6 +3369,13 @@ async function abrirResponderBonus() {
   
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+
+  // Garante que os jogos estejam carregados para obter a lista de times
+  if (!todosOsJogos || todosOsJogos.length === 0) {
+    if (typeof carregarJogos === 'function') {
+      await carregarJogos();
+    }
+  }
 
   // 1. Busca a configuração do GM
   const { data: config } = await sbClient.from('bonus_config').select('*').eq('group_id', grupoAtual.id).single();
@@ -3382,6 +3403,20 @@ async function abrirResponderBonus() {
   const disableInput = prazoExpirado ? 'disabled' : '';
   const opacidade = prazoExpirado ? 'opacity-50' : '';
 
+  const timesList = obterTimesDoGrupo();
+  const buildSelectTimes = (id, val) => {
+    if (timesList.length === 0) {
+      return `<input type="text" id="${id}" value="${val}" placeholder="Digite o nome do time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>`;
+    }
+    let selectHtml = `<select id="${id}" class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green" ${disableInput}>`;
+    selectHtml += `<option value="" disabled ${!val ? 'selected' : ''}>Selecione um time...</option>`;
+    timesList.forEach(t => {
+      selectHtml += `<option value="${t}" ${val === t ? 'selected' : ''}>${t}</option>`;
+    });
+    selectHtml += `</select>`;
+    return selectHtml;
+  };
+
   if (config.q1_ativa) {
     const val = respostaSalva?.q1_resposta || '';
     html += `
@@ -3404,7 +3439,7 @@ async function abrirResponderBonus() {
     html += `
       <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
         <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">2.</span> Quem será o último colocado (rebaixado)?</p>
-        <input type="text" id="resp-q2" value="${val}" placeholder="Digite o nome do time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+        ${buildSelectTimes('resp-q2', val)}
       </div>`;
   }
 
@@ -3413,7 +3448,7 @@ async function abrirResponderBonus() {
     html += `
       <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
         <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">3.</span> Quem será o terceiro colocado?</p>
-        <input type="text" id="resp-q3" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+        ${buildSelectTimes('resp-q3', val)}
       </div>`;
   }
   if (config.q4_ativa) {
@@ -3421,7 +3456,7 @@ async function abrirResponderBonus() {
     html += `
       <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
         <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">4.</span> Quem será o vice-campeão?</p>
-        <input type="text" id="resp-q4" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+        ${buildSelectTimes('resp-q4', val)}
       </div>`;
   }
   if (config.q5_ativa) {
@@ -3429,7 +3464,7 @@ async function abrirResponderBonus() {
     html += `
       <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
         <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">5.</span> Quem será o campeão?</p>
-        <input type="text" id="resp-q5" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+        ${buildSelectTimes('resp-q5', val)}
       </div>`;
   }
 
