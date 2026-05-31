@@ -169,9 +169,9 @@ function switchView(targetViewId) {
     if (adminSettings) {
       if (isOwner) {
         adminSettings.classList.remove('hidden');
-        const nameInput = document.getElementById('input-novo-nome-grupo');
-        if (nameInput) {
-          nameInput.value = grupoAtual.nome || '';
+        const nameText = document.getElementById('txt-nome-grupo-atual');
+        if (nameText) {
+          nameText.innerText = grupoAtual.nome || '';
         }
         const chkPrivado = document.getElementById('chk-grupo-privado');
         if (chkPrivado) {

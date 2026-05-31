@@ -741,33 +741,26 @@ async function uploadIcone(event) {
   }
 }
 
-async function alterarNomeGrupoReal() {
+async function alterarNomeGrupoPrompt() {
   if (!grupoAtual || !sbClient) return;
 
-  const inputNome = document.getElementById('input-novo-nome-grupo');
-  const btn = document.getElementById('btn-alterar-nome-grupo');
+  const novoNome = prompt("Digite o novo nome do grupo:", grupoAtual.nome);
+  if (novoNome === null) return; // Clicou em Cancelar
   
-  if (!inputNome || !btn) return;
-  
-  const novoNome = inputNome.value.trim();
-  
-  if (!novoNome) {
+  const novoNomeTrimmed = novoNome.trim();
+  if (!novoNomeTrimmed) {
     showToast("O nome do grupo não pode ser vazio!", "error");
     return;
   }
   
-  if (novoNome === grupoAtual.nome) {
-    showToast("O nome do grupo é o mesmo atual.", "error");
+  if (novoNomeTrimmed === grupoAtual.nome) {
     return;
   }
-  
-  btn.disabled = true;
-  btn.innerText = "Salvando...";
   
   try {
     const { error } = await sbClient
       .from('groups')
-      .update({ name: novoNome })
+      .update({ name: novoNomeTrimmed })
       .eq('id', grupoAtual.id);
       
     if (error) {
@@ -777,22 +770,23 @@ async function alterarNomeGrupoReal() {
     }
     
     // Atualiza o estado local
-    grupoAtual.nome = novoNome;
+    grupoAtual.nome = novoNomeTrimmed;
     
-    // Atualiza o header do grupo e outros textos na tela
-    document.getElementById('nome-grupo').innerText = novoNome;
+    // Atualiza a UI
+    const txtNome = document.getElementById('txt-nome-grupo-atual');
+    if (txtNome) txtNome.innerText = novoNomeTrimmed;
+    
+    document.getElementById('nome-grupo').innerText = novoNomeTrimmed;
     const rankingHeader = document.getElementById('nome-grupo-ranking');
-    if (rankingHeader) rankingHeader.innerText = novoNome;
+    if (rankingHeader) rankingHeader.innerText = novoNomeTrimmed;
     
     showToast("Nome do grupo alterado com sucesso!", "success");
     
     // Atualiza a lista geral de grupos em background
     carregarGrupos();
-  } catch (err) {
-    console.error("Erro:", err);
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Salvar";
+  } catch (e) {
+    console.error(e);
+    showToast("Erro ao processar alteração de nome.", "error");
   }
 }
 
