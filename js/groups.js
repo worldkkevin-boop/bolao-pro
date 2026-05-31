@@ -127,6 +127,10 @@ async function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueI
   // Atualiza badge de vagas
   atualizarBadgeVagas(grupoId);
   carregarPoteBanner();
+  
+  if (typeof verificarExibicaoBotaoBonusJogador === 'function') {
+    verificarExibicaoBotaoBonusJogador();
+  }
 }
 
 async function atualizarBadgeVagas(grupoId) {

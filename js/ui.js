@@ -3167,12 +3167,65 @@ function toggleMenuParticipantes() {
 
 // ==================== CONTROLE DAS NOVAS ABAS ====================
 
-function abrirPerguntasBonus() {
+async function abrirPerguntasBonus() {
+  if (!grupoAtual || !sbClient) return;
   const modal = document.getElementById('modal-perguntas-bonus');
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    // Inicializa contador caso tenha algo selecionado
+    
+    // Mostra loading nos estados temporariamente
+    document.getElementById('label-prazo').innerText = "Carregando...";
+    const chk1 = document.querySelector('input[name="q1"]');
+    const chk2 = document.querySelector('input[name="q2"]');
+    const chk3 = document.querySelector('input[name="q3"]');
+    const chk4 = document.querySelector('input[name="q4"]');
+    const chk5 = document.querySelector('input[name="q5"]');
+    if (chk1) chk1.checked = false;
+    if (chk2) chk2.checked = false;
+    if (chk3) chk3.checked = false;
+    if (chk4) chk4.checked = false;
+    if (chk5) chk5.checked = false;
+    
+    try {
+      const { data: config } = await sbClient
+        .from('bonus_config')
+        .select('*')
+        .eq('group_id', grupoAtual.id)
+        .single();
+        
+      if (config) {
+        if (chk1) chk1.checked = !!config.q1_ativa;
+        if (chk2) chk2.checked = !!config.q2_ativa;
+        if (chk3) chk3.checked = !!config.q3_ativa;
+        if (chk4) chk4.checked = !!config.q4_ativa;
+        if (chk5) chk5.checked = !!config.q5_ativa;
+        
+        if (config.prazo) {
+          const dateLocal = new Date(config.prazo);
+          const offset = dateLocal.getTimezoneOffset();
+          const adjustedDate = new Date(dateLocal.getTime() - (offset * 60 * 1000));
+          const formatted = adjustedDate.toISOString().slice(0, 16);
+          
+          document.getElementById('prazo-bonus-input').value = formatted;
+          
+          const label = document.getElementById('label-prazo');
+          if (label) {
+            label.innerText = dateLocal.toLocaleDateString('pt-BR') + ' às ' + dateLocal.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            label.classList.remove('text-gray-400');
+            label.classList.add('text-brand-green');
+          }
+        } else {
+          document.getElementById('label-prazo').innerText = "Definir prazo";
+        }
+      } else {
+        document.getElementById('label-prazo').innerText = "Definir prazo";
+      }
+    } catch (e) {
+      console.error("Erro ao obter configurações bônus:", e);
+      document.getElementById('label-prazo').innerText = "Definir prazo";
+    }
+    
     atualizarContadorBonus();
   }
 }
@@ -3257,18 +3310,203 @@ async function salvarPerguntasBonus() {
      showToast("Selecione pelo menos uma pergunta para ativar!", "error");
      return;
   }
-
   if (!inputPrazo) {
     showToast("Você precisa definir um prazo de resposta!", "error");
     return;
   }
 
-  showToast("Salvando perguntas bônus...", "success");
-  
-  setTimeout(() => {
+  showToast("Salvando perguntas bônus...", "info");
+
+  const q1 = document.querySelector('input[name="q1"]')?.checked || false;
+  const q2 = document.querySelector('input[name="q2"]')?.checked || false;
+  const q3 = document.querySelector('input[name="q3"]')?.checked || false;
+  const q4 = document.querySelector('input[name="q4"]')?.checked || false;
+  const q5 = document.querySelector('input[name="q5"]')?.checked || false;
+
+  const { error } = await sbClient.from('bonus_config').upsert({
+    group_id: grupoAtual.id,
+    prazo: new Date(inputPrazo).toISOString(),
+    q1_ativa: q1,
+    q2_ativa: q2,
+    q3_ativa: q3,
+    q4_ativa: q4,
+    q5_ativa: q5,
+    pontos: PONTOS_POR_PERGUNTA
+  }, { onConflict: 'group_id' });
+
+  if (error) {
+    showToast("Erro ao salvar regras no banco.", "error");
+    console.error(error);
+  } else {
     fecharPerguntasBonus();
-    showToast("Regras aplicadas com sucesso!", "success");
-  }, 1000);
+    showToast("Perguntas Bônus salvas com sucesso!", "success");
+    verificarExibicaoBotaoBonusJogador();
+  }
+}
+
+// ==================== A VISÃO DO JOGADOR (RESPONDER BÔNUS) ====================
+
+async function abrirResponderBonus() {
+  if (!grupoAtual || !usuarioAtual || !sbClient) return;
+
+  const modal = document.getElementById('modal-responder-bonus');
+  const container = document.getElementById('container-perguntas-jogador');
+  container.innerHTML = '<p class="text-center text-gray-500 py-4 animate-pulse">Buscando perguntas do GM...</p>';
+  
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  // 1. Busca a configuração do GM
+  const { data: config } = await sbClient.from('bonus_config').select('*').eq('group_id', grupoAtual.id).single();
+  
+  if (!config || (!config.q1_ativa && !config.q2_ativa && !config.q3_ativa && !config.q4_ativa && !config.q5_ativa)) {
+    container.innerHTML = '<p class="text-center text-gray-400 p-6 bg-white/5 rounded-xl border border-white/5">O Administrador ainda não ativou nenhuma pergunta bônus para este grupo.</p>';
+    document.getElementById('player-bonus-prazo').innerText = "SEM PERGUNTAS ATIVAS";
+    return;
+  }
+
+  // Verifica o prazo
+  const prazoData = new Date(config.prazo);
+  const agora = new Date();
+  const prazoExpirado = agora > prazoData;
+  
+  document.getElementById('player-bonus-prazo').innerText = prazoExpirado 
+    ? "⚠️ PRAZO ENCERRADO" 
+    : "⏳ ENCERRA: " + prazoData.toLocaleDateString('pt-BR') + " às " + prazoData.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+  // 2. Busca se o jogador já respondeu antes
+  const { data: respostaSalva } = await sbClient.from('bonus_respostas').select('*').eq('group_id', grupoAtual.id).eq('user_id', usuarioAtual.id).single();
+
+  // 3. Monta o formulário apenas com o que está ativo
+  let html = '';
+  const disableInput = prazoExpirado ? 'disabled' : '';
+  const opacidade = prazoExpirado ? 'opacity-50' : '';
+
+  if (config.q1_ativa) {
+    const val = respostaSalva?.q1_resposta || '';
+    html += `
+      <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
+        <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">1.</span> Quantos gols o campeão fará no campeonato?</p>
+        <select id="resp-q1" class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green" ${disableInput}>
+          <option value="" disabled ${!val ? 'selected' : ''}>Selecione uma opção...</option>
+          <option value="< 10" ${val === '< 10' ? 'selected' : ''}>Menos de 10</option>
+          <option value="10-30" ${val === '10-30' ? 'selected' : ''}>Entre 10 e 30</option>
+          <option value="30-50" ${val === '30-50' ? 'selected' : ''}>Entre 30 e 50</option>
+          <option value="50-70" ${val === '50-70' ? 'selected' : ''}>Entre 50 e 70</option>
+          <option value="70-90" ${val === '70-90' ? 'selected' : ''}>Entre 70 e 90</option>
+          <option value="> 110" ${val === '> 110' ? 'selected' : ''}>Mais de 110</option>
+        </select>
+      </div>`;
+  }
+
+  if (config.q2_ativa) {
+    const val = respostaSalva?.q2_resposta || '';
+    html += `
+      <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
+        <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">2.</span> Quem será o último colocado (rebaixado)?</p>
+        <input type="text" id="resp-q2" value="${val}" placeholder="Digite o nome do time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+      </div>`;
+  }
+
+  if (config.q3_ativa) {
+    const val = respostaSalva?.q3_resposta || '';
+    html += `
+      <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
+        <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">3.</span> Quem será o terceiro colocado?</p>
+        <input type="text" id="resp-q3" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+      </div>`;
+  }
+  if (config.q4_ativa) {
+    const val = respostaSalva?.q4_resposta || '';
+    html += `
+      <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
+        <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">4.</span> Quem será o vice-campeão?</p>
+        <input type="text" id="resp-q4" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+      </div>`;
+  }
+  if (config.q5_ativa) {
+    const val = respostaSalva?.q5_resposta || '';
+    html += `
+      <div class="bg-[#151518] border border-white/5 rounded-xl p-4 ${opacidade}">
+        <p class="text-white font-bold text-sm mb-3"><span class="text-brand-green">5.</span> Quem será o campeão?</p>
+        <input type="text" id="resp-q5" value="${val}" placeholder="Digite o time..." class="w-full bg-[#222226] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-brand-green uppercase" ${disableInput}>
+      </div>`;
+  }
+
+  if(prazoExpirado) {
+    html += `<div class="p-4 bg-red-500/10 border border-red-500/30 text-red-500 text-center text-sm font-bold rounded-xl mt-4">O prazo para enviar ou alterar respostas acabou!</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function fecharResponderBonus() {
+  document.getElementById('modal-responder-bonus').classList.add('hidden');
+  document.getElementById('modal-responder-bonus').classList.remove('flex');
+}
+
+async function enviarRespostasBonus() {
+  if (!grupoAtual || !usuarioAtual || !sbClient) return;
+
+  const q1 = document.getElementById('resp-q1')?.value || null;
+  const q2 = document.getElementById('resp-q2')?.value || null;
+  const q3 = document.getElementById('resp-q3')?.value || null;
+  const q4 = document.getElementById('resp-q4')?.value || null;
+  const q5 = document.getElementById('resp-q5')?.value || null;
+
+  showToast("Enviando suas respostas...", "info");
+
+  const { error } = await sbClient.from('bonus_respostas').upsert({
+    group_id: grupoAtual.id,
+    user_id: usuarioAtual.id,
+    q1_resposta: q1,
+    q2_resposta: q2,
+    q3_resposta: q3,
+    q4_resposta: q4,
+    q5_resposta: q5
+  }, { onConflict: 'group_id, user_id' });
+
+  if (error) {
+    showToast("Erro ao enviar respostas.", "error");
+    console.error(error);
+  } else {
+    showToast("Respostas salvas com sucesso! Boa sorte!", "success");
+    fecharResponderBonus();
+  }
+}
+
+async function verificarExibicaoBotaoBonusJogador() {
+  const container = document.getElementById('container-responder-bonus-jogador');
+  if (!container) return;
+  if (!grupoAtual || !sbClient) {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+  
+  try {
+    const { data: config } = await sbClient
+      .from('bonus_config')
+      .select('*')
+      .eq('group_id', grupoAtual.id)
+      .single();
+      
+    if (config && (config.q1_ativa || config.q2_ativa || config.q3_ativa || config.q4_ativa || config.q5_ativa)) {
+      container.classList.remove('hidden');
+      container.innerHTML = `
+        <button onclick="abrirResponderBonus()" class="w-full bg-brand-green/10 border border-brand-green/30 hover:bg-brand-green/20 text-brand-green font-black py-4 rounded-2xl text-[13px] uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_0_15px_rgba(0,255,163,0.1)]">
+          <span class="text-base">⭐</span> Responder Perguntas Bônus
+        </button>
+      `;
+    } else {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+    }
+  } catch (e) {
+    console.error("Erro ao verificar perguntas bônus do jogador:", e);
+    container.classList.add('hidden');
+    container.innerHTML = '';
+  }
 }
 
 // ==================== LÓGICA DO EDITOR DE REGRAS ====================

@@ -326,6 +326,9 @@
       <!-- Pote Banner Container -->
       <div id="pote-banner-container"></div>
 
+      <!-- Container para Responder Perguntas Bônus (Jogador) -->
+      <div id="container-responder-bonus-jogador" class="mb-3"></div>
+
       <!-- Banner Modo TV Ao Vivo -->
       <div id="btn-ao-vivo-tv" onclick="abrirTVAoVivo()" class="bg-card-bg p-5 rounded-2xl border border-white/5 mb-6 transition-all hover:border-white/10 cursor-pointer flex items-center justify-between shadow-none active:scale-[0.98]">
         <div class="flex items-center gap-3">
@@ -1296,7 +1299,7 @@
         <!-- Pergunta 1 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-start gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" name="q1" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">⚽</div>
             <div class="flex-1">
               <p class="text-gray-300 font-bold text-sm leading-snug">Quantos gols o campeão fará no campeonato?</p>
@@ -1312,7 +1315,7 @@
         <!-- Pergunta 2 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" name="q2" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o último colocado (rebaixado)?</p>
           </div>
@@ -1321,7 +1324,7 @@
         <!-- Pergunta 3 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" name="q3" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥉</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o terceiro colocado?</p>
           </div>
@@ -1330,7 +1333,7 @@
         <!-- Pergunta 4 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" name="q4" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥈</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o vice-campeão?</p>
           </div>
@@ -1339,7 +1342,7 @@
         <!-- Pergunta 5 -->
         <label class="card-pergunta block cursor-pointer bg-[#151518] border border-white/5 rounded-xl p-4 transition-colors">
           <div class="flex items-center gap-3">
-            <input type="checkbox" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <input type="checkbox" name="q5" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
             <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🏆</div>
             <p class="text-gray-300 font-bold text-sm">Quem será o campeão?</p>
           </div>
@@ -1361,6 +1364,33 @@
         </button>
       </div>
     </div>
+    </div>
+
+    <!-- ================= MODAL RESPONDER PERGUNTAS BÔNUS (JOGADOR) ================= -->
+    <div id="modal-responder-bonus" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+      <!-- Cabeçalho -->
+      <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border-white/5 flex-shrink-0">
+        <button onclick="fecharResponderBonus()" class="w-8 h-8 bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <div>
+          <h1 class="text-white font-black text-xl tracking-wide">Perguntas Bônus</h1>
+          <p id="player-bonus-prazo" class="text-brand-green text-[11px] font-bold uppercase tracking-widest">Calculando prazo...</p>
+        </div>
+      </div>
+
+      <!-- Conteúdo Rolável -->
+      <div class="flex-1 overflow-y-auto p-5 pb-28">
+        <p class="text-gray-400 text-sm mb-6">Valendo pontos preciosos pro ranking! Preencha suas respostas abaixo:</p>
+        <div id="container-perguntas-jogador" class="space-y-4"></div>
+      </div>
+
+      <!-- Rodapé Fixo -->
+      <div class="absolute bottom-0 w-full bg-[#0d0d12] border-t border-white/5 p-5 z-20">
+        <button onclick="enviarRespostasBonus()" class="w-full bg-brand-green hover:opacity-90 text-black font-black py-4 rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] uppercase tracking-widest">
+          Enviar Minhas Respostas
+        </button>
+      </div>
     </div>
 
     <!-- ================= MODAL HISTÓRICO DE PONTUAÇÃO ================= -->
@@ -1483,13 +1513,13 @@
 
   </div>
 
-  <script src="js/config.js?v=23"></script>
-  <script src="js/auth.js?v=23"></script>
-  <script src="js/api.js?v=23"></script>
-  <script src="js/groups.js?v=23"></script>
-  <script src="js/ui.js?v=23"></script>
-  <script src="js/gm.js?v=23"></script>
-  <script src="js/aovivo.js?v=23"></script>
+  <script src="js/config.js?v=24"></script>
+  <script src="js/auth.js?v=24"></script>
+  <script src="js/api.js?v=24"></script>
+  <script src="js/groups.js?v=24"></script>
+  <script src="js/ui.js?v=24"></script>
+  <script src="js/gm.js?v=24"></script>
+  <script src="js/aovivo.js?v=24"></script>
 
   <!-- Registro do Service Worker -->
   <script>
