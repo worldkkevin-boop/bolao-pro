@@ -214,6 +214,13 @@ async function entrarPorCodigoApp() {
 }
 
 function atualizarDestaquesHomeGrupo() {
+  // Atualiza status do banner da TV Ao Vivo
+  const statusAoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'];
+  const temJogoAoVivo = todosOsJogos.length > 0 && todosOsJogos.some(j => statusAoVivo.includes(j.fixture.status.short));
+  if (typeof atualizarStatusBannerTV === 'function') {
+    atualizarStatusBannerTV(temJogoAoVivo);
+  }
+
   if (todosOsJogos.length === 0) return;
 
   const agora = new Date();

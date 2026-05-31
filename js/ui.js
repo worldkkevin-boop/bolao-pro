@@ -1942,4 +1942,42 @@ async function carregarDesafiosUsuarioView() {
   }
 }
 
+function atualizarStatusBannerTV(temJogoAoVivo) {
+  const banner = document.getElementById('btn-ao-vivo-tv');
+  if (!banner) return;
+
+  const dotContainer = banner.querySelector('.relative.flex.h-2.5.w-2.5') || banner.querySelector('.relative');
+  const btnSpan = banner.querySelector('span.text-red-400') || banner.querySelector('span.text-zinc-500') || banner.querySelector('#tv-banner-btn');
+  
+  if (temJogoAoVivo) {
+    // Modo ON (Vermelho Vibrante / Ao Vivo)
+    banner.className = "bg-gradient-to-r from-red-650/40 via-red-650/5 to-transparent p-5 rounded-2xl border border-red-500/30 mb-6 transition-all hover:border-red-500/50 cursor-pointer flex items-center justify-between shadow-[0_0_20px_rgba(239,68,68,0.08)] active:scale-[0.98]";
+    if (dotContainer) {
+      dotContainer.className = "relative flex h-2.5 w-2.5";
+      dotContainer.innerHTML = `
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+      `;
+    }
+    if (btnSpan) {
+      btnSpan.className = "text-red-400 text-[10px] font-black uppercase tracking-widest bg-red-500/10 px-2.5 py-1.5 rounded-xl border border-red-500/20 animate-pulse";
+      btnSpan.innerText = "Entrar";
+    }
+  } else {
+    // Modo OFF (Desativado / Cinza)
+    banner.className = "bg-card-bg p-5 rounded-2xl border border-white/5 mb-6 transition-all hover:border-white/10 cursor-pointer flex items-center justify-between shadow-none active:scale-[0.98]";
+    if (dotContainer) {
+      dotContainer.className = "relative flex h-2.5 w-2.5";
+      dotContainer.innerHTML = `
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-zinc-600"></span>
+      `;
+    }
+    if (btnSpan) {
+      btnSpan.className = "text-zinc-500 text-[10px] font-black uppercase tracking-widest bg-zinc-800 px-2.5 py-1.5 rounded-xl border border-zinc-700/50";
+      btnSpan.innerText = "OFF";
+    }
+  }
+}
+
+
 
