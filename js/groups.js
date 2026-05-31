@@ -193,17 +193,28 @@ async function entrarPorCodigoApp() {
     .maybeSingle();
 
   if (!jaEhMembro) {
-    // Verifica se ainda tem vaga
-    const { count } = await sbClient
+    // 1. Conta quantos membros o grupo já tem
+    const { count: totalMembros, error: countError } = await sbClient
       .from('group_members')
       .select('*', { count: 'exact', head: true })
       .eq('group_id', grupo.id);
 
-    const limite = grupo.max_participants || 20;
-    if (count >= limite) {
+    if (countError) {
+      console.error("Erro ao contar membros:", countError);
+      return;
+    }
+
+    // 2. Descobre qual é o limite do grupo atual
+    const limiteAtual = grupo.limite_membros || 3; 
+
+    // 3. A TRAVA! Se estiver lotado, barra a entrada.
+    if (totalMembros >= limiteAtual) {
+      showToast(`Ops! Este grupo atingiu o limite de ${limiteAtual} participantes.`, "error");
       const errorEl = document.getElementById('entrar-grupo-error');
-      errorEl.innerText = `Grupo lotado! Limite de ${limite} participantes atingido.`;
-      errorEl.classList.remove('hidden');
+      if (errorEl) {
+        errorEl.innerText = `Ops! Este grupo atingiu o limite de ${limiteAtual} participantes.`;
+        errorEl.classList.remove('hidden');
+      }
       return;
     }
 

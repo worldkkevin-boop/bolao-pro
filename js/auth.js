@@ -210,9 +210,43 @@ async function processarConvitePendente() {
       return;
     }
 
-    await sbClient
+    // Verifica se já é membro primeiro (para evitar travamento se ele já faz parte)
+    const { data: jaEhMembro } = await sbClient
       .from('group_members')
-      .upsert([{ group_id: grupo.id, user_id: user.id }]);
+      .select('user_id')
+      .eq('group_id', grupo.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!jaEhMembro) {
+      // 1. Conta quantos membros o grupo já tem
+      const { count: totalMembros, error: countError } = await sbClient
+        .from('group_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', grupo.id);
+
+      if (countError) {
+        console.error("Erro ao contar membros:", countError);
+        localStorage.removeItem('pending_invite_code');
+        if (typeof carregarGrupos === 'function') carregarGrupos();
+        return;
+      }
+
+      // 2. Descobre qual é o limite do grupo atual
+      const limiteAtual = grupo.limite_membros || 3;
+
+      // 3. A TRAVA! Se estiver lotado, barra a entrada.
+      if (totalMembros >= limiteAtual) {
+        showToast(`Ops! Este grupo atingiu o limite de ${limiteAtual} participantes.`, "error");
+        localStorage.removeItem('pending_invite_code');
+        if (typeof carregarGrupos === 'function') carregarGrupos();
+        return;
+      }
+
+      await sbClient
+        .from('group_members')
+        .insert([{ group_id: grupo.id, user_id: user.id }]);
+    }
 
     localStorage.removeItem('pending_invite_code');
     if (typeof entrarNoGrupo === 'function') entrarNoGrupo(grupo.id, grupo.name, grupo.invite_code, grupo.owner_id, grupo.league_id || 1);
