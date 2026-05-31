@@ -2036,5 +2036,79 @@ function atualizarStatusBannerTV(temJogoAoVivo) {
   }
 }
 
+// ============ ONBOARDING (BOAS-VINDAS) ============
+
+function verificarOnboarding() {
+  // Verifica se o usuário já viu o tutorial no celular/PC dele
+  const jaViu = localStorage.getItem('mago_onboarding_concluido');
+  
+  if (!jaViu) {
+    mostrarModalOnboarding();
+  }
+}
+
+function mostrarModalOnboarding() {
+  // Cria o fundo escuro (Overlay)
+  const overlay = document.createElement('div');
+  overlay.id = 'onboarding-overlay';
+  overlay.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300';
+
+  // Conteúdo do Modal
+  overlay.innerHTML = `
+    <div class="bg-card-bg border border-brand-green/30 rounded-2xl p-6 max-w-sm w-full shadow-[0_0_40px_rgba(34,197,94,0.15)] transform transition-all duration-300 scale-100 opacity-100">
+      
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center border border-brand-green/20">
+          <span class="text-3xl">🧙‍♂️</span>
+        </div>
+      </div>
+      
+      <h2 class="text-white font-black text-xl text-center mb-2 uppercase tracking-wide">Bem-vindo ao Bolão do Mago</h2>
+      <p class="text-text-muted text-sm text-center mb-6">A revolução dos palpites. Aqui, o jogo não acaba no apito inicial!</p>
+      
+      <div class="space-y-4 mb-8">
+        <div class="flex items-start gap-3">
+          <span class="text-brand-green text-lg">⚽</span>
+          <p class="text-[13px] text-gray-300"><strong class="text-white">Palpites Fixos:</strong> Deixe seu placar antes do jogo começar.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-brand-green text-lg">📺</span>
+          <p class="text-[13px] text-gray-300"><strong class="text-white">Modo TV:</strong> Acompanhe os jogos e a classificação provisória em tempo real.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-purple-400 text-lg">⚡</span>
+          <p class="text-[13px] text-gray-300"><strong class="text-purple-400">Desafios do Mago:</strong> Fique de olho na aba Desafios! A qualquer momento, um palpite relâmpago pode surgir para salvar sua pontuação.</p>
+        </div>
+      </div>
+      
+      <button onclick="fecharOnboarding()" class="w-full bg-brand-green hover:bg-green-500 text-black font-black py-3 rounded-xl uppercase tracking-wide transition-all active:scale-95">
+        Bora pro Jogo!
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+}
+
+function fecharOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    overlay.classList.add('opacity-0');
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-100', 'opacity-100');
+      child.classList.add('scale-95', 'opacity-0');
+    }
+    setTimeout(() => {
+      overlay.remove();
+      // Salva no navegador que o cara já viu, para nunca mais aparecer
+      localStorage.setItem('mago_onboarding_concluido', 'true'); 
+      if (typeof showToast === 'function') {
+        showToast("Você está pronto para jogar!", "success");
+      }
+    }, 300);
+  }
+}
+
 
 

@@ -80,6 +80,7 @@ function entrarNoApp(usuario) {
 
   if (typeof verificarBannerPWA === 'function') verificarBannerPWA();
   if (typeof verificarUsuarioGM === 'function') verificarUsuarioGM();
+  if (typeof verificarOnboarding === 'function') verificarOnboarding();
 }
 
 function mostrarInputCodigo() {
