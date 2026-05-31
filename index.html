@@ -900,10 +900,23 @@
           <option value="325">Copa do Nordeste 2026</option>
         </select>
 
-        <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Limite de Participantes</label>
-        <div class="flex items-center gap-4 mb-5">
-          <input type="range" id="input-max-participantes" min="5" max="100" value="20" oninput="document.getElementById('label-max-part').innerText = this.value" class="flex-1 accent-brand-green h-2 rounded-lg cursor-pointer">
-          <span id="label-max-part" class="bg-app-bg border border-white/5 text-brand-green font-black text-[15px] px-3 py-2 rounded-xl min-w-[48px] text-center">20</span>
+        <!-- AVISO DE PLANO (Substitui o antigo Slider) -->
+        <div class="mt-5 mb-6">
+          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-2 block">Plano Atual</label>
+          
+          <div class="p-3 bg-brand-green/10 border border-brand-green/20 rounded-xl flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-white text-sm font-bold">Várzea (Grátis)</span>
+              <span class="text-brand-green text-xs">Até 3 participantes</span>
+            </div>
+            <div class="w-8 h-8 bg-black/30 rounded-full flex items-center justify-center border border-white/5">
+              <span class="text-sm">⚡</span>
+            </div>
+          </div>
+          
+          <p class="text-[11px] text-gray-400 mt-2 text-center">
+            Você poderá aumentar o limite e desbloquear os Desafios do Mago após criar o grupo.
+          </p>
         </div>
 
         <button onclick="criarGrupoReal()" id="btn-criar-grupo" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">

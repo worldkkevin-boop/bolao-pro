@@ -136,11 +136,10 @@ async function criarGrupoReal() {
   const { data: { user } } = await sbClient.auth.getUser();
   const codigo = Math.random().toString(36).substring(2, 9).toUpperCase();
   const leagueId = parseInt(document.getElementById('select-liga-grupo').value) || 1;
-  const maxPart = parseInt(document.getElementById('input-max-participantes').value) || 20;
 
   const { data: novoGrupo, error } = await sbClient
     .from('groups')
-    .insert([{ name: nome, invite_code: codigo, owner_id: user.id, league_id: leagueId, max_participants: maxPart }])
+    .insert([{ name: nome, invite_code: codigo, owner_id: user.id, league_id: leagueId, max_participants: 3 }])
     .select()
     .single();
 
