@@ -1216,19 +1216,69 @@ async function desfazerPagamentoPote(participanteId) {
   }
 }
 
-// Fechar o cofre e ninguém mais entra
-async function encerrarPoteAtual(poteId) {
-  if(!confirm("Tem certeza? Ninguém mais vai conseguir entrar nesse Pote!")) return;
+// ==================== O ENCERRAMENTO E COROAÇÃO (GM) ====================
 
+async function encerrarPoteAtual(poteId) {
+  // Busca apenas a galera que pagou (status_pagamento = 'pago') para listar
+  const { data: pagantes } = await sbClient
+    .from('potes_participantes')
+    .select('*, user_id (id, full_name)')
+    .eq('pote_id', poteId)
+    .eq('status_pagamento', 'pago');
+
+  if (!pagantes || pagantes.length === 0) {
+    if(confirm("Ninguém pagou este pote. Deseja encerrar sem vencedor?")) {
+      await sbClient.from('potes').update({ status: 'encerrado' }).eq('id', poteId);
+      fecharTesouraria();
+      if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
+    }
+    return;
+  }
+
+  // Monta as opções com os nomes dos jogadores
+  let opçõesHTML = pagantes.map(p => {
+    const nome = p.user_id ? (p.user_id.full_name || 'Jogador') : 'Jogador';
+    const id = p.user_id ? p.user_id.id : '';
+    return `<option value="${id}">⚽ ${nome}</option>`;
+  }).join('');
+  
+  // Muda a tela da Tesouraria para a Tela de Coroação
+  const container = document.getElementById('tesouraria-content');
+  container.innerHTML = `
+    <div class="text-center mb-6 animate-fade-in">
+      <span class="text-6xl drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]">👑</span>
+      <h3 class="text-white font-black text-xl uppercase mt-3 tracking-widest">Coroar Campeão</h3>
+      <p class="text-sm text-brand-green font-bold">Quem levou essa bolada?</p>
+    </div>
+    
+    <label class="text-[10px] text-text-muted font-black uppercase mb-1 block tracking-widest">Selecione o Vencedor</label>
+    <select id="select-vencedor" class="w-full bg-black/80 border border-yellow-500/50 rounded-xl p-3 text-white focus:border-yellow-500 outline-none appearance-none font-bold mb-5 shadow-[0_0_15px_rgba(234,179,8,0.1)]">
+      ${opçõesHTML}
+    </select>
+
+    <button onclick="confirmarVencedor('${poteId}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black font-black py-3.5 rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.4)] active:scale-95 transition-all flex justify-center items-center gap-2">
+      <span>🏆</span> Confirmar e Pagar
+    </button>
+    <button onclick="carregarDadosTesouraria()" class="w-full mt-3 bg-transparent text-gray-500 hover:text-white font-bold py-2 uppercase text-[10px] tracking-widest transition-all">Cancelar</button>
+  `;
+}
+
+async function confirmarVencedor(poteId) {
+  const vencedorId = document.getElementById('select-vencedor').value;
+  
+  showToast("Coroando o campeão...", "success");
+
+  // Salva no banco o ID do vencedor e fecha o Pote
   const { error } = await sbClient
     .from('potes')
-    .update({ status: 'encerrado' })
+    .update({ status: 'encerrado', vencedor_id: vencedorId })
     .eq('id', poteId);
 
   if (!error) {
-    showToast("Pote Encerrado!", "success");
+    showToast("Disputa Encerrada com Sucesso!", "success");
     fecharTesouraria();
-    if(typeof carregarPoteBanner === 'function') carregarPoteBanner(); // Atualiza a tela pra sumir o banner
+    if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
+    if(typeof verificarPremiosGanhos === 'function') verificarPremiosGanhos(); // Checa se o GM mesmo ganhou
   }
 }
 
