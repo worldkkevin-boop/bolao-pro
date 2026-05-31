@@ -229,6 +229,15 @@
         <button onclick="deslogar()" class="text-red-400 text-[13px] font-bold hover:text-red-300 transition-colors flex-shrink-0 ml-3">Sair</button>
       </div>
 
+      <!-- Push Notification Banner -->
+      <div id="push-notification-banner" class="hidden bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-2xl p-4 mb-4 flex items-start gap-3 cursor-pointer hover:bg-yellow-500/15 transition-all" onclick="inicializarNotificacoesPush()">
+        <span class="text-xl flex-shrink-0">🔔</span>
+        <div class="text-[13px] leading-relaxed font-medium">
+          <span class="font-bold text-white block mb-0.5">Ativar Notificações Push</span>
+          Receba avisos quando o GM confirmar seu PIX ou novos desafios! <span class="underline font-bold text-white">Ativar agora</span>
+        </div>
+      </div>
+
       <!-- Install App PWA Banner -->
       <div id="pwa-install-banner" class="hidden bg-brand-green/10 border border-brand-green/20 text-brand-green rounded-2xl p-4 mb-6 flex items-start gap-3 cursor-pointer hover:bg-brand-green/15 transition-all" onclick="abrirModal('modal-instalar-app')">
         <span class="text-xl flex-shrink-0">📲</span>

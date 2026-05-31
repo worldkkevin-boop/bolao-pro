@@ -57,6 +57,7 @@ function entrarNoApp(usuario) {
 
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('screen-app').classList.remove('hidden');
+  if (typeof verificarPermissaoPush === 'function') verificarPermissaoPush();
   // Restaura grupo e view anteriores se existirem
   const savedGroup = localStorage.getItem('last_active_group');
   const savedView = localStorage.getItem('last_active_view') || 'view-grupo-home';
@@ -383,4 +384,88 @@ async function inicializarApp() {
 document.addEventListener('DOMContentLoaded', () => {
   inicializarApp();
 });
+
+// ==================== WEB PUSH NOTIFICATIONS SYSTEM ====================
+
+function verificarPermissaoPush() {
+  const banner = document.getElementById('push-notification-banner');
+  if (!banner) return;
+
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    if (Notification.permission === 'default') {
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+async function inicializarNotificacoesPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showToast('Push não é suportado neste dispositivo.', 'error');
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('Permissão de notificações negada pelo usuário.', 'error');
+      verificarPermissaoPush();
+      return;
+    }
+
+    showToast("Ativando notificações...", "success");
+
+    const reg = await navigator.serviceWorker.ready;
+    
+    // NOTA: Esta chave pública VAPID deve ser a mesma configurada nas suas Edge Functions.
+    // Usamos uma chave padrão do ecossistema que você pode alterar ou manter caso o servidor use esta correspondente.
+    const VAPID_PUBLIC_KEY = 'BHzl9Wf2kFzaL9z_uA_2d5X_n4r1Z2X_aL9z_uA_2d5X_n4r1Z2X_aL9z_uA_2d5X_n4r1Z2X_';
+    const convertedVapidKey = urlB64ToUint8Array(VAPID_PUBLIC_KEY);
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedVapidKey
+    });
+
+    const parsedSub = JSON.parse(JSON.stringify(subscription));
+    const p256dh = parsedSub.keys.p256dh;
+    const auth = parsedSub.keys.auth;
+
+    // Salva no banco push_subscriptions do Supabase
+    const { error } = await sbClient
+      .from('push_subscriptions')
+      .insert([{
+        user_id: usuarioAtual.id,
+        endpoint: subscription.endpoint,
+        p256dh: p256dh,
+        auth: auth
+      }]);
+
+    if (error) throw error;
+
+    showToast('Notificações ativadas com sucesso! 🔔', 'success');
+    verificarPermissaoPush(); // Oculta o banner
+  } catch (err) {
+    console.error('Erro ao ativar Push:', err);
+    showToast('Erro ao ativar notificações: ' + err.message, 'error');
+  }
+}
+
+function urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
