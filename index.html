@@ -229,14 +229,6 @@
         <button onclick="deslogar()" class="text-red-400 text-[13px] font-bold hover:text-red-300 transition-colors flex-shrink-0 ml-3">Sair</button>
       </div>
 
-      <!-- Beta Warning Banner -->
-      <div class="bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl p-4 mb-6 flex items-start gap-3">
-        <span class="text-lg flex-shrink-0">🚧</span>
-        <div class="text-[13px] leading-relaxed font-medium">
-          <span class="font-bold">Beta Tester:</span> O Bolão Pro está em fase de testes. Encontrou um erro ou tem uma sugestão? <span onclick="abrirSuporteWhatsapp()" class="underline font-bold text-white cursor-pointer hover:text-brand-green">Chame no WhatsApp!</span>
-        </div>
-      </div>
-
       <!-- Install App PWA Banner -->
       <div id="pwa-install-banner" class="hidden bg-brand-green/10 border border-brand-green/20 text-brand-green rounded-2xl p-4 mb-6 flex items-start gap-3 cursor-pointer hover:bg-brand-green/15 transition-all" onclick="abrirModal('modal-instalar-app')">
         <span class="text-xl flex-shrink-0">📲</span>
@@ -272,10 +264,10 @@
       </div>
 
       <!-- Small start footer with support and install quick links -->
-      <div class="text-center mt-8 pb-4 flex flex-col items-center gap-1">
-        <p class="text-[11px] text-text-muted">Bolão Pro Beta v1.2</p>
+      <div class="text-center mt-8 pb-4 flex flex-col items-center gap-1.5">
+        <p class="text-[11px] text-text-muted">Bolão Pro Beta v1.2 • <span class="text-amber-500 font-semibold">Fase de Testes</span></p>
         <div class="flex items-center justify-center gap-3">
-          <button onclick="abrirSuporteWhatsapp()" class="text-[11px] text-brand-green hover:underline font-bold">Suporte no WhatsApp</button>
+          <button onclick="abrirSuporteWhatsapp()" class="text-[11px] text-brand-green hover:underline font-bold flex items-center gap-1">Suporte & Sugestões no WhatsApp 💬</button>
           <span class="text-zinc-700 text-[10px]">•</span>
           <button onclick="abrirModal('modal-instalar-app')" class="text-[11px] text-brand-green hover:underline font-bold flex items-center gap-1">Instalar no Celular 📲</button>
         </div>
@@ -318,6 +310,9 @@
 
       <!-- Container para Botão de Upgrade (Plano) -->
       <div id="container-upgrade-grupo" class="hidden"></div>
+
+      <!-- Container para Botão da Tesouraria -->
+      <div id="container-tesouraria-grupo" class="hidden mb-3"></div>
 
       <!-- Banner Modo TV Ao Vivo -->
       <div id="btn-ao-vivo-tv" onclick="abrirTVAoVivo()" class="bg-card-bg p-5 rounded-2xl border border-white/5 mb-6 transition-all hover:border-white/10 cursor-pointer flex items-center justify-between shadow-none active:scale-[0.98]">
@@ -885,6 +880,30 @@
             <!-- Listagem dinâmica de usuários -->
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL TESOURARIA DO GM ================= -->
+    <div id="modal-tesouraria" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] hidden items-center justify-center p-4 animate-fade-in" onclick="fecharTesouraria()">
+      <div class="bg-card-bg border border-brand-green/30 rounded-2xl w-full max-w-md shadow-[0_0_50px_rgba(0,255,100,0.15)] overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+        
+        <!-- Cabeçalho -->
+        <div class="bg-gradient-to-br from-brand-green/20 to-black p-5 border-b border-white/5 relative flex-shrink-0">
+          <button onclick="fecharTesouraria()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">💰</span>
+            <div>
+              <h2 class="text-white font-black text-xl uppercase tracking-widest">Tesouraria</h2>
+              <p class="text-brand-green text-xs font-bold">Gestão Financeira do Grupo</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo Dinâmico (Criar ou Gerenciar) -->
+        <div class="p-5 overflow-y-auto" id="tesouraria-content">
+          <!-- O JavaScript vai injetar os campos aqui dentro -->
+        </div>
+
       </div>
     </div>
 

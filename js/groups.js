@@ -161,8 +161,10 @@ async function atualizarBadgeVagas(grupoId) {
 
     // Renderiza o botão de upgrade se for o dono e estiver no plano grátis (limite <= 3)
     const containerUpgrade = document.getElementById('container-upgrade-grupo');
+    const containerTesouraria = document.getElementById('container-tesouraria-grupo');
+    const ehDono = usuarioAtual && (usuarioAtual.id === (grupoAtual && grupoAtual.owner_id));
+
     if (containerUpgrade) {
-      const ehDono = usuarioAtual && (usuarioAtual.id === (grupoAtual && grupoAtual.owner_id));
       const precisaUpgrade = limite <= 3;
       
       if (ehDono && precisaUpgrade) {
@@ -175,6 +177,20 @@ async function atualizarBadgeVagas(grupoId) {
       } else {
         containerUpgrade.classList.add('hidden');
         containerUpgrade.innerHTML = '';
+      }
+    }
+
+    if (containerTesouraria) {
+      if (ehDono) {
+        containerTesouraria.classList.remove('hidden');
+        containerTesouraria.innerHTML = `
+          <button onclick="abrirTesouraria()" class="w-full mt-2 bg-black/40 border border-brand-green/50 text-brand-green hover:bg-brand-green/10 font-black py-3 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95">
+            <span>💰</span> Abrir Tesouraria
+          </button>
+        `;
+      } else {
+        containerTesouraria.classList.add('hidden');
+        containerTesouraria.innerHTML = '';
       }
     }
   } catch (e) {
@@ -968,6 +984,115 @@ async function checarLimiteGruposUsuario() {
   } catch (err) {
     console.error("Erro ao verificar limite de grupos do usuário:", err);
     return true;
+  }
+}
+
+// ==================== SISTEMA DE TESOURARIA ====================
+
+// 1. Abre o Modal e carrega o status do dinheiro
+async function abrirTesouraria() {
+  const modal = document.getElementById('modal-tesouraria');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  await carregarDadosTesouraria();
+}
+
+function fecharTesouraria() {
+  const modal = document.getElementById('modal-tesouraria');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+// 2. Busca no Supabase se tem grana rolando
+async function carregarDadosTesouraria() {
+  const container = document.getElementById('tesouraria-content');
+  container.innerHTML = '<p class="text-center text-gray-400 py-4 animate-pulse">Abrindo o cofre...</p>';
+
+  // Procura um pote "aberto" neste grupo
+  const { data: poteAberto, error } = await sbClient
+    .from('potes')
+    .select('*')
+    .eq('group_id', grupoAtual.id)
+    .eq('status', 'aberto')
+    .maybeSingle();
+
+  // SE NÃO TEM POTE, MOSTRA A TELA DE CRIAÇÃO
+  if (!poteAberto) {
+    container.innerHTML = `
+      <div class="space-y-4">
+        <p class="text-sm text-gray-300 text-center mb-4">Nenhuma premiação ativa. Crie o Pote da rodada para a galera apostar!</p>
+        
+        <div>
+          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Nome da Disputa</label>
+          <input type="text" id="novo-pote-nome" placeholder="Ex: Rodada 17 ou Fim de Semana" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
+        </div>
+        
+        <div>
+          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Valor da Entrada (R$)</label>
+          <input type="number" id="novo-pote-valor" placeholder="Ex: 10.00" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
+        </div>
+        
+        <div>
+          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-1 block">Sua Chave PIX (Onde o dinheiro vai cair)</label>
+          <input type="text" id="novo-pote-pix" placeholder="CPF, Telefone ou E-mail" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-green outline-none">
+        </div>
+        
+        <button onclick="lancarPote()" class="w-full mt-2 bg-brand-green hover:bg-green-500 text-black font-black py-3 rounded-xl uppercase tracking-wide transition-all active:scale-95 shadow-[0_0_15px_rgba(0,255,100,0.4)]">
+          🚀 Lançar Pote Oficial
+        </button>
+      </div>
+    `;
+  } 
+  // SE JÁ TEM POTE, MOSTRA O PAINEL DE CONTROLE
+  else {
+    container.innerHTML = `
+      <div class="text-center mb-4 bg-black/30 p-4 rounded-xl border border-brand-green/20">
+        <h3 class="text-white font-black text-xl uppercase tracking-widest">${poteAberto.nome}</h3>
+        <p class="text-brand-green font-bold mt-1">Entrada: R$ ${parseFloat(poteAberto.valor_entrada).toFixed(2)}</p>
+        <p class="text-[11px] text-gray-400 mt-2">Chave Recebedora: <span class="text-white">${poteAberto.chave_pix_gm}</span></p>
+      </div>
+      
+      <div class="mt-6 border-t border-white/5 pt-4">
+        <h4 class="text-white font-bold text-sm mb-1">Status dos Pagamentos</h4>
+        <p class="text-xs text-gray-500 mb-4">Aqui vai aparecer quem já mandou o PIX pra você aprovar.</p>
+        
+        <!-- O botão de encerrar (pra fechar a rodada depois) -->
+        <button class="w-full mt-4 bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all">
+          Encerrar Pote
+        </button>
+      </div>
+    `;
+  }
+}
+
+// 3. Salva o Pote no Banco de Dados
+async function lancarPote() {
+  const nome = document.getElementById('novo-pote-nome').value;
+  const valor = document.getElementById('novo-pote-valor').value;
+  const pix = document.getElementById('novo-pote-pix').value;
+
+  if (!nome || !valor || !pix) {
+    showToast("Preencha todos os campos do Pote!", "error");
+    return;
+  }
+
+  showToast("Construindo o cofre...", "success");
+
+  const { error } = await sbClient.from('potes').insert([{
+    group_id: grupoAtual.id,
+    nome: nome,
+    valor_entrada: parseFloat(valor),
+    chave_pix_gm: pix,
+    status: 'aberto'
+  }]);
+
+  if (error) {
+    console.error("Erro no Supabase:", error);
+    showToast("Erro ao lançar o Pote. Tente novamente.", "error");
+  } else {
+    showToast("Pote Lançado! A galera já pode apostar.", "success");
+    // Atualiza a tela pra mostrar o painel de gerenciamento
+    carregarDadosTesouraria(); 
   }
 }
 
