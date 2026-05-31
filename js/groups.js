@@ -105,7 +105,7 @@ async function atualizarBadgeVagas(grupoId) {
       .eq('id', grupoId)
       .single();
 
-    const limite = (grp && grp.max_participants) ? grp.max_participants : 20;
+    const limite = (grp && grp.max_participants) ? grp.max_participants : 3;
     const vagas = limite - count;
 
     badge.classList.remove('hidden');
@@ -119,6 +119,25 @@ async function atualizarBadgeVagas(grupoId) {
       badge.innerText = `${count}/${limite} ⚡ ${vagas} vagas`;
     } else {
       badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-green/20 text-brand-green';
+    }
+
+    // Renderiza o botão de upgrade se for o dono e estiver no plano grátis (limite <= 3)
+    const containerUpgrade = document.getElementById('container-upgrade-grupo');
+    if (containerUpgrade) {
+      const ehDono = usuarioAtual && (usuarioAtual.id === (grupoAtual && grupoAtual.owner_id));
+      const precisaUpgrade = limite <= 3;
+      
+      if (ehDono && precisaUpgrade) {
+        containerUpgrade.classList.remove('hidden');
+        containerUpgrade.innerHTML = `
+          <button onclick="abrirModalUpgrade()" class="mt-3 w-full bg-gradient-to-r from-purple-600 to-brand-green hover:opacity-90 text-white font-black py-3 rounded-2xl text-xs uppercase tracking-wide shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all active:scale-95 flex items-center justify-center gap-2">
+            <span class="text-sm">⚡</span> Desbloquear 20 Vagas
+          </button>
+        `;
+      } else {
+        containerUpgrade.classList.add('hidden');
+        containerUpgrade.innerHTML = '';
+      }
     }
   } catch (e) {
     console.error('Erro ao buscar vagas:', e);

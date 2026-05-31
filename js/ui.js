@@ -2110,5 +2110,78 @@ function fecharOnboarding() {
   }
 }
 
+// ============ TELA DE UPGRADE (CHECKOUT) ============
+
+function abrirModalUpgrade() {
+  const overlay = document.createElement('div');
+  overlay.id = 'upgrade-overlay';
+  overlay.className = 'fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] flex items-center justify-center p-4 transition-all duration-300';
+
+  overlay.innerHTML = `
+    <div class="bg-card-bg border border-purple-500/30 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(147,51,234,0.15)] overflow-hidden transform transition-all duration-300 scale-100 opacity-100">
+      
+      <!-- Cabeçalho do Modal -->
+      <div class="bg-gradient-to-br from-purple-900/40 to-black p-6 text-center border-b border-white/5 relative">
+        <button onclick="fecharModalUpgrade()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+        <div class="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center border border-purple-500/50 mx-auto mb-3">
+          <span class="text-3xl">👑</span>
+        </div>
+        <h2 class="text-white font-black text-xl uppercase tracking-widest">Plano Resenha</h2>
+        <p class="text-brand-green font-bold mt-1 text-sm">Apenas R$ 9,90 <span class="text-text-muted text-xs font-normal">(Pagamento Único)</span></p>
+      </div>
+      
+      <!-- Benefícios -->
+      <div class="p-6">
+        <div class="space-y-4 mb-8">
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-lg">✅</span>
+            <p class="text-[13px] text-gray-200">Aumenta o limite para <strong class="text-white">20 participantes</strong></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-purple-400 text-lg">⚡</span>
+            <p class="text-[13px] text-gray-200">Libera os <strong class="text-purple-400">Desafios do Mago</strong> ao vivo</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-lg">📺</span>
+            <p class="text-[13px] text-gray-200">Acesso total ao <strong class="text-white">Modo TV</strong> e Ranking</p>
+          </div>
+        </div>
+        
+        <!-- Botão Mercado Pago -->
+        <button onclick="iniciarPagamentoMercadoPago()" class="w-full bg-[#009EE3] hover:bg-[#0080B7] text-white font-black py-3.5 rounded-xl uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2">
+          <img src="https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png" alt="MP" class="w-5 h-5 brightness-0 invert">
+          Pagar com Mercado Pago
+        </button>
+        <p class="text-[10px] text-center text-gray-500 mt-3 flex items-center justify-center gap-1">
+          🔒 Pagamento 100% seguro
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+}
+
+function fecharModalUpgrade() {
+  const overlay = document.getElementById('upgrade-overlay');
+  if (overlay) {
+    overlay.classList.add('opacity-0');
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-100', 'opacity-100');
+      child.classList.add('scale-95', 'opacity-0');
+    }
+    setTimeout(() => overlay.remove(), 300);
+  }
+}
+
+// Função que fará a ponte com o Mercado Pago
+async function iniciarPagamentoMercadoPago() {
+  if (typeof showToast === 'function') {
+    showToast("Gerando link de pagamento...", "success");
+  }
+  // TODO: Chamar Edge Function do Supabase
+}
+
 
 
