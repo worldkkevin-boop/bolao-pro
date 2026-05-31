@@ -845,6 +845,27 @@
           </div>
         </div>
 
+        <!-- Card: Alertas da Partida -->
+        <div class="bg-card-bg rounded-2xl p-5 border border-zinc-800/80 mb-6 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+          <h3 class="font-bold mb-3 text-[13px] text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>📢</span> Alertas dos Jogos
+          </h3>
+          <p class="text-[10px] text-zinc-400 mb-4 font-medium">Notifique a galera do grupo no celular sobre a partida selecionada acima.</p>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="alertarInicioJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-yellow-500 border border-yellow-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">⏰</span> Aquecimento
+            </button>
+            <button onclick="alertarGolJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-emerald-400 border border-emerald-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">⚽</span> Grito de Gol
+            </button>
+            <button onclick="alertarFimJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-red-500 border border-red-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">🏁</span> Apito Final
+            </button>
+          </div>
+        </div>
+
         <!-- Seção: Gerenciar Desafios -->
         <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Histórico de Desafios</h3>
         <div id="lista-desafios-gm" class="space-y-3 pb-8">

@@ -767,3 +767,86 @@ async function compartilharDesafioGM(matchName, eventType, points, playersArray,
 
 // Executa na carga do script para garantir que o botão apareça se a sessão já estiver recuperada
 verificarUsuarioGM();
+
+// ==================== DISPAROS DE ALERTAS DE JOGOS (GM) ====================
+
+function obterJogoSelecionadoGM() {
+  const selectJogo = document.getElementById('select-gm-jogo');
+  if (!selectJogo || !selectJogo.value) {
+    showToast('Selecione uma partida primeiro!', 'error');
+    return null;
+  }
+  const selectedOptionText = selectJogo.options[selectJogo.selectedIndex].text;
+  // Limpa o "(30/05 21:00)" do final do nome se existir
+  const indexParentese = selectedOptionText.lastIndexOf(' (');
+  const matchName = indexParentese !== -1 ? selectedOptionText.substring(0, indexParentese) : selectedOptionText;
+  return { id: selectJogo.value, name: matchName };
+}
+
+async function alertarInicioJogo() {
+  const jogo = obterJogoSelecionadoGM();
+  if (!jogo) return;
+
+  if (confirm(`Deseja enviar o alerta de Aquecimento para a partida: ${jogo.name}?`)) {
+    showToast("Enviando alerta...", "success");
+    if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+      await dispararNotificacaoPush({
+        groupId: grupoAtual.id,
+        title: '⏰ O aquecimento começou!',
+        body: `${jogo.name} começa em breve. Já enviou seu palpite na aba de jogos?`,
+        url: '/'
+      });
+      showToast("Alerta Pré-Jogo disparado!", "success");
+    }
+  }
+}
+
+async function alertarGolJogo() {
+  const jogo = obterJogoSelecionadoGM();
+  if (!jogo) return;
+
+  const timeGol = prompt(`Qual time fez o gol na partida ${jogo.name}? (Ex: Flamengo, Vasco, etc. ou deixe em branco para gol geral)`);
+  if (timeGol === null) return;
+
+  let corpoMensagem = `Saiu um gol na partida ${jogo.name}! Será que o seu placar exato ainda tá vivo? Abra o app e confira!`;
+  let titulo = '⚽ GOL!';
+  if (timeGol.trim() !== "") {
+    titulo = `⚽ GOL do ${timeGol.trim()}!`;
+    corpoMensagem = `GOL do ${timeGol.trim()} em ${jogo.name}! Seu palpite ainda tá vivo? Confira a resenha no app!`;
+  }
+
+  showToast("Enviando alerta de Gol...", "success");
+  if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+    await dispararNotificacaoPush({
+      groupId: grupoAtual.id,
+      title: titulo,
+      body: corpoMensagem,
+      url: '/'
+    });
+    showToast("Alerta de Gol disparado!", "success");
+  }
+}
+
+async function alertarFimJogo() {
+  const jogo = obterJogoSelecionadoGM();
+  if (!jogo) return;
+
+  const placar = prompt(`Qual foi o placar final de ${jogo.name}? (Ex: 2x1, 1x0, etc.)`);
+  if (placar === null) return;
+
+  let corpoMensagem = `Fim de Papo em ${jogo.name}. A tabela atualizou! Veja quantos pontos você somou no Ranking.`;
+  if (placar.trim() !== "") {
+    corpoMensagem = `Fim de Papo! ${jogo.name} terminou em ${placar.trim()}. A tabela atualizou! Veja seu Ranking.`;
+  }
+
+  showToast("Enviando alerta de Fim de Jogo...", "success");
+  if (typeof dispararNotificacaoPush === 'function' && grupoAtual) {
+    await dispararNotificacaoPush({
+      groupId: grupoAtual.id,
+      title: '🏁 Apito Final!',
+      body: corpoMensagem,
+      url: '/'
+    });
+    showToast("Alerta de Apito Final disparado!", "success");
+  }
+}
