@@ -1128,13 +1128,19 @@ function mostrarFormularioNovoPote() {
   const div = document.getElementById('tesouraria-novo-pote-area');
   if(!div) return;
   div.classList.remove('hidden');
-  // Reutiliza o formulário que tínhamos antes
   div.innerHTML = `
     <p class="text-xs text-white font-bold mb-3 border-b border-white/10 pb-2">Lançar Nova Disputa</p>
     <div class="space-y-3">
-      <input type="text" id="novo-pote-nome" placeholder="Nome (Ex: Pote Geral)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      <input type="text" id="novo-pote-nome" placeholder="Nome (Ex: Prêmio do Brasileirão)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
       <input type="number" id="novo-pote-valor" placeholder="Valor da Entrada (R$)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
       <input type="text" id="novo-pote-pix" placeholder="Sua Chave PIX" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      
+      <!-- NOVA OPÇÃO: MARCAR COMO GERAL -->
+      <div class="flex items-center gap-2 mt-2 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
+        <input type="checkbox" id="novo-pote-geral" class="w-4 h-4 accent-yellow-500">
+        <label for="novo-pote-geral" class="text-[10px] text-yellow-500 uppercase tracking-widest font-black cursor-pointer">Definir como Prêmio Geral (Fixo no Topo)</label>
+      </div>
+
       <div class="flex gap-2 pt-1">
         <button onclick="document.getElementById('tesouraria-novo-pote-area').classList.add('hidden')" class="w-1/3 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-lg text-[10px] uppercase transition-all">Cancelar</button>
         <button onclick="lancarPote()" class="w-2/3 bg-brand-green hover:bg-green-500 text-black font-black py-2.5 rounded-lg text-[10px] uppercase transition-all shadow-[0_0_15px_rgba(0,255,100,0.4)]">Lançar Pote</button>
@@ -1148,6 +1154,7 @@ async function lancarPote() {
   const nome = document.getElementById('novo-pote-nome').value;
   const valor = document.getElementById('novo-pote-valor').value;
   const pix = document.getElementById('novo-pote-pix').value;
+  const isGeral = document.getElementById('novo-pote-geral').checked; // Lê o checkbox
 
   if (!nome || !valor || !pix) {
     showToast("Preencha todos os campos do Pote!", "error");
@@ -1161,17 +1168,18 @@ async function lancarPote() {
     nome: nome,
     valor_entrada: parseFloat(valor),
     chave_pix_gm: pix,
-    status: 'aberto'
+    status: 'aberto',
+    is_geral: isGeral // Salva no banco se é o geral ou não
   }]);
 
   if (error) {
     console.error("Erro no Supabase:", error);
     showToast("Erro ao lançar o Pote. Tente novamente.", "error");
   } else {
-    showToast("Pote Lançado! A galera já pode apostar.", "success");
-    // Atualiza a tela pra mostrar o painel de gerenciamento
+    showToast("Pote Lançado!", "success");
+    document.getElementById('tesouraria-novo-pote-area').classList.add('hidden');
     carregarDadosTesouraria();
-    carregarPoteBanner();
+    if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
   }
 }
 
@@ -1224,86 +1232,104 @@ async function encerrarPoteAtual(poteId) {
   }
 }
 
-// ==================== O CARROSSEL DE POTES (TELA DOS JOGADORES) ====================
-
 async function carregarPoteBanner() {
-  const container = document.getElementById('pote-banner-container');
-  if (!container) return;
-  container.innerHTML = ''; // Limpa antes de começar
-
-  if (!grupoAtual || !usuarioAtual) return;
-
-  // 1. Busca TODOS os potes abertos do grupo
   const { data: potes, error: erroPotes } = await sbClient
     .from('potes')
     .select('*')
     .eq('group_id', grupoAtual.id)
     .eq('status', 'aberto');
 
-  if (erroPotes || !potes || potes.length === 0) {
-    return;
-  }
+  // Limpa o que já estava na tela
+  const containerAntigo = document.getElementById('potes-master-container');
+  if(containerAntigo) containerAntigo.remove();
 
-  // 2. Busca os participantes de TODOS esses potes de uma vez só (Otimização de Banco)
+  const containerFixo = document.getElementById('pote-banner-container');
+  if (containerFixo) containerFixo.innerHTML = '';
+
+  if (erroPotes || !potes || potes.length === 0) return;
+
+  // Busca quem pagou de uma vez só
   const potesIds = potes.map(p => p.id);
-  const { data: participantes, error: erroPart } = await sbClient
+  const { data: participantes } = await sbClient
     .from('potes_participantes')
     .select('*')
     .in('pote_id', potesIds);
 
-  // 3. Monta o Carrossel Deslizante
-  let carrosselHTML = `
-    <div id="potes-carousel-container" class="my-4">
-      <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 hide-scrollbar" style="scrollbar-width: none;">
-  `;
+  // SEPARA O JOIO DO TRIGO: Acha qual é o Pote Geral e quais são os Potes de Rodada
+  const poteGeral = potes.find(p => p.is_geral === true);
+  const potesRodada = potes.filter(p => p.is_geral === false);
 
-  potes.forEach(pote => {
-    // Filtra só a galera desse pote específico
-    const partsPote = participantes ? participantes.filter(p => p.pote_id === pote.id) : [];
-    
+  let masterHTML = '<div id="potes-master-container" class="my-4 flex flex-col gap-3">';
+
+  // 1. DESENHA O POTE GERAL (Fixo, Elegante e Sempre Visível)
+  if (poteGeral) {
+    const partsPote = participantes ? participantes.filter(p => p.pote_id === poteGeral.id) : [];
     const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
-    const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
+    const valorAcumulado = qtdPagantes * parseFloat(poteGeral.valor_entrada);
     const meuStatus = partsPote.find(p => p.user_id === usuarioAtual.id);
 
-    let botaoHTML = '';
+    let botaoGeral = '';
     if (!meuStatus) {
-      botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-400 text-black font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(234,179,8,0.3)] active:scale-95">
-        🔥 Entrar (R$ ${parseFloat(pote.valor_entrada).toFixed(2)})
-      </button>`;
+       botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', '${poteGeral.chave_pix_gm}', ${poteGeral.valor_entrada})" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
     } else if (meuStatus.status_pagamento === 'pendente') {
-      botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 border border-orange-500 text-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase tracking-widest active:scale-95">
-        ⏳ PIX Pendente (Ver Chave)
-      </button>`;
+       botaoGeral = `<button onclick="verChavePix('${poteGeral.chave_pix_gm}', ${poteGeral.valor_entrada})" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
     } else {
-      botaoHTML = `<div class="w-full bg-brand-green/10 border border-brand-green/30 text-brand-green font-black py-2.5 rounded-xl text-[10px] uppercase tracking-widest text-center">
-        ✅ PIX Confirmado!
-      </div>`;
+       botaoGeral = `<div class="bg-brand-green/20 text-brand-green border border-brand-green/50 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase whitespace-nowrap">✅ Confirmado</div>`;
     }
 
-    // Monta o Card do Pote (Snap Center pra centralizar bonitinho na tela do celular)
-    carrosselHTML += `
-      <div class="min-w-[85%] sm:min-w-[300px] snap-center bg-gradient-to-br from-yellow-900/40 to-black border border-yellow-500/40 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_30px_rgba(234,179,8,0.1)] flex-shrink-0">
-        <div class="absolute -right-6 -top-6 text-7xl opacity-10 blur-[2px]">💰</div>
-        <div class="relative z-10 flex flex-col items-center text-center">
-          <span class="text-yellow-500 text-[9px] font-black tracking-widest uppercase bg-yellow-500/10 px-2 py-1 rounded-md mb-2 border border-yellow-500/20">
-            🏆 ${pote.nome}
-          </span>
-          <h2 class="text-3xl font-black text-white mb-4 tracking-tight" style="text-shadow: 0 0 15px rgba(234,179,8,0.5);">
-            R$ ${valorAcumulado.toFixed(2)}
-          </h2>
-          ${botaoHTML}
+    masterHTML += `
+      <div class="bg-gradient-to-r from-yellow-900/30 to-black border border-yellow-500/50 rounded-xl p-3 flex justify-between items-center shadow-[0_0_15px_rgba(234,179,8,0.1)]">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]">🏆</span>
+          <div class="flex flex-col">
+            <span class="text-yellow-500 text-[9px] font-black uppercase tracking-widest">${poteGeral.nome}</span>
+            <span class="text-white font-black text-xl leading-tight">R$ ${valorAcumulado.toFixed(2)}</span>
+          </div>
         </div>
+        <div>${botaoGeral}</div>
       </div>
     `;
-  });
+  }
 
-  carrosselHTML += `
-      </div>
-      <p class="text-[9px] text-center text-gray-500 uppercase tracking-widest mt-1">Deslize para ver mais disputas ↔</p>
-    </div>
-  `;
+  // 2. DESENHA O CARROSSEL (Potes das Rodadas)
+  if (potesRodada.length > 0) {
+    masterHTML += `<div class="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 hide-scrollbar" style="scrollbar-width: none;">`;
+    
+    potesRodada.forEach(pote => {
+      const partsPote = participantes ? participantes.filter(p => p.pote_id === pote.id) : [];
+      const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
+      const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
+      const meuStatus = partsPote.find(p => p.user_id === usuarioAtual.id);
 
-  container.innerHTML = carrosselHTML;
+      let botaoHTML = '';
+      if (!meuStatus) {
+        botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
+      } else if (meuStatus.status_pagamento === 'pendente') {
+        botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
+      } else {
+        botaoHTML = `<div class="w-full bg-brand-green/10 text-brand-green border border-brand-green/30 font-black py-2.5 rounded-xl text-[10px] uppercase text-center">✅ Confirmado</div>`;
+      }
+
+      masterHTML += `
+        <div class="min-w-[75%] sm:min-w-[250px] snap-center bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col items-center text-center flex-shrink-0">
+          <span class="text-gray-400 text-[9px] font-black uppercase tracking-widest mb-1">${pote.nome}</span>
+          <h2 class="text-2xl font-black text-white mb-3">R$ ${valorAcumulado.toFixed(2)}</h2>
+          ${botaoHTML}
+        </div>
+      `;
+    });
+    
+    masterHTML += `</div>`;
+  }
+
+  masterHTML += `</div>`;
+
+  if (containerFixo) {
+    containerFixo.innerHTML = masterHTML;
+  } else {
+    const headerContainer = document.getElementById('group-header-info');
+    if (headerContainer) headerContainer.insertAdjacentHTML('afterend', masterHTML);
+  }
 }
 
 async function entrarNoPote(poteId, chavePixGm, valor) {
