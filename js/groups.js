@@ -1142,7 +1142,6 @@ function mostrarFormularioNovoPote() {
     </div>
   `;
 }
-}
 
 // 3. Salva o Pote no Banco de Dados
 async function lancarPote() {
