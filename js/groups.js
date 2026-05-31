@@ -1493,8 +1493,8 @@ function resgatarPremio(nomePote, valor) {
   // O truque da URL: api.whatsapp sem número fixo abre a lista de contatos do cara para ele escolher o grupo ou o GM!
   const urlBase = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
   
-  // Abre em uma nova aba (no celular, isso abre o App do WhatsApp na hora)
-  window.open(urlBase, '_blank');
+  // Abre direto (no celular, isso abre o App do WhatsApp na hora sem ser bloqueado por popup)
+  window.location.href = urlBase;
 }
 
 
