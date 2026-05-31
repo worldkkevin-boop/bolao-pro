@@ -657,7 +657,7 @@ function copiarCodigo() {
 async function compartilharGrupo() {
   if (!grupoAtual || !grupoAtual.invite_code) return;
   
-  const grupoNome = grupoAtual.nome;
+  const grupoNome = grupoAtual.name || grupoAtual.nome || 'Grupo';
   const codigo = grupoAtual.invite_code;
   
   // Pega dinamicamente a URL de onde o site está rodando
@@ -748,7 +748,7 @@ async function uploadIcone(event) {
 async function alterarNomeGrupoPrompt() {
   if (!grupoAtual || !sbClient) return;
 
-  const novoNome = prompt("Digite o novo nome do grupo:", grupoAtual.nome);
+  const novoNome = prompt("Digite o novo nome do grupo:", grupoAtual.name || grupoAtual.nome || 'Grupo');
   if (novoNome === null) return; // Clicou em Cancelar
   
   const novoNomeTrimmed = novoNome.trim();
@@ -757,7 +757,7 @@ async function alterarNomeGrupoPrompt() {
     return;
   }
   
-  if (novoNomeTrimmed === grupoAtual.nome) {
+  if (novoNomeTrimmed === (grupoAtual.name || grupoAtual.nome)) {
     return;
   }
   
@@ -774,6 +774,7 @@ async function alterarNomeGrupoPrompt() {
     }
     
     // Atualiza o estado local
+    grupoAtual.name = novoNomeTrimmed;
     grupoAtual.nome = novoNomeTrimmed;
     
     // Atualiza a UI
@@ -802,7 +803,7 @@ async function excluirGrupoReal() {
     return;
   }
   
-  if (confirm("ALERTA DE PERIGO! 🚨\nVocê tem certeza que quer excluir o bolão \"" + grupoAtual.nome + "\"? Todos os palpites, pontuações e membros serão permanentemente apagados. ISSO NÃO TEM VOLTA!")) {
+  if (confirm("ALERTA DE PERIGO! 🚨\nVocê tem certeza que quer excluir o bolão \"" + (grupoAtual.name || grupoAtual.nome || 'Grupo') + "\"? Todos os palpites, pontuações e membros serão permanentemente apagados. ISSO NÃO TEM VOLTA!")) {
     try {
       showToast("Excluindo grupo...", "info");
       const { error } = await sbClient
@@ -2008,7 +2009,7 @@ async function compartilharListaPoteWhatsApp() {
 
     const valorEntrada = parseFloat(poteSelecionado.valor_entrada);
     const totalAcumulado = pagos.length * valorEntrada;
-    const nomeGrupo = grupoAtual.nome;
+    const nomeGrupo = grupoAtual.name || grupoAtual.nome || 'Grupo';
 
     // Gerando o texto do template com base no grupo atual
     let texto = `⚽ BOLÃO DO ${nomeGrupo.toUpperCase()} 💰\n\n`;

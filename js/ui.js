@@ -144,7 +144,7 @@ function switchView(targetViewId) {
     filtrarPorRodada(rodadaSelecionada);
   } else if (targetViewId === 'view-ranking') {
     if (grupoAtual) {
-      document.getElementById('nome-grupo-ranking').innerText = grupoAtual.nome;
+      document.getElementById('nome-grupo-ranking').innerText = grupoAtual.name || grupoAtual.nome || 'Grupo';
       atualizarSeletorRanking();
       exibirRankingSelecionado();
     } else {
@@ -198,7 +198,7 @@ function switchView(targetViewId) {
         adminSettings.classList.remove('hidden');
         const nameText = document.getElementById('txt-nome-grupo-atual');
         if (nameText) {
-          nameText.innerText = grupoAtual.nome || '';
+          nameText.innerText = grupoAtual.name || grupoAtual.nome || '';
         }
         const chkPrivado = document.getElementById('chk-grupo-privado');
         if (chkPrivado) {
@@ -1828,7 +1828,7 @@ async function compartilharRankingWhatsApp() {
   const seletor = document.getElementById('seletor-ranking');
   const tipoTexto = seletor ? seletor.options[seletor.selectedIndex].text : 'Ranking Geral';
 
-  let msg = `🏆 *${tipoTexto} - Bolão ${grupoAtual.nome}* 🏆\n\n`;
+  let msg = `🏆 *${tipoTexto} - Bolão ${grupoAtual.name || grupoAtual.nome || 'Grupo'}* 🏆\n\n`;
 
   ranking.slice(0, 10).forEach((user, index) => {
     const posicao = index + 1;
