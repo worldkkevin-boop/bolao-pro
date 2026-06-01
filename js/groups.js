@@ -592,7 +592,7 @@ async function buscarDesafioAtivoHome() {
     }
 
     // Filtra desafios que pertencem às partidas carregadas para a liga do grupo atual
-    const desafiosAtivosGrupo = desafios.filter(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
+    const desafiosAtivosGrupo = desafios.filter(d => todosOsJogos.some(j => Number(j.fixture.id) === Number(d.fixture_id)));
 
     if (desafiosAtivosGrupo.length > 0) {
       container.innerHTML = ''; // Limpa o container

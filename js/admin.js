@@ -86,6 +86,10 @@ function adminApp() {
     // Oráculo
     oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
 
+    // Finalização de desafio com vencedor
+    desafioParaFinalizar: null,
+    desafioFinalizando: false,
+
     // Métricas de Banco de Dados
     metricas: {
       loading: false,
@@ -714,27 +718,53 @@ function adminApp() {
       }
     },
 
-    async finalizarDesafioGM(desafioId) {
-      if (!confirm('Tem certeza que deseja FINALIZAR este desafio? Ele será marcado como resolvido.')) return;
+    selecionarVencedorUI(desafio) {
+      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points };
+    },
+
+    async confirmarVencedorGM(vencedor) {
+      const d = this.desafioParaFinalizar;
+      if (!d || !vencedor || this.desafioFinalizando) return;
+      this.desafioFinalizando = true;
 
       const startTime = Date.now();
       try {
-        const { error } = await sbClient
+        const { error: e1 } = await sbClient
           .from('desafios')
-          .update({ status: 'resolved' })
-          .eq('id', desafioId);
+          .update({ status: 'resolved', vencedor })
+          .eq('id', d.id);
+        if (e1) throw e1;
 
-        if (error) throw error;
+        // Busca votos corretos e distribui pontos
+        const { data: votos } = await sbClient
+          .from('user_desafios')
+          .select('id')
+          .eq('desafio_id', d.id)
+          .eq('chosen_player', vencedor);
 
-        const duration = Date.now() - startTime;
-        this.adicionarLog('Supabase', 'UPDATE desafios (finalizar)', 'SUCCESS', duration, `Desafio ${desafioId.substring(0, 8)} finalizado`);
+        if (votos?.length > 0) {
+          const ids = votos.map(v => v.id);
+          await sbClient.from('user_desafios')
+            .update({ points_awarded: d.pontos })
+            .in('id', ids);
+        }
 
+        const nVenc = votos?.length || 0;
+        this.adicionarLog('Supabase', 'UPDATE desafios + user_desafios (resolver)', 'SUCCESS', Date.now() - startTime, `Vencedor: ${vencedor} | ${nVenc} premiado(s)`);
+        showToast(`Desafio resolvido! ${nVenc} jogador(es) ganharam +${d.pontos} pts 🏆`, 'mago');
+
+        this.desafioParaFinalizar = null;
         this.carregarDesafiosGM();
       } catch (err) {
-        const duration = Date.now() - startTime;
-        this.adicionarLog('Supabase', 'UPDATE desafios', 'ERROR', duration, err.message);
-        showToast('Erro ao finalizar: ' + err.message, 'error');
+        this.adicionarLog('Supabase', 'UPDATE desafios (resolver)', 'ERROR', Date.now() - startTime, err.message);
+        showToast('Erro ao resolver desafio: ' + err.message, 'error');
+      } finally {
+        this.desafioFinalizando = false;
       }
+    },
+
+    traduzirAdvice(texto) {
+      return traduzirAdviceOraculoAPI(texto);
     },
 
     async excluirDesafioGM(desafioId) {
@@ -975,6 +1005,54 @@ async function analisarDistorcaoPalpites(fixtureId) {
     },
     goals: pred.predictions.goals
   };
+}
+
+function traduzirAdviceOraculoAPI(texto) {
+  if (!texto) return '—';
+  let t = texto.trim();
+
+  // "Combo Double chance : X or draw and -2.5 goals"
+  const comboDouble = t.match(/combo double chance\s*:\s*(.+?)\s+or\s+draw\s+and\s+(-[\d.]+)\s+goals?/i);
+  if (comboDouble) {
+    const gols = Math.abs(parseFloat(comboDouble[2]));
+    return `Combinada: ${comboDouble[1]} ou Empate + Menos de ${gols} gols na partida`;
+  }
+
+  // "Double chance : X or draw"
+  const doubleChance = t.match(/double chance\s*:\s*(.+?)\s+or\s+draw/i);
+  if (doubleChance) return `Dupla Chance: ${doubleChance[1]} vence ou Empate`;
+
+  // "Win or draw : X"
+  const winOrDraw = t.match(/win or draw\s*:\s*(.+)/i);
+  if (winOrDraw) return `${winOrDraw[1]} não perde — vitória ou empate`;
+
+  // "X to win"
+  const toWin = t.match(/^(.+?)\s+to\s+win$/i);
+  if (toWin) return `${toWin[1]} para vencer`;
+
+  // "Both teams to score"
+  if (/both teams to score/i.test(t)) return 'Ambas as equipes marcam gol';
+
+  // "Under X goals"
+  const under = t.match(/under\s+([\d.]+)\s+goals?/i);
+  if (under) return `Menos de ${under[1]} gols na partida`;
+
+  // "Over X goals"
+  const over = t.match(/over\s+([\d.]+)\s+goals?/i);
+  if (over) return `Mais de ${over[1]} gols na partida`;
+
+  // "No goal in the first half"
+  if (/no goal in the first half/i.test(t)) return 'Sem gols no primeiro tempo';
+
+  // "X to score first"
+  const scoreFirst = t.match(/(.+?)\s+to\s+score\s+first/i);
+  if (scoreFirst) return `${scoreFirst[1]} marca primeiro`;
+
+  // "Draw No Bet : X"
+  const dnb = t.match(/draw no bet\s*:\s*(.+)/i);
+  if (dnb) return `Aposta sem empate: ${dnb[1]} (devolve se empatar)`;
+
+  return t;
 }
 
 function validarLiquidez(distribuicao) {

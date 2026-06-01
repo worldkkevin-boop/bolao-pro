@@ -1184,7 +1184,7 @@ async function carregarPalpitesDosAmigos(matchId) {
 
 async function abrirTelaPalpite(id) {
   localStorage.setItem('last_active_match_id', id);
-  jogoAtual = todosOsJogos.find(j => j.fixture.id === id);
+  jogoAtual = todosOsJogos.find(j => Number(j.fixture.id) === Number(id));
   if (!jogoAtual) return;
 
   const homeNome     = jogoAtual.teams.home.name;
@@ -2138,7 +2138,7 @@ async function carregarDesafiosUsuarioView() {
         return;
       }
 
-      const desafiosGrupo = (desafios || []).filter(d => todosOsJogos.some(j => j.fixture.id === d.fixture_id));
+      const desafiosGrupo = (desafios || []).filter(d => todosOsJogos.some(j => Number(j.fixture.id) === Number(d.fixture_id)));
 
       if (desafiosGrupo.length === 0) {
         listaAtivos.innerHTML = renderEmptyState(

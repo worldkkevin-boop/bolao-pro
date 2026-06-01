@@ -34,5 +34,6 @@ ALTER TABLE groups
   ADD COLUMN IF NOT EXISTS desafios_ativados BOOLEAN DEFAULT false; -- Liga/desliga desafios no grupo
 
 ALTER TABLE desafios
-  ADD COLUMN IF NOT EXISTS custo_fichas INT DEFAULT 0;     -- Custo em fichas para participar do desafio
+  ADD COLUMN IF NOT EXISTS custo_fichas INT DEFAULT 0,     -- Custo em fichas para participar do desafio
+  ADD COLUMN IF NOT EXISTS vencedor TEXT;                  -- Opção vencedora (preenchida pelo GM ao resolver)
 
