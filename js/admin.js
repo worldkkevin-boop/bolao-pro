@@ -801,13 +801,13 @@ function adminApp() {
                 <api-sports-widget data-type="config"
                   data-key="47ca2bb05eb5931347aca04964818eb5"
                   data-sport="football"
-                  data-lang="pt"
+                  data-lang="en"
                   data-theme="dark"
                   data-show-errors="true"
                 ></api-sports-widget>
                 
                 <!-- Widget do Jogo -->
-                <api-sports-widget data-type="game" data-game-id="${fixtureId}" data-game-tab="events"></api-sports-widget>
+                <api-sports-widget data-type="game" data-game-id="${fixtureId}"></api-sports-widget>
               </body>
               </html>
             `.replace(/"/g, '&quot;'); // Escapa aspas para o srcdoc
