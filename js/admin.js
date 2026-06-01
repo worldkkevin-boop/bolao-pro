@@ -774,11 +774,11 @@ function adminApp() {
     },
 
     selecionarVencedorUI(desafio) {
-      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, isEdit: false };
+      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: false };
     },
 
     editarVencedorUI(desafio) {
-      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, isEdit: true };
+      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: true };
     },
 
     nomesCoincidem(nome1, nome2) {

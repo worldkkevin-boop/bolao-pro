@@ -1395,6 +1395,17 @@
       </div>
       <p class="text-[10px] text-zinc-500 mb-5">Qual opção foi a <strong class="text-amber-400">vencedora</strong>? Os jogadores corretos receberão <span class="text-amber-400 font-black" x-text="'+' + (desafioParaFinalizar?.pontos || 0) + ' pts'"></span> automaticamente.</p>
 
+      <!-- API-Sports Widget (Match Center) -->
+      <template x-if="desafioParaFinalizar?.fixture_id">
+        <div class="mb-4 bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800">
+          <api-sports-widget 
+            data-type="game" 
+            :data-game-id="desafioParaFinalizar.fixture_id"
+            data-game-tab="events"
+          ></api-sports-widget>
+        </div>
+      </template>
+
       <div class="space-y-2">
         <template x-for="player in (desafioParaFinalizar?.players || [])" :key="player">
           <button
@@ -1420,5 +1431,8 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="js/config.js?v=7"></script>
   <script src="js/admin.js?v=7"></script>
+  
+  <!-- API Sports Widget Script -->
+  <script type="module" src="https://widgets.api-sports.io/2.0.0/widget.js"></script>
 </body>
 </html>
