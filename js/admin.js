@@ -901,3 +901,279 @@ function adminApp() {
     }
   };
 }
+
+// ============================================================
+// FUNÇÕES STANDALONE — Terminal do Mago (admin.html)
+// ============================================================
+
+async function analisarDistorcaoPalpites(fixtureId) {
+  const resp = await fetch(`https://v3.football.api-sports.io/predictions?fixture=${fixtureId}`, {
+    headers: {
+      'x-rapidapi-host': 'v3.football.api-sports.io',
+      'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
+    }
+  });
+  if (!resp.ok) throw new Error(`API-Football ${resp.status}`);
+  const json = await resp.json();
+  if (!json.response || json.response.length === 0) throw new Error('Sem predições para esta partida.');
+  const pred = json.response[0];
+  const pct = pred.predictions.percent;
+  return {
+    teams: pred.teams,
+    winner: pred.predictions.winner,
+    advice: pred.predictions.advice,
+    percent: {
+      home: parseFloat(pct.home) || 0,
+      draw: parseFloat(pct.draw) || 0,
+      away: parseFloat(pct.away) || 0
+    },
+    goals: pred.predictions.goals
+  };
+}
+
+function validarLiquidez(distribuicao) {
+  if (!distribuicao || distribuicao.total === 0) {
+    return { status: 'sem_dados', label: 'SEM PALPITES', premiacao: 'migalhas',
+      descricao: 'Nenhum palpite registrado ainda. Sem liquidez garantida.' };
+  }
+  const { homePct, awayPct, total } = distribuicao;
+  const dominante = Math.max(homePct, awayPct);
+  if (dominante > 85) {
+    return { status: 'baixa', label: 'LIQUIDEZ BAIXA ⚠', premiacao: 'migalhas',
+      descricao: `Mercado concentrado (${dominante.toFixed(0)}% num lado). Prêmio será migalhas (10%) se resultado unilateral.`,
+      detalhes: distribuicao };
+  }
+  return { status: 'ok', label: 'LIQUIDEZ OK ✓', premiacao: 'integral',
+    descricao: 'Apostas bem distribuídas. Premiação integral garantida.',
+    detalhes: distribuicao };
+}
+
+// ============================================================
+// Alpine Component — Terminal do Mago
+// ============================================================
+
+function terminalApp() {
+  return {
+    loading: true,
+    usuario: null,
+    acessoAutorizado: false,
+    pinDesbloqueado: false,
+    pinInput: '',
+    pinErro: false,
+
+    abaAtiva: 'global',
+    relogio: '',
+    _clockInt: null,
+
+    metricas: { loading: false, usuarios: 0, grupos: 0, palpites: 0, desafios: 0, fichas: 0 },
+
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
+
+    buscaInput: '',
+    buscaLoading: false,
+    resultadoBusca: [],
+    novoDesafio: { fixture_id: '', match_name: '', evento: 'Goal', custo_fichas: 5, premio_pts: 50, descricao: '' },
+    liquidezStatus: null,
+    desafioLancando: false,
+
+    logs: [],
+
+    async init() {
+      this._clockInt = setInterval(() => { this.relogio = new Date().toLocaleTimeString('pt-BR'); }, 1000);
+      this.relogio = new Date().toLocaleTimeString('pt-BR');
+
+      if (!sbClient) { this.loading = false; return; }
+
+      const savedLogs = sessionStorage.getItem('terminal_logs');
+      if (savedLogs) { try { this.logs = JSON.parse(savedLogs); } catch(e) { this.logs = []; } }
+      if (sessionStorage.getItem('gm_pin_unlocked') === 'true') this.pinDesbloqueado = true;
+
+      sbClient.auth.onAuthStateChange((_, session) => {
+        this._processarSessao(session);
+        if (this.acessoAutorizado && this.pinDesbloqueado) this.carregarMetricas();
+      });
+
+      try {
+        const { data: { session } } = await sbClient.auth.getSession();
+        this._processarSessao(session);
+      } catch(err) { console.error('[TERMINAL]', err); }
+
+      if (this.acessoAutorizado && this.pinDesbloqueado) this.carregarMetricas();
+      this.loading = false;
+    },
+
+    _processarSessao(session) {
+      if (session?.user) {
+        this.usuario = session.user;
+        this.acessoAutorizado = session.user.email === 'worldkkevin@gmail.com';
+      } else {
+        this.usuario = null;
+        this.acessoAutorizado = false;
+        this.pinDesbloqueado = false;
+      }
+    },
+
+    async entrarComGoogle() {
+      const { error } = await sbClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) this._log('AUTH', 'signInWithOAuth', 'ERROR', 0, error.message);
+    },
+
+    async deslogar() {
+      await sbClient.auth.signOut();
+      sessionStorage.removeItem('gm_pin_unlocked');
+      sessionStorage.removeItem('terminal_logs');
+      this.usuario = null; this.acessoAutorizado = false; this.pinDesbloqueado = false; this.logs = [];
+    },
+
+    verificarPin() {
+      if (this.pinInput === '8187') {
+        this.pinDesbloqueado = true; this.pinErro = false; this.pinInput = '';
+        sessionStorage.setItem('gm_pin_unlocked', 'true');
+        this.carregarMetricas();
+      } else {
+        this.pinErro = true; this.pinInput = '';
+      }
+    },
+
+    _log(servico, rota, status, ms, msg) {
+      this.logs.unshift({ ts: new Date().toLocaleTimeString('pt-BR'), servico, rota, status, ms, msg });
+      if (this.logs.length > 60) this.logs.pop();
+      sessionStorage.setItem('terminal_logs', JSON.stringify(this.logs));
+    },
+
+    async carregarMetricas() {
+      if (this.metricas.loading) return;
+      this.metricas.loading = true;
+      const tabelas = ['profiles', 'groups', 'guesses', 'desafios'];
+      await Promise.all(tabelas.map(async (tab) => {
+        const t = Date.now();
+        const { count, error } = await sbClient.from(tab).select('*', { count: 'exact', head: true });
+        const ms = Date.now() - t;
+        if (!error) {
+          if (tab === 'profiles')  this.metricas.usuarios  = count;
+          if (tab === 'groups')    this.metricas.grupos    = count;
+          if (tab === 'guesses')   this.metricas.palpites  = count;
+          if (tab === 'desafios')  this.metricas.desafios  = count;
+          this._log('Supabase', `COUNT(${tab})`, 'OK', ms, `${count}`);
+        } else {
+          this._log('Supabase', `COUNT(${tab})`, 'ERR', ms, error.message);
+        }
+      }));
+      // Fichas em circulação
+      try {
+        const t = Date.now();
+        const { data } = await sbClient.from('profiles').select('fichas_desafio');
+        if (data) this.metricas.fichas = data.reduce((s, u) => s + (u.fichas_desafio || 0), 0);
+        this._log('Supabase', 'SUM(fichas_desafio)', 'OK', Date.now() - t, `${this.metricas.fichas} fichas`);
+      } catch(e) {}
+      this.metricas.loading = false;
+    },
+
+    async analisarOraculo() {
+      if (!this.oraculo.fixtureId) return;
+      this.oraculo.loading = true;
+      this.oraculo.predicoes = null; this.oraculo.distribuicao = null;
+      this.oraculo.distorcao = null; this.oraculo.erro = null;
+      const fId = Number(this.oraculo.fixtureId);
+      const t = Date.now();
+      try {
+        const [pred, dist] = await Promise.all([
+          analisarDistorcaoPalpites(fId),
+          this._distribuicaoLocal(fId)
+        ]);
+        this.oraculo.predicoes = pred;
+        this.oraculo.distribuicao = dist;
+        if (dist.total > 0) {
+          this.oraculo.distorcao = {
+            home: (dist.homePct - pred.percent.home).toFixed(1),
+            draw: (dist.drawPct - pred.percent.draw).toFixed(1),
+            away: (dist.awayPct - pred.percent.away).toFixed(1),
+            zebraAlert: Math.max(Math.abs(dist.homePct - pred.percent.home), Math.abs(dist.awayPct - pred.percent.away)) > 25
+          };
+        }
+        this._log('API-Football', `/predictions?fixture=${fId}`, 'OK', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
+      } catch(err) {
+        this.oraculo.erro = err.message;
+        this._log('API-Football', `/predictions?fixture=${fId}`, 'ERR', Date.now() - t, err.message);
+      } finally {
+        this.oraculo.loading = false;
+      }
+    },
+
+    async _distribuicaoLocal(fixtureId) {
+      const { data, error } = await sbClient.from('guesses').select('score_home, score_away').eq('match_id', fixtureId);
+      if (error || !data || data.length === 0) return { total: 0, homePct: 0, drawPct: 0, awayPct: 0, raw: { home:0, draw:0, away:0 } };
+      let home = 0, draw = 0, away = 0;
+      data.forEach(g => { if (g.score_home > g.score_away) home++; else if (g.score_home < g.score_away) away++; else draw++; });
+      const total = data.length;
+      return { total, homePct: (home/total)*100, drawPct: (draw/total)*100, awayPct: (away/total)*100, raw: { home, draw, away } };
+    },
+
+    async buscarPartidas() {
+      if (!this.buscaInput || this.buscaLoading) return;
+      this.buscaLoading = true; this.resultadoBusca = [];
+      const t = Date.now();
+      try {
+        const hoje = new Date();
+        const from = hoje.toISOString().split('T')[0];
+        const ate = new Date(hoje.getTime() + 25 * 864e5).toISOString().split('T')[0];
+        let jogos = [];
+        for (const liga of [1, 71, 13, 325]) {
+          const r = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026&from=${from}&to=${ate}`, {
+            headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+          });
+          const j = await r.json();
+          if (j.response) jogos = jogos.concat(j.response);
+        }
+        const q = this.buscaInput.toLowerCase();
+        this.resultadoBusca = jogos
+          .filter(j => j.teams.home.name.toLowerCase().includes(q) || j.teams.away.name.toLowerCase().includes(q))
+          .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date)).slice(0, 8);
+        this._log('API-Football', `fixtures busca "${this.buscaInput}"`, 'OK', Date.now() - t, `${this.resultadoBusca.length} jogos`);
+      } catch(err) {
+        this._log('API-Football', 'fixtures busca', 'ERR', Date.now() - t, err.message);
+      } finally {
+        this.buscaLoading = false;
+      }
+    },
+
+    async selecionarPartida(jogo) {
+      this.novoDesafio.fixture_id = jogo.fixture.id;
+      this.novoDesafio.match_name = `${jogo.teams.home.name} vs ${jogo.teams.away.name}`;
+      this.buscaInput = this.novoDesafio.match_name;
+      this.resultadoBusca = [];
+      const dist = await this._distribuicaoLocal(jogo.fixture.id);
+      this.liquidezStatus = validarLiquidez(dist);
+    },
+
+    async lancarDesafio() {
+      if (this.desafioLancando || !this.novoDesafio.fixture_id) return;
+      this.desafioLancando = true;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('desafios').insert([{
+          fixture_id: Number(this.novoDesafio.fixture_id),
+          match_name: this.novoDesafio.match_name,
+          event_type: this.novoDesafio.evento,
+          points: this.novoDesafio.premio_pts,
+          custo_fichas: this.novoDesafio.custo_fichas,
+          descricao: this.novoDesafio.descricao || null,
+          status: 'active'
+        }]);
+        if (error) throw error;
+        this._log('Supabase', 'INSERT desafios', 'OK', Date.now() - t, this.novoDesafio.match_name);
+        this.novoDesafio = { fixture_id: '', match_name: '', evento: 'Goal', custo_fichas: 5, premio_pts: 50, descricao: '' };
+        this.liquidezStatus = null; this.buscaInput = '';
+        alert('✅ Desafio lançado!');
+      } catch(err) {
+        this._log('Supabase', 'INSERT desafios', 'ERR', Date.now() - t, err.message);
+        alert('Erro: ' + err.message);
+      } finally {
+        this.desafioLancando = false;
+      }
+    }
+  };
+}
