@@ -2594,7 +2594,7 @@ function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
         const { data: prof } = await sbClient.from('profiles').select('max_grupos').eq('id', targetId).single();
         if (prof && prof.max_grupos >= produto.limite) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
       } else if (produto.tipo === 'fichas') {
-        const { data: prof } = await sbClient.from('profiles').select('fichas_desafio').eq('id', targetId).single();
+        const { data: prof } = await sbClient.from('profiles').select('fichas_desafio').eq('id', targetId).maybeSingle();
         if (prof && (prof.fichas_desafio || 0) > fichasAntes) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
       }
     } catch (err) { console.error('Polling error:', err); }

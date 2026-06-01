@@ -142,7 +142,7 @@ serve(async (req) => {
         .from('profiles')
         .select('fichas_desafio')
         .eq('id', targetId)
-        .single()
+        .maybeSingle()
       if (fetchErr) {
         console.error("Erro ao buscar fichas do usuário:", fetchErr)
         return new Response(JSON.stringify({ error: 'Falha ao buscar saldo de fichas', details: fetchErr }), {
@@ -152,8 +152,7 @@ serve(async (req) => {
       const novoSaldo = (prof?.fichas_desafio || 0) + limit
       const { error: updateErr } = await adminClient
         .from('profiles')
-        .update({ fichas_desafio: novoSaldo })
-        .eq('id', targetId)
+        .upsert({ id: targetId, fichas_desafio: novoSaldo })
       if (updateErr) {
         console.error("Erro ao creditar fichas:", updateErr)
         return new Response(JSON.stringify({ error: 'Falha ao creditar fichas', details: updateErr }), {
