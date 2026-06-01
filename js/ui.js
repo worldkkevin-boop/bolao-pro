@@ -1710,13 +1710,20 @@ async function carregarDesafioPartida(fixtureId) {
       customQuestion = `Qual opção vencerá o desafio especial?`;
     }
 
-    const infoPontosText = hasPenalty 
+    const infoPontosText = hasPenalty
       ? `(+${desafio.points} pts / -${desafio.points} pts se errar)`
       : `(+${desafio.points} pts)`;
 
     const subheaderText = hasPenalty
-      ? `Acerte e ganhe +${desafio.points} pontos. Erre e perca -${desafio.points} pts! ⚠️`
+      ? `Acerte e ganhe +${desafio.points} pts. Erre e perca -${desafio.points} pts! ⚠️`
       : `Acerte e ganhe +${desafio.points} pontos extras!`;
+
+    const custo = desafio.custo_fichas || 0;
+    const fichasAtuais = usuarioAtual?.fichas ?? 3;
+    const semFichas = custo > 0 && fichasAtuais < custo;
+    const custoBadge = custo > 0
+      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${semFichas ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">🎫 ${custo} ficha${custo > 1 ? 's' : ''}</span>`
+      : '';
 
     if (meuVoto) {
       container.innerHTML = `
@@ -1735,7 +1742,7 @@ async function carregarDesafioPartida(fixtureId) {
       let buttonsHtml = '';
       desafio.players.forEach(player => {
         buttonsHtml += `
-          <button onclick="responderDesafioReal('${desafio.id}', '${player.replace(/'/g, "\\'")}')" class="w-full bg-zinc-900 hover:bg-purple-900/40 border border-zinc-800 hover:border-purple-500/50 text-white hover:text-purple-300 font-bold py-3 px-4 rounded-xl text-xs transition-all active:scale-95 text-center truncate">
+          <button onclick="responderDesafioReal('${desafio.id}', '${player.replace(/'/g, "\\'")}')" ${semFichas ? 'disabled' : ''} class="w-full bg-zinc-900 hover:bg-purple-900/40 border border-zinc-800 hover:border-purple-500/50 text-white hover:text-purple-300 font-bold py-3 px-4 rounded-xl text-xs transition-all active:scale-95 text-center truncate disabled:opacity-40 disabled:cursor-not-allowed">
             ${player}
           </button>
         `;
@@ -1743,13 +1750,17 @@ async function carregarDesafioPartida(fixtureId) {
 
       container.innerHTML = `
         <div class="bg-gradient-to-r from-purple-900/40 to-indigo-900/30 rounded-2xl p-5 border border-purple-500/40 shadow-lg relative overflow-hidden fade-in mt-4">
-          <div class="flex items-start gap-3 mb-4">
-            <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg flex-shrink-0">🏆</div>
-            <div>
-              <h4 class="font-black text-xs text-purple-300 uppercase tracking-widest">Desafio Especial do GM</h4>
-              <p class="text-[13px] text-white/90 font-bold mt-1">${customQuestion}</p>
-              <p class="text-[10px] text-purple-400 font-medium mt-0.5">${subheaderText}</p>
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg flex-shrink-0">🏆</div>
+              <div>
+                <h4 class="font-black text-xs text-purple-300 uppercase tracking-widest">Desafio Especial do GM</h4>
+                <p class="text-[13px] text-white/90 font-bold mt-1">${customQuestion}</p>
+                <p class="text-[10px] text-purple-400 font-medium mt-0.5">${subheaderText}</p>
+                ${semFichas ? `<p class="text-[10px] text-red-400 font-bold mt-1">Fichas insuficientes (você tem ${fichasAtuais} 🎫)</p>` : ''}
+              </div>
             </div>
+            ${custoBadge}
           </div>
           <div class="grid grid-cols-2 gap-2">
             ${buttonsHtml}
@@ -1763,11 +1774,35 @@ async function carregarDesafioPartida(fixtureId) {
   }
 }
 
+function atualizarDisplayFichas() {
+  const fichas = (usuarioAtual && usuarioAtual.fichas !== undefined) ? usuarioAtual.fichas : '...';
+  document.querySelectorAll('.badge-fichas').forEach(b => { b.textContent = `🎫 ${fichas}`; });
+}
+
 // Salva a resposta do usuário no desafio
 async function responderDesafioReal(desafioId, jogadorEscolhido) {
   if (!sbClient || !grupoAtual || !usuarioAtual) return;
 
   try {
+    // 1. Busca custo do desafio
+    const { data: desafioInfo } = await sbClient
+      .from('desafios')
+      .select('custo_fichas')
+      .eq('id', desafioId)
+      .maybeSingle();
+
+    const custo = desafioInfo?.custo_fichas || 0;
+
+    // 2. Verifica saldo de fichas
+    if (custo > 0) {
+      const fichasAtuais = usuarioAtual.fichas ?? 3;
+      if (fichasAtuais < custo) {
+        showToast(`Fichas insuficientes! Você tem ${fichasAtuais} 🎫 e este desafio custa ${custo} 🎫`, 'error');
+        return;
+      }
+    }
+
+    // 3. Salva o voto
     const { error } = await sbClient
       .from('user_desafios')
       .insert([{
@@ -1783,7 +1818,19 @@ async function responderDesafioReal(desafioId, jogadorEscolhido) {
       return;
     }
 
-    showToast(`Desafio aceito! Você apostou em: ${jogadorEscolhido}`, "success");
+    // 4. Desconta fichas no banco e atualiza local
+    if (custo > 0) {
+      const novasFichas = (usuarioAtual.fichas ?? 3) - custo;
+      await sbClient.from('profiles').update({ fichas_desafio: novasFichas }).eq('id', usuarioAtual.id);
+      usuarioAtual.fichas = novasFichas;
+      atualizarDisplayFichas();
+    }
+
+    const msg = custo > 0
+      ? `Desafio aceito! Apostou em ${jogadorEscolhido} (-${custo} 🎫)`
+      : `Desafio aceito! Você apostou em: ${jogadorEscolhido}`;
+    showToast(msg, 'success');
+
     if (jogoAtual) {
       carregarDesafioPartida(jogoAtual.fixture.id);
     }
@@ -2115,29 +2162,45 @@ async function carregarDesafiosUsuarioView() {
         votosMap[v.desafio_id] = v.chosen_player;
       });
 
-      listaAtivos.innerHTML = '';
+      const fichasAtuais = usuarioAtual?.fichas ?? 3;
+      let ativosHtml = `
+        <div class="flex items-center justify-between bg-amber-500/5 border border-amber-500/15 rounded-xl px-4 py-2.5 mb-4">
+          <span class="text-[11px] text-zinc-400 font-medium">Seu saldo de fichas</span>
+          <span class="badge-fichas text-[13px] font-black text-amber-400">🎫 ${fichasAtuais}</span>
+        </div>
+      `;
+
       desafiosGrupo.forEach(d => {
         const jaVotou = !!votosMap[d.id];
         const votoUsuario = votosMap[d.id];
-        
         const labelRegra = (typeof traduzirRegraDesafio === 'function') ? traduzirRegraDesafio(d.event_type) : d.event_type;
-        const ptsInfo = `+${d.points} pts`;
+        const custo = d.custo_fichas || 0;
+        const semFichas = !jaVotou && custo > 0 && fichasAtuais < custo;
 
-        let cardHtml = `
+        const custoBadge = custo > 0
+          ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${semFichas ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'} flex-shrink-0">🎫 ${custo}</span>`
+          : '';
+
+        ativosHtml += `
           <div class="bg-card-bg border border-white/5 rounded-2xl p-4 mb-3">
             <div class="flex justify-between items-start mb-2">
               <div class="min-w-0 flex-1">
                 <h4 class="font-bold text-[14px] text-white truncate">${d.match_name}</h4>
                 <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${labelRegra}</strong></p>
               </div>
-              <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 flex-shrink-0 ml-3">${ptsInfo}</span>
+              <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                ${custoBadge}
+                <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">+${d.points} pts</span>
+              </div>
             </div>
-            
+
             ${jaVotou ? `
               <div class="mt-3 p-3 bg-purple-650/10 border border-purple-500/20 rounded-xl flex justify-between items-center">
                 <span class="text-[11px] text-zinc-300">Seu palpite: <strong class="text-white">${votoUsuario}</strong></span>
                 <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">Aguardando</span>
               </div>
+            ` : semFichas ? `
+              <p class="text-[11px] text-red-400 font-bold mt-3">Fichas insuficientes para participar (você tem ${fichasAtuais} 🎫)</p>
             ` : `
               <div class="flex gap-2 mt-4">
                 <button onclick="if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(${d.fixture_id})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 shadow-lg shadow-purple-650/20">
@@ -2147,8 +2210,8 @@ async function carregarDesafiosUsuarioView() {
             `}
           </div>
         `;
-        listaAtivos.innerHTML += cardHtml;
       });
+      listaAtivos.innerHTML = ativosHtml;
 
     } catch (e) {
       console.error(e);
@@ -2186,7 +2249,7 @@ async function carregarDesafiosUsuarioView() {
         return;
       }
 
-      listaHistorico.innerHTML = '';
+      let historicoHtml = '';
       historicoDesafios.forEach(v => {
         const d = v.desafios;
         const acertou = v.points_awarded > 0;
@@ -2203,7 +2266,7 @@ async function carregarDesafiosUsuarioView() {
           statusBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">0 PTS</span>`;
         }
 
-        let cardHtml = `
+        historicoHtml += `
           <div class="bg-card-bg border border-white/5 rounded-2xl p-4 mb-3">
             <div class="flex justify-between items-start mb-2">
               <div class="min-w-0 flex-1">
@@ -2218,8 +2281,8 @@ async function carregarDesafiosUsuarioView() {
             </div>
           </div>
         `;
-        listaHistorico.innerHTML += cardHtml;
       });
+      listaHistorico.innerHTML = historicoHtml;
 
     } catch (e) {
       console.error(e);

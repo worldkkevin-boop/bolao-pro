@@ -46,6 +46,18 @@ function switchView_login() {
 
 function entrarNoApp(usuario) {
   usuarioAtual = usuario;
+  usuarioAtual.fichas = 3; // default antes da query
+
+  // Carrega saldo de fichas do perfil (não bloqueia o login)
+  if (sbClient) {
+    sbClient.from('profiles').select('fichas_desafio').eq('id', usuario.id).maybeSingle().then(({ data }) => {
+      if (data && usuarioAtual) {
+        usuarioAtual.fichas = data.fichas_desafio ?? 3;
+        if (typeof atualizarDisplayFichas === 'function') atualizarDisplayFichas();
+      }
+    });
+  }
+
   const fotoUrl = usuario.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(usuario.nome) + '&background=10b981&color=fff';
 
   document.getElementById('avatar-google').src              = fotoUrl;
