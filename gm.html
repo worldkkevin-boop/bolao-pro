@@ -1387,18 +1387,13 @@
   <!-- Modal: Resolver Desafio — Selecionar Vencedor -->
   <div x-show="desafioParaFinalizar" x-cloak
        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-6"
-       @keydown.escape.window="desafioParaFinalizar = null; document.getElementById('api-widget-container').innerHTML=''">
+       @keydown.escape.window="desafioParaFinalizar = null">
     <div class="bg-zinc-900 border border-amber-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl shadow-amber-950/20">
       <div class="flex items-center gap-3 mb-1">
         <span class="text-xl">🏆</span>
         <h3 class="text-sm font-black text-white uppercase tracking-wider">Resolver Desafio</h3>
       </div>
       <p class="text-[10px] text-zinc-500 mb-5">Qual opção foi a <strong class="text-amber-400">vencedora</strong>? Os jogadores corretos receberão <span class="text-amber-400 font-black" x-text="'+' + (desafioParaFinalizar?.pontos || 0) + ' pts'"></span> automaticamente.</p>
-
-      <!-- API-Sports Widget (Match Center) -->
-      <div x-show="desafioParaFinalizar?.fixture_id" id="api-widget-container" class="mb-4 bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800" style="min-height: 200px;">
-        <!-- Widget injected via JS -->
-      </div>
 
       <div class="space-y-2">
         <template x-for="player in (desafioParaFinalizar?.players || [])" :key="player">
@@ -1416,14 +1411,14 @@
         </template>
       </div>
 
-      <button @click="desafioParaFinalizar = null; document.getElementById('api-widget-container').innerHTML=''" :disabled="desafioFinalizando" class="mt-4 w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-40">
+      <button @click="desafioParaFinalizar = null" :disabled="desafioFinalizando" class="mt-4 w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-40">
         Cancelar
       </button>
     </div>
   </div>
 
   <!-- Carrega as credenciais globais e o script do admin -->
-  <script src="js/config.js?v=14"></script>
-  <script src="js/admin.js?v=14"></script>
+  <script src="js/config.js?v=15"></script>
+  <script src="js/admin.js?v=15"></script>
 </body>
 </html>

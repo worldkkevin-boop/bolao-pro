@@ -775,49 +775,10 @@ function adminApp() {
 
     selecionarVencedorUI(desafio) {
       this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: false };
-      this.injetarWidgetAPI(desafio.fixture_id);
     },
 
     editarVencedorUI(desafio) {
       this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: true };
-      this.injetarWidgetAPI(desafio.fixture_id);
-    },
-
-    injetarWidgetAPI(fixtureId) {
-      setTimeout(() => {
-        const container = document.getElementById('api-widget-container');
-        if (container) {
-          if (fixtureId) {
-            const widgetHtml = `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <script type="module" src="https://widgets.api-sports.io/football/1.1.8/widget.js"></script>
-                <style>body { margin: 0; background-color: #09090b; overflow: hidden; font-family: sans-serif; }</style>
-              </head>
-              <body>
-                <!-- Configuração Global -->
-                <api-sports-widget data-type="config"
-                  data-key="47ca2bb05eb5931347aca04964818eb5"
-                  data-sport="football"
-                  data-lang="en"
-                  data-theme="dark"
-                  data-show-errors="true"
-                ></api-sports-widget>
-                
-                <!-- Widget do Jogo -->
-                <api-sports-widget data-type="game" data-game-id="${fixtureId}"></api-sports-widget>
-              </body>
-              </html>
-            `.replace(/"/g, '&quot;'); // Escapa aspas para o srcdoc
-            
-            container.innerHTML = `<iframe srcdoc="${widgetHtml}" style="width:100%; height:350px; border:none; overflow:hidden;"></iframe>`;
-          } else {
-            container.innerHTML = '';
-          }
-        }
-      }, 50);
     },
 
     nomesCoincidem(nome1, nome2) {
