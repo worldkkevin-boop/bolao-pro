@@ -793,7 +793,7 @@ function adminApp() {
               <html>
               <head>
                 <meta charset="utf-8">
-                <script type="module" src="https://widgets.api-sports.io/2.0.0/widget.js"></script>
+                <script type="module" src="https://widgets.api-sports.io/football/1.1.8/widget.js"></script>
                 <style>body { margin: 0; background-color: #09090b; overflow: hidden; font-family: sans-serif; }</style>
               </head>
               <body>
