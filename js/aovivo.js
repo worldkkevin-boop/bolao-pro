@@ -77,7 +77,7 @@ async function carregarDadosBaseTVAoVivo() {
     // Busca perfis, palpites e desafios em paralelo
     const [resPerfis, resPalpites, resDesafios] = await Promise.all([
       sbClient.from('profiles').select('id, full_name, avatar_url').in('id', userIds),
-      sbClient.from('guesses').select('user_id, match_id, score_home, score_away').eq('group_id', grupoAtual.id),
+      sbClient.from('guesses').select('user_id, match_id, score_home, score_away').eq('group_id', grupoAtual.id).limit(2000),
       sbClient.from('user_desafios').select('user_id, points_awarded').eq('group_id', grupoAtual.id)
     ]);
 

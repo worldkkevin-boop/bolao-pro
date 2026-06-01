@@ -283,13 +283,14 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
   const jogosOrdenados = [...jogos].sort((a, b) => {
     const statusA = obterStatusAgrupado(a.fixture.status.short);
     const statusB = obterStatusAgrupado(b.fixture.status.short);
-    
+
     const diffStatus = ordemStatus[statusA] - ordemStatus[statusB];
     if (diffStatus !== 0) return diffStatus;
-    
+
     return new Date(a.fixture.date) - new Date(b.fixture.date);
   });
 
+  let html = '';
   jogosOrdenados.forEach(function(jogo) {
     const id          = jogo.fixture.id;
     const data        = formatarData(jogo.fixture.date);
@@ -417,7 +418,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       }
     }
 
-    container.innerHTML += `
+    html += `
       <div id="card-jogo-${id}" onclick="abrirTelaPalpite(${id})" class="app-card bg-card-bg w-full p-4 border ${cardBorderClass} ${cardBgClass} ${cardOpacityClass} mb-4 transition-all cursor-pointer hover:border-brand-green/30">
         <div class="text-text-muted text-xs font-semibold tracking-wide mb-4">${data}</div>
         <div class="flex items-center justify-between">
@@ -439,6 +440,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
         </div>
       </div>`;
   });
+  container.innerHTML = html;
 }
 
 function mudarGols(time, valor) {
@@ -704,6 +706,7 @@ function gerarFiltrosRodadas() {
     }
   }
 
+  let rodadasHtml = '';
   rodadas.forEach(rodada => {
     let nomeExibido = rodada;
     
@@ -732,12 +735,13 @@ function gerarFiltrosRodadas() {
       : "px-4 py-2 bg-card-bg text-white font-bold rounded-lg text-sm whitespace-nowrap border border-white/5";
     const activeId = isActive ? 'id="btn-rodada-ativa"' : '';
 
-    container.innerHTML += `
+    rodadasHtml += `
       <button ${activeId} onclick="filtrarPorRodada('${rodada.replace(/'/g, "\\'")}')" class="${btnClass}">
         ${nomeExibido}
       </button>
     `;
   });
+  container.innerHTML = rodadasHtml;
 
   // Scroll automático para a rodada ativa ficar visível
   setTimeout(() => {
@@ -821,7 +825,8 @@ async function exibirRankingSelecionado() {
     const { data: rawGuesses, error: errGuesses } = await sbClient
       .from('guesses')
       .select('user_id, match_id, score_home, score_away')
-      .eq('group_id', grupoAtual.id);
+      .eq('group_id', grupoAtual.id)
+      .limit(2000);
 
     if (errGuesses) {
       console.error("Erro ao carregar palpites para ranking:", errGuesses.message);
@@ -943,7 +948,7 @@ async function exibirRankingSelecionado() {
     window.ultimoRankingCalculado = rankingList;
 
     // 6. Injeta na lista
-    container.innerHTML = '';
+    let rankHtml = '';
     rankingList.forEach((user, index) => {
       const posicao = index + 1;
       
@@ -973,7 +978,7 @@ async function exibirRankingSelecionado() {
       const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
       const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
 
-      container.innerHTML += `
+      rankHtml += `
         <div ${rowStyle} onclick="abrirHistoricoUsuario('${user.id}', '${user.nome.replace(/'/g,"\\'")}', '${fotoUrl}')" class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3 cursor-pointer hover:bg-card-hover hover:border-brand-green/30 active:scale-[0.99] transition-all">
           ${bgGlow}
           <div class="flex items-center gap-4 pl-2">
@@ -1003,7 +1008,7 @@ async function exibirRankingSelecionado() {
         ? `<button onclick="abrirModalUpgrade()" class="mt-4 bg-gradient-to-r from-purple-600 to-brand-green hover:opacity-90 text-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 shadow-[0_0_15px_rgba(147,51,234,0.3)]">⚡ Desbloquear Ranking</button>`
         : `<p class="mt-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-center">Fale com o dono para liberar a lista completa</p>`;
 
-      container.innerHTML += `
+      rankHtml += `
         <div class="mt-4 p-5 bg-purple-900/10 border border-purple-500/20 rounded-2xl flex flex-col items-center text-center shadow-[0_0_25px_rgba(147,51,234,0.05)] relative z-10">
           <span class="text-2xl mb-2">🔒</span>
           <h4 class="text-white font-black text-sm uppercase tracking-wide">Ranking Completo Bloqueado</h4>
@@ -1014,6 +1019,7 @@ async function exibirRankingSelecionado() {
         </div>
       `;
     }
+    container.innerHTML = rankHtml;
 
   } catch (err) {
     console.error("Erro inesperado ao renderizar ranking:", err);
@@ -1116,14 +1122,14 @@ async function carregarPalpitesDosAmigos(matchId) {
         return;
       }
 
-      listaContainer.innerHTML = '';
+      let pHtml = '';
       guesses.forEach(guess => {
         const name = guess.profiles ? guess.profiles.full_name : 'Participante';
-        const avatar = guess.profiles && guess.profiles.avatar_url 
-          ? guess.profiles.avatar_url 
+        const avatar = guess.profiles && guess.profiles.avatar_url
+          ? guess.profiles.avatar_url
           : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
-        
-        listaContainer.innerHTML += `
+
+        pHtml += `
           <div class="bg-zinc-800/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
             <div class="flex items-center gap-3">
               <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
@@ -1135,9 +1141,10 @@ async function carregarPalpitesDosAmigos(matchId) {
           </div>
         `;
       });
+      listaContainer.innerHTML = pHtml;
     } else {
       // Jogo ativo: os palpites dos outros permanecem secretos por RLS
-      listaContainer.innerHTML = `
+      let pHtml = `
         <div class="bg-zinc-800/20 p-5 rounded-2xl border border-white/5 text-center fade-in">
           <p class="text-brand-green font-bold text-[14px] mb-2">🔒 Palpites Ocultos</p>
           <p class="text-text-muted text-[12px] leading-relaxed">
@@ -1148,17 +1155,14 @@ async function carregarPalpitesDosAmigos(matchId) {
 
       // Listamos quem já palpitou para instigar a participação, mas sem revelar o placar!
       if (guesses && guesses.length > 0) {
-        listaContainer.innerHTML += `
-          <h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3>
-          <div class="space-y-2">
-        `;
+        pHtml += `<h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3><div class="space-y-2">`;
         guesses.forEach(guess => {
           const name = guess.profiles ? guess.profiles.full_name : 'Participante';
-          const avatar = guess.profiles && guess.profiles.avatar_url 
-            ? guess.profiles.avatar_url 
+          const avatar = guess.profiles && guess.profiles.avatar_url
+            ? guess.profiles.avatar_url
             : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
-          
-          listaContainer.innerHTML += `
+
+          pHtml += `
             <div class="bg-zinc-900/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
               <div class="flex items-center gap-3">
                 <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
@@ -1168,8 +1172,9 @@ async function carregarPalpitesDosAmigos(matchId) {
             </div>
           `;
         });
-        listaContainer.innerHTML += `</div>`;
+        pHtml += `</div>`;
       }
+      listaContainer.innerHTML = pHtml;
     }
   } catch (err) {
     console.error("Erro inesperado ao carregar palpites:", err);
@@ -1393,14 +1398,14 @@ async function abrirTelaPalpite(id) {
         if (!guesses || guesses.length === 0) {
           listaContainer.innerHTML = '<p class="text-text-muted text-[13px] text-center py-4">Nenhum palpite enviado ainda.</p>';
         } else {
-          listaContainer.innerHTML = '';
+          let p2Html = '';
           guesses.forEach(guess => {
             const name = guess.profiles ? guess.profiles.full_name : 'Participante';
-            const avatar = guess.profiles && guess.profiles.avatar_url 
-              ? guess.profiles.avatar_url 
+            const avatar = guess.profiles && guess.profiles.avatar_url
+              ? guess.profiles.avatar_url
               : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
-            
-            listaContainer.innerHTML += `
+
+            p2Html += `
               <div class="bg-zinc-800/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
                 <div class="flex items-center gap-3">
                   <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
@@ -1412,9 +1417,10 @@ async function abrirTelaPalpite(id) {
               </div>
             `;
           });
+          listaContainer.innerHTML = p2Html;
         }
       } else {
-        listaContainer.innerHTML = `
+        let p2Html = `
           <div class="bg-zinc-800/20 p-5 rounded-2xl border border-white/5 text-center fade-in">
             <p class="text-brand-green font-bold text-[14px] mb-2">🔒 Palpites Ocultos</p>
             <p class="text-text-muted text-[12px] leading-relaxed">
@@ -1424,17 +1430,14 @@ async function abrirTelaPalpite(id) {
         `;
 
         if (guesses && guesses.length > 0) {
-          listaContainer.innerHTML += `
-            <h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3>
-            <div class="space-y-2">
-          `;
+          p2Html += `<h3 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Já participaram:</h3><div class="space-y-2">`;
           guesses.forEach(guess => {
             const name = guess.profiles ? guess.profiles.full_name : 'Participante';
-            const avatar = guess.profiles && guess.profiles.avatar_url 
-              ? guess.profiles.avatar_url 
+            const avatar = guess.profiles && guess.profiles.avatar_url
+              ? guess.profiles.avatar_url
               : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&color=fff';
-            
-            listaContainer.innerHTML += `
+
+            p2Html += `
               <div class="bg-zinc-900/50 p-3 rounded-xl flex items-center justify-between border border-white/5 fade-in">
                 <div class="flex items-center gap-3">
                   <img src="${avatar}" class="w-8 h-8 rounded-full object-cover">
@@ -1444,8 +1447,9 @@ async function abrirTelaPalpite(id) {
               </div>
             `;
           });
-          listaContainer.innerHTML += `</div>`;
+          p2Html += `</div>`;
         }
+        listaContainer.innerHTML = p2Html;
       }
 
     } catch (e) {

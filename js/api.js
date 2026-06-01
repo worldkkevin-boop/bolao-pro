@@ -35,7 +35,8 @@ async function carregarJogos() {
         const { data: allGroupGuesses, error: errAll } = await sbClient
           .from('guesses')
           .select('match_id, score_home, score_away')
-          .eq('group_id', grupoAtual.id);
+          .eq('group_id', grupoAtual.id)
+          .limit(2000);
         
         if (!errAll && allGroupGuesses) {
           const distribuicao = {};
