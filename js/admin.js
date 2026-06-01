@@ -1044,7 +1044,23 @@ function adminApp() {
           ? `Jogo travado (${golsEsp.toFixed(1)} gols) — cartão é mais provável`
           : 'Partida equilibrada — desafio de gol padrão';
       }
-      this.desafioRapido = { ...this.desafioRapido, eventType, pts, fichas, motivo, players: [], jogadorInput: '' };
+      const homeName = pred.teams?.home?.name || 'Time da Casa';
+      const awayName = pred.teams?.away?.name || 'Time Visitante';
+      const players = eventType.startsWith('Goal')
+        ? [homeName, awayName, 'Nenhum gol']
+        : [homeName, awayName];
+
+      this.desafioRapido = { ...this.desafioRapido, eventType, pts, fichas, motivo, players, jogadorInput: '' };
+    },
+
+    recalcularOpcoesPorEvento() {
+      const homeName = this.oraculo.predicoes?.teams?.home?.name || 'Time da Casa';
+      const awayName = this.oraculo.predicoes?.teams?.away?.name || 'Time Visitante';
+      const keeps = this.desafioRapido.players.filter(p => p !== homeName && p !== awayName && p !== 'Nenhum gol');
+      const base = this.desafioRapido.eventType.startsWith('Goal')
+        ? [homeName, awayName, 'Nenhum gol']
+        : [homeName, awayName];
+      this.desafioRapido.players = [...base, ...keeps];
     },
 
     adicionarOpcaoDesafio() {

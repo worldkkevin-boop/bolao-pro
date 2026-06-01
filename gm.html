@@ -1279,25 +1279,25 @@
 
             <!-- 3 parâmetros editáveis -->
             <div class="grid grid-cols-3 gap-3 mb-5">
-              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
-                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Tipo de Evento</label>
-                <select x-model="desafioRapido.eventType" class="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer">
-                  <option value="Goal">⚽ Gol</option>
-                  <option value="Goal_penalty">⚽ Gol + Pen.</option>
-                  <option value="Card">🟨 Cartão</option>
-                  <option value="Card_penalty">🟨 Cartão + Pen.</option>
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1.5">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Pergunta do Desafio</label>
+                <select x-model="desafioRapido.eventType" @change="recalcularOpcoesPorEvento()" class="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer">
+                  <option value="Goal">⚽ Qual time marca primeiro?</option>
+                  <option value="Card">🟨 Qual time leva cartão primeiro?</option>
+                  <option value="Goal_penalty">⚽ Gol + penalidade</option>
+                  <option value="Card_penalty">🟨 Cartão + penalidade</option>
                 </select>
               </div>
-              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
-                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Recompensa</label>
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1.5">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Quem acerta ganha</label>
                 <div class="flex items-center gap-1.5">
                   <span class="text-amber-400 text-[11px] font-black">+</span>
                   <input type="number" x-model.number="desafioRapido.pts" min="1" max="100" class="w-full bg-transparent text-amber-400 text-sm font-black font-mono outline-none">
                   <span class="text-zinc-600 text-[9px] font-bold">pts</span>
                 </div>
               </div>
-              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
-                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Custo Entrada</label>
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1.5">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Para entrar custa</label>
                 <div class="flex items-center gap-1.5">
                   <span class="text-[11px]">🎫</span>
                   <input type="number" x-model.number="desafioRapido.fichas" min="0" max="50" class="w-full bg-transparent text-zinc-200 text-sm font-black font-mono outline-none">
@@ -1306,27 +1306,34 @@
               </div>
             </div>
 
-            <!-- Opções de aposta -->
+            <!-- Opções de aposta — auto-preenchidas com os times -->
             <div class="space-y-2.5 mb-5">
-              <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Opções para os Jogadores Apostarem <span class="text-zinc-700">(mínimo 2)</span></label>
+              <div class="flex items-center justify-between">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500">Opções de Resposta <span class="text-zinc-700 normal-case font-normal">(pré-preenchidas com os times)</span></label>
+                <button @click="recalcularOpcoesPorEvento()" class="text-[9px] text-zinc-500 hover:text-zinc-300 underline transition-colors">↺ resetar</button>
+              </div>
+
+              <!-- Chips das opções -->
+              <div class="flex flex-wrap gap-2 min-h-[36px] items-center bg-zinc-950/50 border border-zinc-800 rounded-xl p-3">
+                <template x-for="(op, idx) in desafioRapido.players" :key="idx">
+                  <span class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 border border-amber-500/25 px-3 py-1.5 rounded-lg text-[10px] font-black">
+                    <span x-text="op"></span>
+                    <button @click="desafioRapido.players.splice(idx, 1)" class="text-zinc-500 hover:text-red-400 font-bold text-xs leading-none transition-colors">×</button>
+                  </span>
+                </template>
+                <span x-show="desafioRapido.players.length === 0" class="text-[10px] text-zinc-600 italic">nenhuma opção — analise uma partida primeiro</span>
+              </div>
+
+              <!-- Adicionar opção extra (opcional) -->
               <div class="flex gap-2">
                 <input
                   type="text"
                   x-model="desafioRapido.jogadorInput"
                   @keydown.enter.prevent="adicionarOpcaoDesafio()"
-                  placeholder="Ex: Vini Jr, Neymar, Nenhum gol..."
-                  class="flex-1 bg-zinc-950 border border-zinc-800 focus:border-amber-500/40 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-700 outline-none transition-all"
+                  placeholder="+ opção extra (ex: Empate, Ambos, Pênalti...)"
+                  class="flex-1 bg-zinc-950 border border-zinc-800/60 focus:border-amber-500/30 rounded-xl px-4 py-2 text-xs text-white placeholder-zinc-700 outline-none transition-all"
                 >
-                <button @click="adicionarOpcaoDesafio()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase transition-all active:scale-95">+ Add</button>
-              </div>
-              <div class="flex flex-wrap gap-2 min-h-[30px] items-center">
-                <template x-for="(op, idx) in desafioRapido.players" :key="idx">
-                  <span class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">
-                    <span x-text="op"></span>
-                    <button @click="desafioRapido.players.splice(idx, 1)" class="text-red-400 hover:text-red-300 font-bold text-xs leading-none">×</button>
-                  </span>
-                </template>
-                <span x-show="desafioRapido.players.length === 0" class="text-[10px] text-zinc-700 italic">nenhuma opção adicionada ainda...</span>
+                <button @click="adicionarOpcaoDesafio()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase transition-all active:scale-95">+ Add</button>
               </div>
             </div>
 
