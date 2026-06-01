@@ -797,7 +797,17 @@ function adminApp() {
                 <style>body { margin: 0; background-color: #09090b; overflow: hidden; font-family: sans-serif; }</style>
               </head>
               <body>
-                <api-sports-widget data-key="47ca2bb05eb5931347aca04964818eb5" data-type="game" data-game-id="${fixtureId}" data-refresh="true"></api-sports-widget>
+                <!-- Configuração Global -->
+                <api-sports-widget data-type="config"
+                  data-key="47ca2bb05eb5931347aca04964818eb5"
+                  data-sport="football"
+                  data-lang="pt"
+                  data-theme="dark"
+                  data-show-errors="true"
+                ></api-sports-widget>
+                
+                <!-- Widget do Jogo -->
+                <api-sports-widget data-type="game" data-game-id="${fixtureId}" data-game-tab="events"></api-sports-widget>
               </body>
               </html>
             `;
