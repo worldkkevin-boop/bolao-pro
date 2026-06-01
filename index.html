@@ -786,63 +786,31 @@
           <h1 class="text-xl font-black tracking-tight">Pontuação</h1>
         </div>
       </div>
+
+      <!-- Card Neon Explicativo de Regras Premium (Zebra Dinâmica e Mata-Mata) -->
+      <div id="card-neon-premium" class="hidden bg-[#10b981]/10 border border-[#10b981]/30 rounded-2xl p-5 mb-6 relative overflow-hidden shadow-[0_0_25px_rgba(16,185,129,0.12)]">
+        <div class="absolute right-[-20px] top-[-20px] w-24 h-24 bg-brand-green/20 rounded-full blur-2xl"></div>
+        <h3 class="text-[#10b981] font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <span>⚡</span> Módulos Premium Ativos
+        </h3>
+        <p class="text-gray-400 text-[11px] leading-relaxed mb-4">Este bolão utiliza regras profissionais baseadas em Risco x Retorno e demanda do mercado.</p>
+        
+        <div class="space-y-3" id="premium-rules-active-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
       <div class="bg-brand-green/10 border border-brand-green/20 rounded-xl p-4 mb-6">
         <h2 class="text-[13px] font-bold text-brand-green mb-1 flex items-center gap-2">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           Desempate
         </h2>
-        <p class="text-xs text-text-muted leading-relaxed">Empatou na pontuação? Vence quem tiver mais acertos na regra de maior valor. Se continuar, vai pra próxima regra. São 6 critérios.</p>
+        <p class="text-xs text-text-muted leading-relaxed">Empatou na pontuação? Vence quem tiver mais acertos na regra de maior valor. Se continuar, vai pra próxima regra da cascata.</p>
       </div>
-      <div class="space-y-3">
-        <div class="bg-card-bg rounded-xl p-4 border border-brand-green relative overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brand-green"></div>
-          <div class="flex justify-between items-center mb-2 pl-2">
-            <h4 class="font-bold text-[14px] text-white flex items-center gap-2"><span class="bg-brand-green text-black px-1.5 py-0.5 rounded text-[9px] font-black uppercase">TOP</span> Placar Exato</h4>
-            <span class="bg-brand-green/10 text-brand-green text-[13px] font-black px-2 py-0.5 rounded">+30 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted pl-2">Palpitou <strong class="text-white">2x1</strong> e o jogo terminou <strong class="text-white">2x1</strong>.</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">2 - Vencedor e gols</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+18 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x1</strong> e deu <strong class="text-white">2x0</strong> (Acertou vencedor + gols de um time).</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">3 - Vencedor e saldo de gols</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+15 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x1</strong> e deu <strong class="text-white">1x0</strong> (Acertou vencedor + diferença de 1 gol).</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">4 - Empate</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+18 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x2</strong> e deu <strong class="text-white">1x1</strong> (Acertou que ia empatar).</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">5 - Vencedor e gols do perdedor</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+12 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x0</strong> e deu <strong class="text-white">3x0</strong> (Acertou vencedor + gols do perdedor).</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">6 - Vencedor</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+4 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x0</strong> e deu <strong class="text-white">3x2</strong> (Só acertou quem ganhou).</p>
-        </div>
-        <div class="bg-card-bg rounded-xl p-4 border border-white/5">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-[14px] text-white">7 - Placar de algum time</h4>
-            <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+3 pts</span>
-          </div>
-          <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">3x0</strong> e terminou <strong class="text-white">0x0</strong> (Acertou os gols de um time).</p>
+
+      <!-- Lista Dinâmica de Regras Base -->
+      <div class="space-y-3" id="lista-regras-base-container">
+        <!-- Carregado via JS -->
       </div>
     </div>
   </div>
@@ -1140,117 +1108,116 @@
       </div>
     </div>
 
-    <!-- ================= MODAL EDITOR DE REGRAS DE PONTUAÇÃO ================= -->
-    <div id="modal-regras-pontuacao" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+    <!-- ================= MODAL EDITOR DE REGRAS V2 (RISCO X RETORNO) ================= -->
+    <div id="modal-regras-pontuacao" class="fixed inset-0 bg-[#09090b] z-[6000] hidden flex-col animate-fade-in">
       <!-- Cabeçalho -->
-      <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border-white/5 flex-shrink-0">
-        <button onclick="fecharEditorRegras()" class="w-8 h-8 bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
+      <div class="flex items-center gap-4 p-5 bg-[#09090b] border-b border-white/5 flex-shrink-0">
+        <button onclick="fecharEditorRegras()" class="w-8 h-8 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <div>
-          <h1 class="text-white font-black text-xl tracking-wide">Regras de Pontuação</h1>
-          <p class="text-gray-400 text-xs">Defina o peso de cada acerto na cascata de regras.</p>
+          <h1 class="text-white font-black text-xl tracking-wide">Motor de Pontuação</h1>
+          <p class="text-[#10b981] text-xs font-bold">Escala Risco x Retorno</p>
         </div>
       </div>
 
       <!-- Conteúdo Rolável -->
-      <div class="flex-1 overflow-y-auto p-5 space-y-6">
-        <!-- Bloco 1: A Cascata Principal -->
+      <div class="flex-1 overflow-y-auto p-5 pb-28 space-y-6">
+        <!-- Bloco 1: A Escala Base -->
         <div>
-          <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">As 7 Regras de Pontuação</p>
+          <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Pontuação Base (Fase de Grupos)</p>
           <div class="bg-[#151518] border border-white/5 rounded-2xl overflow-hidden flex flex-col p-2 space-y-2">
-            <!-- 1: Placar Exato -->
+            <!-- Placar Exato -->
             <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
               <div class="pr-2">
-                <p class="text-white font-bold text-sm">1. Placar Exato</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou o vencedor e os gols exatos.</p>
+                <p class="text-white font-bold text-sm">Na Mosca (Placar Exato)</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Alto risco. Cravou o vencedor e os gols.</p>
               </div>
-              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-brand-green/30">
-                <input type="number" id="regra-pt-placar-exato" value="30" class="w-10 bg-transparent text-brand-green font-black text-center outline-none text-sm appearance-none">
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-[#10b981]/50">
+                <input type="number" id="regra-pt-placar-exato" value="12" class="w-10 bg-transparent text-[#10b981] font-black text-center outline-none text-sm appearance-none">
                 <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
               </div>
             </div>
 
-            <!-- 2: Vencedor e Gols de 1 Time -->
+            <!-- Vencedor e Saldo -->
             <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
               <div class="pr-2">
-                <p class="text-white font-bold text-sm">2. Vencedor e Gols</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou quem ganhou e os gols do vencedor.</p>
+                <p class="text-white font-bold text-sm">Vencedor e Saldo</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Ex: Apostou 3x1, deu 2x0 (+2 de saldo).</p>
               </div>
               <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-vencedor-gols" value="18" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <input type="number" id="regra-pt-saldo" value="7" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
                 <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
               </div>
             </div>
 
-            <!-- 3: Empate Não Exato -->
+            <!-- Empate -->
             <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
               <div class="pr-2">
-                <p class="text-white font-bold text-sm">3. Empate</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou que era empate, mas errou os gols.</p>
+                <p class="text-white font-bold text-sm">Empate</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Cravou o empate, mas errou a quantia de gols.</p>
               </div>
               <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-empate" value="18" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <input type="number" id="regra-pt-empate" value="6" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
                 <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
               </div>
             </div>
 
-            <!-- 4: Vencedor e Saldo de Gols -->
+            <!-- Apenas Vencedor -->
             <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
               <div class="pr-2">
-                <p class="text-white font-bold text-sm">4. Vencedor e Saldo</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou quem ganhou e a diferença de gols.</p>
+                <p class="text-white font-bold text-sm">Apenas o Vencedor</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">O prêmio de consolação por acertar quem passou.</p>
               </div>
               <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-saldo" value="15" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <input type="number" id="regra-pt-apenas-vencedor" value="3" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
                 <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
               </div>
             </div>
 
-            <!-- 5: Vencedor e Gols do Perdedor -->
-            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
-              <div class="pr-2">
-                <p class="text-white font-bold text-sm">5. Vencedor e Gols do Perdedor</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou quem ganhou e os gols do perdedor.</p>
-              </div>
-              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-vencedor-gols-perdedor" value="12" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
-                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
-              </div>
-            </div>
+            <!-- Inputs Ocultos/Fallbacks para compatibilidade com o banco de dados -->
+            <input type="hidden" id="regra-pt-vencedor-gols" value="0">
+            <input type="hidden" id="regra-pt-vencedor-gols-perdedor" value="0">
+            <input type="hidden" id="regra-pt-gols-um-time" value="0">
+          </div>
+        </div>
 
-            <!-- 6: Apenas o Vencedor -->
-            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
-              <div class="pr-2">
-                <p class="text-white font-bold text-sm">6. Apenas o Vencedor</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou apenas quem ganhou a partida.</p>
+        <!-- Bloco 2: Módulos Premium de Engajamento -->
+        <div>
+          <p class="text-[10px] text-[#10b981] font-black uppercase tracking-widest mb-3 ml-1">Módulos Premium de Disputa</p>
+          <div class="bg-[#151518] border border-[#10b981]/30 rounded-2xl p-2 space-y-2">
+            <!-- Toggle: Zebra Dinâmica -->
+            <label class="flex items-center justify-between p-3 bg-[#10b981]/10 rounded-xl border border-[#10b981]/20 cursor-pointer">
+              <div class="pr-4">
+                <p class="text-[#10b981] font-bold text-sm flex items-center gap-2">Zebra Dinâmica 🦓</p>
+                <p class="text-gray-400 text-[10px] leading-tight mt-0.5">Dobra a pontuação se você acertar a vitória de um time que teve menos de 15% das apostas no grupo.</p>
               </div>
-              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-apenas-vencedor" value="4" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
-                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              <div class="relative">
+                <input type="checkbox" id="toggle-zebra" class="peer sr-only">
+                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[#09090b] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#09090b] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10b981]"></div>
               </div>
-            </div>
+            </label>
 
-            <!-- 7: Gols de um Time (Ponto de Consolação) -->
+            <!-- Seletor: Multiplicador Mata-Mata -->
             <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
-              <div class="pr-2">
-                <p class="text-white font-bold text-sm">7. Gols de um Time</p>
-                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Errou quem ganhou, mas acertou os gols de um dos times.</p>
+              <div class="pr-4">
+                <p class="text-white font-bold text-sm">Multiplicador Mata-Mata</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Pontos multiplicados nas fases finais (oitavas, quartas, semis e final) para manter a emoção viva!</p>
               </div>
-              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
-                <input type="number" id="regra-pt-gols-um-time" value="3" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
-                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
-              </div>
+              <select id="select-mult-fase" class="bg-[#222226] border border-white/10 rounded-lg p-2 text-white outline-none focus:border-[#10b981] text-xs font-bold">
+                <option value="1">Desligado (x1)</option>
+                <option value="2">Dobrar (x2)</option>
+                <option value="3">Triplicar (x3)</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Rodapé Fixo (Sticky Bottom) -->
-      <div class="bg-[#0d0d12] border-t border-white/5 p-5 z-20 flex-shrink-0">
-        <button onclick="salvarRegrasPontuacao()" class="w-full bg-brand-green hover:opacity-90 text-black font-black py-3.5 rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-          Salvar Novas Regras
+      <!-- Rodapé Fixo -->
+      <div class="absolute bottom-0 w-full bg-[#09090b] border-t border-white/5 p-5 z-20">
+        <button onclick="salvarNovasRegras()" class="w-full bg-[#10b981] hover:bg-[#059669] text-black font-black py-4 rounded-xl transition-all active:scale-95 uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+          Atualizar Motor
         </button>
       </div>
     </div>

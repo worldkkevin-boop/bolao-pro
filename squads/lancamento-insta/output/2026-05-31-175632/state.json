@@ -1,0 +1,19 @@
+{
+  "squad": "lancamento-insta",
+  "status": "completed",
+  "step": { "current": 8, "total": 8, "label": "step-08-final-approval" },
+  "agents": [
+    { "id": "researcher", "name": "Pesquisador Pedro", "icon": "🔍", "status": "done", "desk": { "col": 1, "row": 1 } },
+    { "id": "strategist", "name": "Estrategista Estela", "icon": "🧠", "status": "done", "desk": { "col": 2, "row": 1 } },
+    { "id": "copywriter", "name": "Redatora Rita", "icon": "✍️", "status": "done", "desk": { "col": 3, "row": 1 } },
+    { "id": "reviewer", "name": "Revisora Renata", "icon": "🧐", "status": "done", "desk": { "col": 1, "row": 2 } }
+  ],
+  "handoff": {
+    "from": "reviewer",
+    "to": null,
+    "message": "Revisão completa: aprovado com ressalvas. 1 correção obrigatória (URL do app em D4), 3 melhorias recomendadas. Pronto para aprovação final.",
+    "completedAt": "2026-05-31T18:25:00Z"
+  },
+  "startedAt": "2026-05-31T17:56:32Z",
+  "updatedAt": "2026-05-31T18:25:00Z"
+}

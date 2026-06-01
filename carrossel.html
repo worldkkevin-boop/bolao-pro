@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão Pro | Carrossel Lançamento</title>
+<!-- Google Fonts - Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+  font-family: 'Inter', sans-serif; 
+}
+
+body {
+  background: #000000;
+  padding: 40px 20px;
+  min-height: 100vh;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  color: #10b981;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 8px;
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.subtitle {
+  color: #71717a;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+  max-width: 100%;
+}
+
+/* ── Cada slide: 1080x1080 escalado para 420x420 ── */
+.slide-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.slide-label {
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.slide {
+  width: 420px;
+  height: 420px;
+  background: #09090b;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+/* ── Elementos comuns ── */
+.logo-badge {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  padding: 6px 12px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.logo-dot {
+  width: 8px; height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #10b981;
+}
+
+.logo-text {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.logo-text span {
+  color: #10b981;
+}
+
+.slide-num {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  color: rgba(255,255,255,0.25);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  z-index: 10;
+}
+
+.green-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+}
+
+/* ── Partículas background ── */
+.particles-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(16,185,129,0.06) 1.5px, transparent 1.5px),
+    radial-gradient(circle, rgba(16,185,129,0.03) 1.5px, transparent 1.5px);
+  background-size: 40px 40px, 20px 20px;
+  background-position: 0 0, 10px 10px;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════
+   SLIDE 1 — CAPA
+════════════════════════════════ */
+#s1 {
+  background: radial-gradient(circle at 50% 30%, rgba(16,185,129,0.18) 0%, transparent 60%), #09090b;
+}
+
+#s1 .hero {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+#s1 .mago-emoji {
+  font-size: 80px;
+  line-height: 1;
+  filter: drop-shadow(0 0 25px rgba(16,185,129,0.6));
+  margin-bottom: 20px;
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+#s1 .eyebrow {
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+#s1 .headline {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  text-align: center;
+}
+
+#s1 .headline span {
+  color: #10b981;
+  text-shadow: 0 0 20px rgba(16,185,129,0.4);
+}
+
+#s1 .tagline {
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 24px;
+  background: rgba(255,255,255,0.03);
+  padding: 6px 14px;
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ════════════════════════════════
+   SLIDE 2 — PROBLEMA
+════════════════════════════════ */
+#s2 {
+  background: #09090b;
+}
+
+#s2 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 36px;
+}
+
+#s2 .before-tag {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px;
+  padding: 5px 12px;
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+#s2 .headline {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-bottom: 24px;
+}
+
+#s2 .problems {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+#s2 .prob-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #d4d4d8;
+  font-size: 14px;
+  font-weight: 500;
+  background: rgba(255,255,255,0.02);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.03);
+  width: 100%;
+}
+
+#s2 .prob-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+#s2 .divider {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ef4444, transparent);
+}
+
+/* ════════════════════════════════
+   SLIDE 3 — PRODUTO
+════════════════════════════════ */
+#s3 {
+  background: radial-gradient(circle at 80% 80%, rgba(16,185,129,0.12) 0%, transparent 60%), #09090b;
+}
+
+#s3 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 36px 32px;
+}
+
+#s3 .after-tag {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 8px;
+  padding: 5px 12px;
+  color: #10b981;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+#s3 .headline {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 24px;
+}
+
+#s3 .headline span { color: #10b981; }
+
+#s3 .mockup {
+  width: 100%;
+  background: #18181b;
+  border-radius: 20px;
+  border: 1px solid rgba(16,185,129,0.3);
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+  padding: 6px;
+}
+
+#s3 .mk-inner {
+  background: #09090b;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+#s3 .mk-header {
+  background: #18181b;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(16,185,129,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#s3 .mk-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 6px #10b981; }
+#s3 .mk-title { color: #ffffff; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+
+#s3 .mk-body { padding: 14px; }
+#s3 .mk-pote {
+  background: linear-gradient(135deg, #022c22, #064e3b);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+#s3 .mk-pote-lbl { color: #a1a1aa; font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+#s3 .mk-pote-val { color: #fbbf24; font-size: 24px; font-weight: 900; margin-top: 2px; text-shadow: 0 0 10px rgba(251,191,36,0.3); }
+
+/* ════════════════════════════════
+   SLIDE 4 — TESOURARIA PIX
+════════════════════════════════ */
+#s4 {
+  background: radial-gradient(circle at 20% 50%, rgba(16,185,129,0.1) 0%, transparent 60%), #09090b;
+}
+
+#s4 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+#s4 .pix-icon {
+  font-size: 64px;
+  filter: drop-shadow(0 0 20px rgba(16,185,129,0.5));
+  margin-bottom: 20px;
+}
+
+#s4 .headline {
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+#s4 .headline span { color: #10b981; }
+
+#s4 .sub {
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+#s4 .badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#s4 .badge {
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 30px;
+  padding: 6px 14px;
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* ════════════════════════════════
+   SLIDE 5 — RANKINGS AO VIVO
+════════════════════════════════ */
+#s5 {
+  background: #09090b;
+}
+
+#s5 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 36px 32px;
+}
+
+#s5 .headline {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+#s5 .headline span { color: #10b981; }
+
+#s5 .sub {
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+
+#s5 .ranking {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#s5 .rank-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+#s5 .rank-row.first {
+  background: linear-gradient(90deg, rgba(251,191,36,0.08), transparent);
+  border-color: rgba(251,191,36,0.25);
+}
+
+#s5 .rk-pos {
+  font-size: 13px;
+  font-weight: 900;
+  min-width: 24px;
+  text-align: center;
+}
+
+#s5 .rk-pos.gold { color: #fbbf24; }
+#s5 .rk-pos.silver { color: #a1a1aa; }
+#s5 .rk-pos.bronze { color: #b45309; }
+
+#s5 .rk-name { font-size: 13px; font-weight: 600; color: #e4e4e7; flex: 1; }
+#s5 .rk-pts { font-size: 13px; font-weight: 800; color: #10b981; margin-left: auto; }
+
+#s5 .live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+#s5 .live-dot {
+  width: 6px; height: 6px;
+  background: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ef4444;
+  animation: livePulse 1.2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+#s5 .live-txt { color: #ef4444; font-size: 9px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ════════════════════════════════
+   SLIDE 6 — PERGUNTAS BÔNUS
+════════════════════════════════ */
+#s6 {
+  background: radial-gradient(circle at 50% 50%, rgba(16,185,129,0.08) 0%, transparent 65%), #09090b;
+}
+
+#s6 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+#s6 .feature-icon { font-size: 56px; margin-bottom: 14px; filter: drop-shadow(0 0 20px rgba(16,185,129,0.5)); }
+
+#s6 .headline {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 18px;
+}
+
+#s6 .headline span { color: #10b981; }
+
+#s6 .questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+#s6 .q-item {
+  background: rgba(255,255,255,0.01);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#s6 .q-item .q-icon { font-size: 16px; }
+
+/* ════════════════════════════════
+   SLIDE 7 — PWA
+════════════════════════════════ */
+#s7 {
+  background: #09090b;
+}
+
+#s7 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+#s7 .pwa-icon { font-size: 64px; margin-bottom: 16px; }
+
+#s7 .headline {
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+#s7 .headline span { color: #10b981; }
+
+#s7 .sub {
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+#s7 .url-bar {
+  background: #18181b;
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 40px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+#s7 .url-lock { color: #10b981; font-size: 14px; }
+#s7 .url-text { color: #10b981; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+
+/* ════════════════════════════════
+   SLIDE 8 — CTA FINAL
+════════════════════════════════ */
+#s8 {
+  background: radial-gradient(circle at 50% 50%, rgba(16,185,129,0.2) 0%, transparent 60%), #09090b;
+}
+
+#s8 .content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+#s8 .cta-emoji { font-size: 76px; margin-bottom: 20px; filter: drop-shadow(0 0 25px rgba(16,185,129,0.6)); }
+
+#s8 .headline {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+#s8 .headline span { color: #10b981; }
+
+#s8 .sub {
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+#s8 .cta-btn {
+  background: #10b981;
+  color: #09090b;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border-radius: 12px;
+  display: inline-block;
+  box-shadow: 0 10px 25px rgba(16,185,129,0.3);
+  transition: all 0.2s ease;
+}
+
+#s8 .bio-note {
+  color: #71717a;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-top: 14px;
+}
+</style>
+</head>
+<body>
+
+<h1>D2 — Revelação: O Bolão Pro chegou</h1>
+<p class="subtitle">Carrossel · 8 slides · Screenshot cada um separado · Copa do Mundo 2026</p>
+
+<div class="grid">
+
+  <!-- ── SLIDE 1 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 1 — Capa</div>
+    <div class="slide" id="s1">
+      <div class="particles-bg"></div>
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="hero">
+        <div class="mago-emoji">🧙‍♂️</div>
+        <div class="eyebrow">Copa de 2026</div>
+        <div class="headline">O Bolão Pro<br><span>chegou.</span></div>
+        <div class="tagline">O Bolão do Mago 🪄</div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">01 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 2 — O problema</div>
+    <div class="slide" id="s2">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="before-tag">Chega de Planilhas</div>
+        <div class="headline">Bolão<br>bagunçado?<br>Isso acabou.</div>
+        <div class="problems">
+          <div class="prob-item"><span class="prob-icon">😤</span> "Quem paga o PIX aí?"</div>
+          <div class="prob-item"><span class="prob-icon">📊</span> Planilhas manuais perdidas</div>
+          <div class="prob-item"><span class="prob-icon">👻</span> Caloteiro sumiu no WhatsApp</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="slide-num">02 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 3 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 3 — O produto</div>
+    <div class="slide" id="s3">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="after-tag">A solução definitiva</div>
+        <div class="headline">O app que o seu bolão<br>sempre <span>precisou.</span></div>
+        <div class="mockup">
+          <div class="mk-inner">
+            <div class="mk-header">
+              <div class="mk-title">Bolão Pro 🪄</div>
+              <div class="mk-dot"></div>
+            </div>
+            <div class="mk-body">
+              <div class="mk-pote">
+                <div class="mk-pote-lbl">O Pote Dourado</div>
+                <div class="mk-pote-val">R$ 900,00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">03 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 4 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 4 — Tesouraria PIX</div>
+    <div class="slide" id="s4">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="pix-icon">💰</div>
+        <div class="headline"><span>PIX integrado.</span><br>Zero calote.<br>Transparência total.</div>
+        <div class="sub">Administrador aprova o pagamento com 1 clique,<br>e o Pote cresce ao vivo no app.</div>
+        <div class="badge-row">
+          <div class="badge">✓ PIX direto no app</div>
+          <div class="badge">✓ Pote transparente</div>
+          <div class="badge">✓ Zero planilha</div>
+        </div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">04 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 5 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 5 — Rankings ao vivo</div>
+    <div class="slide" id="s5">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="live-badge"><div class="live-dot"></div><div class="live-txt">Ao vivo</div></div>
+        <div class="headline">Ranking em <span>tempo real.</span><br>A zoeira não para.</div>
+        <div class="sub">Os pontos e rankings atualizam a cada gol.</div>
+        <div class="ranking">
+          <div class="rank-row first">
+            <span class="rk-pos gold">1º</span>
+            <span class="rk-name">Kevin 🧙‍♂️</span>
+            <span class="rk-pts">148 pts</span>
+          </div>
+          <div class="rank-row">
+            <span class="rk-pos silver">2º</span>
+            <span class="rk-name">Osvaldo ⚽</span>
+            <span class="rk-pts">132 pts</span>
+          </div>
+          <div class="rank-row">
+            <span class="rk-pos bronze">3º</span>
+            <span class="rk-name">Fabinho 🔥</span>
+            <span class="rk-pts">121 pts</span>
+          </div>
+        </div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">05 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 6 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 6 — Perguntas Bônus</div>
+    <div class="slide" id="s6">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="feature-icon">🎯</div>
+        <div class="headline">Perguntas bônus que<br><span>viram o jogo.</span></div>
+        <div class="questions">
+          <div class="q-item"><span class="q-icon">🏆</span> Quem será o Campeão da Copa?</div>
+          <div class="q-item"><span class="q-icon">🥅</span> Quem será o Artilheiro?</div>
+          <div class="q-item"><span class="q-icon">⭐</span> Qual será a grande Revelação?</div>
+          <div class="q-item"><span class="q-icon">🇧🇷</span> Quantos gols o Brasil fará?</div>
+        </div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">06 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 7 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 7 — PWA / Sem instalar</div>
+    <div class="slide" id="s7">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="pwa-icon">📱</div>
+        <div class="headline">Sem baixar nada.<br>Abre direto no <span>navegador.</span></div>
+        <div class="sub">Adicione na tela inicial do celular em 3 segundos.<br>Sem ocupar memória, leve e ultra-rápido.</div>
+        <div class="url-bar">
+          <span class="url-lock">🔒</span>
+          <span class="url-text">bolao-pro-six.vercel.app</span>
+        </div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">07 / 08</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 8 ── -->
+  <div class="slide-wrap">
+    <div class="slide-label">Slide 8 — CTA Final</div>
+    <div class="slide" id="s8">
+      <div class="logo-badge"><div class="logo-dot"></div><div class="logo-text">Bolão <span>Pro</span></div></div>
+      <div class="content">
+        <div class="cta-emoji">🏆⚽</div>
+        <div class="headline">Crie seu bolão<br>da <span>Copa hoje!</span></div>
+        <div class="sub">A Copa de 2026 está chegando.<br>Convide seus amigos e junte-se ao Pote!</div>
+        <div class="cta-btn">Link na bio 🪄</div>
+        <div class="bio-note">@bolao_da_copa_do_mundo</div>
+      </div>
+      <div class="green-line"></div>
+      <div class="slide-num">08 / 08</div>
+    </div>
+  </div>
+
+</div>
+
+<br><br>
+
+</body>
+</html>

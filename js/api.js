@@ -16,9 +16,11 @@ async function carregarJogos() {
 
     // Busca palpites existentes do usuário para esse grupo
     palpitesUsuario = [];
+    distribuicaoPalpitesGrupo = {};
     if (sbClient && grupoAtual) {
       const { data: { user } } = await sbClient.auth.getUser();
       if (user) {
+        // 1. Busca palpites do usuário
         const { data, error } = await sbClient
           .from('guesses')
           .select('match_id, score_home, score_away')
@@ -27,6 +29,39 @@ async function carregarJogos() {
         
         if (!error && data) {
           palpitesUsuario = data;
+        }
+
+        // 2. Busca palpites de todos os usuários para calcular Zebra Dinâmica
+        const { data: allGroupGuesses, error: errAll } = await sbClient
+          .from('guesses')
+          .select('match_id, score_home, score_away')
+          .eq('group_id', grupoAtual.id);
+        
+        if (!errAll && allGroupGuesses) {
+          const distribuicao = {};
+          allGroupGuesses.forEach(g => {
+            if (!distribuicao[g.match_id]) {
+              distribuicao[g.match_id] = { home: 0, away: 0, empate: 0, total: 0 };
+            }
+            distribuicao[g.match_id].total++;
+            if (g.score_home > g.score_away) {
+              distribuicao[g.match_id].home++;
+            } else if (g.score_away > g.score_home) {
+              distribuicao[g.match_id].away++;
+            } else {
+              distribuicao[g.match_id].empate++;
+            }
+          });
+          
+          for (const mId in distribuicao) {
+            const d = distribuicao[mId];
+            distribuicaoPalpitesGrupo[mId] = {
+              home: d.total > 0 ? (d.home / d.total) * 100 : 0,
+              away: d.total > 0 ? (d.away / d.total) * 100 : 0,
+              empate: d.total > 0 ? (d.empate / d.total) * 100 : 0,
+              total: d.total
+            };
+          }
         }
       }
     }

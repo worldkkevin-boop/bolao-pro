@@ -1,0 +1,5 @@
+path,displayName,icon,gender
+./agents/researcher.agent.md,Pesquisador Pedro,🔍,male
+./agents/strategist.agent.md,Estrategista Estela,🧠,female
+./agents/copywriter.agent.md,Redatora Rita,✍️,female
+./agents/reviewer.agent.md,Revisora Renata,🧐,female

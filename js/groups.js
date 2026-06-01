@@ -524,8 +524,11 @@ function atualizarDestaquesHomeGrupo() {
     if (ultimoPalpiteEl) {
       const meuPalpiteUltimo = palpitesUsuario.find(p => p.match_id === ultimoJogo.fixture.id);
       if (meuPalpiteUltimo) {
+        const vencedorReal = ultimoJogo.goals.home > ultimoJogo.goals.away ? 'home' : (ultimoJogo.goals.home < ultimoJogo.goals.away ? 'away' : 'empate');
+        const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[ultimoJogo.fixture.id] : null;
+        const pctVencedor = dist ? dist[vencedorReal] : 100;
         const pts = (typeof calcularPontosPalpite === 'function')
-          ? calcularPontosPalpite(meuPalpiteUltimo.score_home, meuPalpiteUltimo.score_away, ultimoJogo.goals.home, ultimoJogo.goals.away)
+          ? calcularPontosPalpite(meuPalpiteUltimo.score_home, meuPalpiteUltimo.score_away, ultimoJogo.goals.home, ultimoJogo.goals.away, ultimoJogo.league.round, pctVencedor)
           : 0;
         ultimoPalpiteEl.innerText = `Palpite: ${meuPalpiteUltimo.score_home}x${meuPalpiteUltimo.score_away} (+${pts} pts)`;
         ultimoPalpiteEl.className = `text-[10px] font-bold px-2.5 py-0.5 rounded-full ${pts > 0 ? 'bg-gold/20 text-gold' : 'bg-zinc-800 text-zinc-500'}`;

@@ -13,6 +13,7 @@ let usuarioAtual      = null;
 let grupoAtual        = null;
 let todosOsJogos      = [];
 let palpitesUsuario   = [];
+let distribuicaoPalpitesGrupo = {};
 let rodadaSelecionada = null;
 let golsHome          = 0;
 let golsAway          = 0;

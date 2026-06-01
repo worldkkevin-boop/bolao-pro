@@ -1,0 +1,27 @@
+pipeline:
+  steps:
+    - id: step-01-research-focus
+      file: steps/step-01-research-focus.md
+      type: checkpoint
+    - id: step-02-research
+      file: steps/step-02-research.md
+      agent: researcher
+    - id: step-03-approve-research
+      file: steps/step-03-approve-research.md
+      type: checkpoint
+    - id: step-04-calendar
+      file: steps/step-04-calendar.md
+      agent: strategist
+    - id: step-05-approve-calendar
+      file: steps/step-05-approve-calendar.md
+      type: checkpoint
+    - id: step-06-copywriting
+      file: steps/step-06-copywriting.md
+      agent: copywriter
+    - id: step-07-review
+      file: steps/step-07-review.md
+      agent: reviewer
+      on_reject: step-06-copywriting
+    - id: step-08-final-approval
+      file: steps/step-08-final-approval.md
+      type: checkpoint

@@ -153,6 +153,8 @@ function switchView(targetViewId) {
     }
   } else if (targetViewId === 'view-desafios') {
     if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
+  } else if (targetViewId === 'view-regras') {
+    if (typeof renderizarRegrasGrupo === 'function') renderizarRegrasGrupo();
   } else if (targetViewId === 'view-painel') {
     const adminSettings = document.getElementById('admin-settings-section');
     const isOwner = grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id;
@@ -322,7 +324,11 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       let ptsHtml = '';
 
       if (meuPalpite) {
-        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway);
+        const vencedorReal = realHome > realAway ? 'home' : (realHome < realAway ? 'away' : 'empate');
+        const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[jogo.fixture.id] : null;
+        const pctVencedor = dist ? dist[vencedorReal] : 100;
+        
+        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway, jogo.league.round, pctVencedor);
         guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
         if (pts > 0) {
           ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-gold/20 text-gold mt-1 tracking-wide uppercase">+${pts} PTS</span>`;
@@ -354,7 +360,11 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       let ptsHtml = '';
 
       if (meuPalpite) {
-        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway);
+        const vencedorReal = realHome > realAway ? 'home' : (realHome < realAway ? 'away' : 'empate');
+        const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[jogo.fixture.id] : null;
+        const pctVencedor = dist ? dist[vencedorReal] : 100;
+        
+        const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway, jogo.league.round, pctVencedor);
         guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
         if (pts > 0) {
           ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-brand-green/20 text-brand-green mt-1 tracking-wide uppercase animate-pulse">Parcial: +${pts} pts</span>`;
@@ -548,7 +558,43 @@ function liberarInterfacePalpite() {
   });
 }
 
-function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
+function calcularDistribuicaoPalpites(guesses) {
+  const distribuicao = {};
+  guesses.forEach(g => {
+    if (!distribuicao[g.match_id]) {
+      distribuicao[g.match_id] = { home: 0, away: 0, empate: 0, total: 0 };
+    }
+    distribuicao[g.match_id].total++;
+    if (g.score_home > g.score_away) {
+      distribuicao[g.match_id].home++;
+    } else if (g.score_away > g.score_home) {
+      distribuicao[g.match_id].away++;
+    } else {
+      distribuicao[g.match_id].empate++;
+    }
+  });
+  
+  const percentuais = {};
+  for (const mId in distribuicao) {
+    const d = distribuicao[mId];
+    percentuais[mId] = {
+      home: d.total > 0 ? (d.home / d.total) * 100 : 0,
+      away: d.total > 0 ? (d.away / d.total) * 100 : 0,
+      empate: d.total > 0 ? (d.empate / d.total) * 100 : 0,
+      total: d.total
+    };
+  }
+  return percentuais;
+}
+
+function ehFaseMataMata(roundName) {
+  if (!roundName) return false;
+  const r = roundName.toLowerCase();
+  if (r.includes('group') || r.includes('grupo')) return false;
+  return r.includes('round') || r.includes('oitavas') || r.includes('quartas') || r.includes('semi') || r.includes('final') || r.includes('3rd') || r.includes('terceiro');
+}
+
+function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway, roundName = '', percentualVencedor = 100) {
   const pHome = parseInt(palpiteHome);
   const pAway = parseInt(palpiteAway);
   const rHome = parseInt(realHome);
@@ -560,79 +606,64 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
 
   // Configuração padrão de pontos com fallback para as regras customizadas do grupo atual (se houver)
   const regras = {
-    pt_placar_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 30,
-    pt_vencedor_gols_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? Number(grupoAtual.pt_vencedor_gols_time) : 18,
-    pt_empate_nao_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 18,
-    pt_vencedor_saldo: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 15,
-    pt_vencedor_gols_perdedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? Number(grupoAtual.pt_vencedor_gols_perdedor) : 12,
-    pt_apenas_vencedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 4,
-    pt_gols_um_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? Number(grupoAtual.pt_gols_um_time) : 3
+    pt_placar_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 12,
+    pt_vencedor_saldo: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 7,
+    pt_empate_nao_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 6,
+    pt_apenas_vencedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 3,
+    
+    // Novas regras premium
+    regra_zebra_dinamica: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.regra_zebra_dinamica !== undefined) ? grupoAtual.regra_zebra_dinamica : false,
+    mult_fase_final: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.mult_fase_final !== undefined && grupoAtual.mult_fase_final !== null) ? Number(grupoAtual.mult_fase_final) : 2
   };
 
-  // ================= A CASCATA DE PONTUAÇÃO =================
+  let pontosBase = 0;
 
-  // 1. Placar Exato
+  // ================= A CASCATA DE PONTUAÇÃO (RISCO X RETORNO) =================
+
+  // 1. Placar Exato (Na Mosca)
   if (pHome === rHome && pAway === rAway && regras.pt_placar_exato > 0) {
-    return regras.pt_placar_exato;
-  }
-
-  const vencedorPalpite = pHome > pAway ? 'home' : (pHome < pAway ? 'away' : 'empate');
-  const vencedorReal = rHome > rAway ? 'home' : (rHome < rAway ? 'away' : 'empate');
-  const acertouVencedor = vencedorPalpite === vencedorReal;
-
-  if (acertouVencedor) {
-    // 2. Empate Não-Exato
-    if (vencedorReal === 'empate' && regras.pt_empate_nao_exato > 0) {
-      return regras.pt_empate_nao_exato;
-    }
-
-    const saldoPalpite = Math.abs(pHome - pAway);
-    const saldoReal = Math.abs(rHome - rAway);
-
-    const acertouGolsHome = pHome === rHome;
-    const acertouGolsAway = pAway === rAway;
-    
-    // Descobrindo se ele acertou os gols do vencedor ou do perdedor
-    let acertouGolsDoVencedor = false;
-    let acertouGolsDoPerdedor = false;
-    
-    if (vencedorReal === 'home') {
-      acertouGolsDoVencedor = acertouGolsHome;
-      acertouGolsDoPerdedor = acertouGolsAway;
-    } else if (vencedorReal === 'away') {
-      acertouGolsDoVencedor = acertouGolsAway;
-      acertouGolsDoPerdedor = acertouGolsHome;
-    }
-
-    // 3. Vencedor e Gols de um Time (Gols do Vencedor)
-    if (acertouGolsDoVencedor && regras.pt_vencedor_gols_time > 0) {
-      return regras.pt_vencedor_gols_time;
-    }
-
-    // 4. Vencedor e Saldo/Diferença de Gols
-    if (saldoPalpite === saldoReal && regras.pt_vencedor_saldo > 0) {
-      return regras.pt_vencedor_saldo;
-    }
-
-    // 5. Vencedor e Gols do Perdedor
-    if (acertouGolsDoPerdedor && regras.pt_vencedor_gols_perdedor > 0) {
-      return   regras.pt_vencedor_gols_perdedor;
-    }
-
-    // 6. Apenas o Vencedor
-    if (regras.pt_apenas_vencedor > 0) {
-      return regras.pt_apenas_vencedor;
-    }
+    pontosBase = regras.pt_placar_exato;
   } else {
-    // 7. Gols de um Time
-    const acertouGolsHome = pHome === rHome;
-    const acertouGolsAway = pAway === rAway;
-    if ((acertouGolsHome || acertouGolsAway) && regras.pt_gols_um_time > 0) {
-      return regras.pt_gols_um_time;
+    const vencedorPalpite = pHome > pAway ? 'home' : (pHome < pAway ? 'away' : 'empate');
+    const vencedorReal = rHome > rAway ? 'home' : (rHome < rAway ? 'away' : 'empate');
+    const acertouVencedor = vencedorPalpite === vencedorReal;
+
+    if (acertouVencedor) {
+      // 2. Empate Não-Exato
+      if (vencedorReal === 'empate' && regras.pt_empate_nao_exato > 0) {
+        pontosBase = regras.pt_empate_nao_exato;
+      } else {
+        const saldoPalpite = Math.abs(pHome - pAway);
+        const saldoReal = Math.abs(rHome - rAway);
+
+        // 3. Vencedor e Saldo
+        if (saldoPalpite === saldoReal && regras.pt_vencedor_saldo > 0) {
+          pontosBase = regras.pt_vencedor_saldo;
+        }
+        // 4. Apenas o Vencedor
+        else if (regras.pt_apenas_vencedor > 0) {
+          pontosBase = regras.pt_apenas_vencedor;
+        }
+      }
     }
   }
 
-  return 0;
+  if (pontosBase === 0) return 0;
+
+  // ================= APLICANDO MULTIPLICADORES =================
+  let multiplicador = 1;
+
+  // A. Multiplicador de Mata-Mata
+  if (regras.mult_fase_final > 1 && ehFaseMataMata(roundName)) {
+    multiplicador *= regras.mult_fase_final;
+  }
+
+  // B. Zebra Dinâmica (menos de 15% de apostas no time vencedor)
+  if (regras.regra_zebra_dinamica && percentualVencedor < 15) {
+    multiplicador *= 2;
+  }
+
+  return pontosBase * multiplicador;
 }
 
 function gerarFiltrosRodadas() {
@@ -855,6 +886,11 @@ async function exibirRankingSelecionado() {
 
     // 5. Calcula os pontos
     if (rawGuesses && rawGuesses.length > 0) {
+      // Pré-calcula a distribuição de palpites do grupo para a Zebra Dinâmica
+      const distribuicao = (typeof calcularDistribuicaoPalpites === 'function') 
+        ? calcularDistribuicaoPalpites(rawGuesses) 
+        : {};
+
       rawGuesses.forEach(g => {
         // Ignora palpites de usuários que não estão no grupo
         if (!scores[g.user_id]) return;
@@ -870,9 +906,15 @@ async function exibirRankingSelecionado() {
         // Apenas calcula jogos finalizados
         const statusTerminado = ['FT', 'AET', 'PEN'].includes(jogo.fixture.status.short);
         if (statusTerminado && jogo.goals.home !== null && jogo.goals.away !== null) {
-          const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away);
+          const vencedorReal = jogo.goals.home > jogo.goals.away ? 'home' : (jogo.goals.home < jogo.goals.away ? 'away' : 'empate');
+          const dist = distribuicao[g.match_id];
+          const pctVencedor = dist ? dist[vencedorReal] : 100;
+
+          const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away, jogo.league.round, pctVencedor);
           scores[g.user_id].pontos += pts;
-          if (pts === 30) {
+          
+          // Verifica acerto exato comparando diretamente os placares
+          if (g.score_home === jogo.goals.home && g.score_away === jogo.goals.away) {
             scores[g.user_id].acertosExatos += 1;
           }
         }
@@ -3547,21 +3589,22 @@ async function verificarExibicaoBotaoBonusJogador() {
   }
 }
 
-// ==================== LÓGICA DO EDITOR DE REGRAS ====================
+// ==================== LÓGICA DO EDITOR DE REGRAS V2 ====================
 
 function abrirEditorRegras() {
   if (!grupoAtual) return;
   
   const modal = document.getElementById('modal-regras-pontuacao');
   if (modal) {
-    // Carrega dados da memória (trata undefined e null para as 7 regras)
-    document.getElementById('regra-pt-placar-exato').value = (grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? grupoAtual.pt_placar_exato : 30;
-    document.getElementById('regra-pt-vencedor-gols').value = (grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? grupoAtual.pt_vencedor_gols_time : 18;
-    document.getElementById('regra-pt-empate').value = (grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? grupoAtual.pt_empate_nao_exato : 18;
-    document.getElementById('regra-pt-saldo').value = (grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? grupoAtual.pt_vencedor_saldo : 15;
-    document.getElementById('regra-pt-vencedor-gols-perdedor').value = (grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? grupoAtual.pt_vencedor_gols_perdedor : 12;
-    document.getElementById('regra-pt-apenas-vencedor').value = (grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? grupoAtual.pt_apenas_vencedor : 4;
-    document.getElementById('regra-pt-gols-um-time').value = (grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? grupoAtual.pt_gols_um_time : 3;
+    // Carrega dados da memória (trata as 4 regras ativas e os fallbacks)
+    document.getElementById('regra-pt-placar-exato').value = (grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? grupoAtual.pt_placar_exato : 12;
+    document.getElementById('regra-pt-saldo').value = (grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? grupoAtual.pt_vencedor_saldo : 7;
+    document.getElementById('regra-pt-empate').value = (grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? grupoAtual.pt_empate_nao_exato : 6;
+    document.getElementById('regra-pt-apenas-vencedor').value = (grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? grupoAtual.pt_apenas_vencedor : 3;
+    
+    // Carrega as configurações premium
+    document.getElementById('toggle-zebra').checked = grupoAtual.regra_zebra_dinamica === true;
+    document.getElementById('select-mult-fase').value = (grupoAtual.mult_fase_final !== undefined && grupoAtual.mult_fase_final !== null) ? grupoAtual.mult_fase_final : 2;
     
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -3580,12 +3623,12 @@ async function salvarRegrasPontuacao() {
   if (!grupoAtual || !sbClient) return;
   
   const pt_placar_exato = parseInt(document.getElementById('regra-pt-placar-exato').value) || 0;
-  const pt_vencedor_gols_time = parseInt(document.getElementById('regra-pt-vencedor-gols').value) || 0;
-  const pt_empate_nao_exato = parseInt(document.getElementById('regra-pt-empate').value) || 0;
   const pt_vencedor_saldo = parseInt(document.getElementById('regra-pt-saldo').value) || 0;
-  const pt_vencedor_gols_perdedor = parseInt(document.getElementById('regra-pt-vencedor-gols-perdedor').value) || 0;
+  const pt_empate_nao_exato = parseInt(document.getElementById('regra-pt-empate').value) || 0;
   const pt_apenas_vencedor = parseInt(document.getElementById('regra-pt-apenas-vencedor').value) || 0;
-  const pt_gols_um_time = parseInt(document.getElementById('regra-pt-gols-um-time').value) || 0;
+  
+  const regra_zebra_dinamica = document.getElementById('toggle-zebra').checked;
+  const mult_fase_final = parseInt(document.getElementById('select-mult-fase').value) || 1;
   
   showToast("Salvando regras...", "info");
   
@@ -3594,12 +3637,15 @@ async function salvarRegrasPontuacao() {
       .from('groups')
       .update({
         pt_placar_exato,
-        pt_vencedor_gols_time,
-        pt_empate_nao_exato,
         pt_vencedor_saldo,
-        pt_vencedor_gols_perdedor,
+        pt_empate_nao_exato,
         pt_apenas_vencedor,
-        pt_gols_um_time
+        regra_zebra_dinamica,
+        mult_fase_final,
+        // Mantém as regras legadas zeradas ou limpas
+        pt_vencedor_gols_time: 0,
+        pt_vencedor_gols_perdedor: 0,
+        pt_gols_um_time: 0
       })
       .eq('id', grupoAtual.id);
       
@@ -3611,17 +3657,129 @@ async function salvarRegrasPontuacao() {
     
     // Atualiza estado local
     grupoAtual.pt_placar_exato = pt_placar_exato;
-    grupoAtual.pt_vencedor_gols_time = pt_vencedor_gols_time;
-    grupoAtual.pt_empate_nao_exato = pt_empate_nao_exato;
     grupoAtual.pt_vencedor_saldo = pt_vencedor_saldo;
-    grupoAtual.pt_vencedor_gols_perdedor = pt_vencedor_gols_perdedor;
+    grupoAtual.pt_empate_nao_exato = pt_empate_nao_exato;
     grupoAtual.pt_apenas_vencedor = pt_apenas_vencedor;
-    grupoAtual.pt_gols_um_time = pt_gols_um_time;
+    grupoAtual.regra_zebra_dinamica = regra_zebra_dinamica;
+    grupoAtual.mult_fase_final = mult_fase_final;
+    
+    // Limpa regras legadas
+    grupoAtual.pt_vencedor_gols_time = 0;
+    grupoAtual.pt_vencedor_gols_perdedor = 0;
+    grupoAtual.pt_gols_um_time = 0;
     
     showToast("Novas regras aplicadas com sucesso!", "success");
     fecharEditorRegras();
+    
+    // Força recálculo visual se estiver na aba de regras
+    if (document.getElementById('view-regras') && !document.getElementById('view-regras').classList.contains('hidden')) {
+      renderizarRegrasGrupo();
+    }
   } catch (e) {
     console.error(e);
     showToast("Erro ao processar as alterações.", "error");
+  }
+}
+
+// Mapeador de clique no rodapé do modal
+function salvarNovasRegras() {
+  salvarRegrasPontuacao();
+}
+
+// Renderiza a lista de regras e os cards explicativos de Zebra/Mata-Mata
+function renderizarRegrasGrupo() {
+  const containerBase = document.getElementById('lista-regras-base-container');
+  const cardPremium = document.getElementById('card-neon-premium');
+  const premiumList = document.getElementById('premium-rules-active-list');
+
+  if (!containerBase) return;
+
+  const regras = {
+    pt_placar_exato: (grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 12,
+    pt_vencedor_saldo: (grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 7,
+    pt_empate_nao_exato: (grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 6,
+    pt_apenas_vencedor: (grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 3
+  };
+
+  // Renderiza as Regras Base
+  containerBase.innerHTML = `
+    <!-- Placar Exato -->
+    <div class="bg-card-bg rounded-xl p-4 border border-brand-green relative overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+      <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brand-green"></div>
+      <div class="flex justify-between items-center mb-2 pl-2">
+        <h4 class="font-bold text-[14px] text-white flex items-center gap-2">
+          <span class="bg-brand-green text-black px-1.5 py-0.5 rounded text-[9px] font-black uppercase">TOP</span> 
+          Na Mosca (Placar Exato)
+        </h4>
+        <span class="bg-brand-green/10 text-brand-green text-[13px] font-black px-2 py-0.5 rounded">+${regras.pt_placar_exato} pts</span>
+      </div>
+      <p class="text-[12px] text-text-muted pl-2">Palpitou <strong class="text-white">2x1</strong> e o jogo terminou <strong class="text-white">2x1</strong>.</p>
+    </div>
+
+    <!-- Vencedor e Saldo -->
+    <div class="bg-card-bg rounded-xl p-4 border border-white/5">
+      <div class="flex justify-between items-center mb-2">
+        <h4 class="font-bold text-[14px] text-white">Vencedor e Saldo</h4>
+        <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+${regras.pt_vencedor_saldo} pts</span>
+      </div>
+      <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x1</strong> e deu <strong class="text-white">3x2</strong> ou <strong class="text-white">1x0</strong> (Acertou quem ganhou e a diferença exata de gols).</p>
+    </div>
+
+    <!-- Empate -->
+    <div class="bg-card-bg rounded-xl p-4 border border-white/5">
+      <div class="flex justify-between items-center mb-2">
+        <h4 class="font-bold text-[14px] text-white">Empate</h4>
+        <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+${regras.pt_empate_nao_exato} pts</span>
+      </div>
+      <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">1x1</strong> e deu <strong class="text-white">2x2</strong> (Acertou o empate, mas errou a quantia exata de gols).</p>
+    </div>
+
+    <!-- Apenas Vencedor -->
+    <div class="bg-card-bg rounded-xl p-4 border border-white/5">
+      <div class="flex justify-between items-center mb-2">
+        <h4 class="font-bold text-[14px] text-white">Apenas o Vencedor</h4>
+        <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+${regras.pt_apenas_vencedor} pts</span>
+      </div>
+      <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x0</strong> e deu <strong class="text-white">3x1</strong> (Só acertou quem ganhou a partida).</p>
+    </div>
+  `;
+
+  // Renderiza as Regras Premium ativas
+  if (cardPremium && premiumList) {
+    premiumList.innerHTML = '';
+    let hasPremium = false;
+
+    if (grupoAtual && grupoAtual.regra_zebra_dinamica) {
+      hasPremium = true;
+      premiumList.innerHTML += `
+        <div class="flex items-start gap-3 p-3 bg-black/35 rounded-xl border border-[#10b981]/25">
+          <span class="text-xl">🦓</span>
+          <div>
+            <h4 class="text-[#10b981] font-bold text-[13px]">Zebra Dinâmica Ativa</h4>
+            <p class="text-gray-400 text-[10px] leading-snug mt-0.5">Se o time vencedor tiver <strong>menos de 15%</strong> de palpites do grupo, a pontuação obtida nessa partida é <strong>DOBRADA</strong>!</p>
+          </div>
+        </div>
+      `;
+    }
+
+    const mult = (grupoAtual && grupoAtual.mult_fase_final !== undefined && grupoAtual.mult_fase_final !== null) ? Number(grupoAtual.mult_fase_final) : 2;
+    if (mult > 1) {
+      hasPremium = true;
+      premiumList.innerHTML += `
+        <div class="flex items-start gap-3 p-3 bg-black/35 rounded-xl border border-[#10b981]/25">
+          <span class="text-xl">🔥</span>
+          <div>
+            <h4 class="text-[#10b981] font-bold text-[13px]">Multiplicador Mata-Mata Ativo (x${mult})</h4>
+            <p class="text-gray-400 text-[10px] leading-snug mt-0.5">Todas as pontuações da fase final (oitavas de final em diante) serão multiplicadas por <strong>x${mult}</strong>!</p>
+          </div>
+        </div>
+      `;
+    }
+
+    if (hasPremium) {
+      cardPremium.classList.remove('hidden');
+    } else {
+      cardPremium.classList.add('hidden');
+    }
   }
 }

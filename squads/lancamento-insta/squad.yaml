@@ -1,0 +1,30 @@
+squad:
+  code: lancamento-insta
+  name: "Lançamento Instagram — Bolão Pro"
+  icon: "🚀"
+  description: "Squad que produz conteúdo de lançamento para o Instagram do Bolão Pro, incluindo calendário editorial, copies, legendas e briefings visuais."
+  pipeline:
+    steps:
+      - step-01-research-focus
+      - step-02-research
+      - step-03-approve-research
+      - step-04-calendar
+      - step-05-approve-calendar
+      - step-06-copywriting
+      - step-07-review
+      - step-08-final-approval
+    checkpoints:
+      - step-01-research-focus
+      - step-03-approve-research
+      - step-05-approve-calendar
+      - step-08-final-approval
+  skills:
+    - web_search
+    - web_fetch
+  data:
+    - pipeline/data/research-brief.md
+    - pipeline/data/domain-framework.md
+    - pipeline/data/quality-criteria.md
+    - pipeline/data/output-examples.md
+    - pipeline/data/anti-patterns.md
+    - pipeline/data/tone-of-voice.md
