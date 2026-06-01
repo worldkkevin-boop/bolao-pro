@@ -517,10 +517,10 @@ function adminApp() {
 
     traduzirRegra(eventType) {
       const map = {
-        'Goal': '⚽ Gol',
-        'Goal_penalty': '⚽ Gol (Pen.)',
-        'Card': '🟨 Cartão',
-        'Card_penalty': '🟨 Cartão (Pen.)'
+        'Goal': '⚽ Time a marcar primeiro',
+        'Goal_penalty': '⚽ Time a marcar primeiro (Pen.)',
+        'Card': '🟨 Time a levar cartão primeiro',
+        'Card_penalty': '🟨 Time a levar cartão primeiro (Pen.)'
       };
       return map[eventType] || eventType;
     },

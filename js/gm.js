@@ -688,7 +688,8 @@ function traduzirRegraDesafio(eventType) {
   const clean = eventType.replace('_penalty', '');
   let trad = clean;
   
-  if (clean === 'Goal') trad = 'Fazer Gol ⚽';
+  if (clean === 'Goal') trad = 'Time a marcar primeiro ⚽';
+  else if (clean === 'Card') trad = 'Time a levar cartão primeiro 🟨';
   else if (clean === 'Assist') trad = 'Dar Assistência 🎯';
   else if (clean === 'CardYellow') trad = 'Receber Cartão Amarelo 🟨';
   else if (clean === 'CardRed') trad = 'Receber Cartão Vermelho 🟥';

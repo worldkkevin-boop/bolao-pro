@@ -1685,8 +1685,11 @@ async function carregarDesafioPartida(fixtureId) {
     let customQuestion = '';
     
     if (cleanEventType === 'Goal') {
-      acaoTexto = 'fará um GOL';
-      customQuestion = 'Quem fará um GOL nesta partida?';
+      acaoTexto = 'marca primeiro';
+      customQuestion = 'Qual time marca primeiro? ⚽';
+    } else if (cleanEventType === 'Card') {
+      acaoTexto = 'leva o primeiro cartão';
+      customQuestion = 'Qual time leva o primeiro cartão? 🟨';
     } else if (cleanEventType === 'Assist') {
       acaoTexto = 'dará uma ASSISTÊNCIA';
       customQuestion = 'Quem dará uma ASSISTÊNCIA nesta partida?';
@@ -2140,7 +2143,9 @@ async function carregarDesafiosUsuarioView() {
         return;
       }
 
-      const desafiosGrupo = (desafios || []).filter(d => todosOsJogos.some(j => Number(j.fixture.id) === Number(d.fixture_id)));
+      const desafiosGrupo = todosOsJogos.length > 0
+        ? (desafios || []).filter(d => todosOsJogos.some(j => Number(j.fixture.id) === Number(d.fixture_id)))
+        : (desafios || []);
 
       if (desafiosGrupo.length === 0) {
         listaAtivos.innerHTML = renderEmptyState(
