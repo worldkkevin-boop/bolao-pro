@@ -76,12 +76,15 @@ function adminApp() {
     desafiosListaGM: [],
     desafiosLoading: false,
     desafiosAbaFiltro: 'active',
-    novoDesafio: { fixture_id: '', match_name: '', event_type: 'Goal', points: 5, players: [], status: 'active', hasPenalty: false },
+    novoDesafio: { fixture_id: '', match_name: '', event_type: 'Goal', points: 5, custo_fichas: 5, players: [], status: 'active', hasPenalty: false },
     novoJogadorInput: '',
     desafioLancando: false,
     buscaFixture: '',
     buscaFixtureLoading: false,
     resultadoBuscaFixtures: [],
+
+    // Oráculo
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
 
     // Métricas de Banco de Dados
     metricas: {
@@ -683,6 +686,7 @@ function adminApp() {
           match_name: this.novoDesafio.match_name,
           event_type: this.novoDesafio.event_type,
           points: this.novoDesafio.points,
+          custo_fichas: this.novoDesafio.custo_fichas || 0,
           players: this.novoDesafio.players,
           status: 'active'
         };
@@ -898,12 +902,54 @@ function adminApp() {
       } finally {
         this.migracaoLoading = false;
       }
+    },
+
+    async analisarOraculoGM() {
+      if (!this.oraculo.fixtureId) return;
+      this.oraculo.loading = true;
+      this.oraculo.predicoes = null;
+      this.oraculo.distribuicao = null;
+      this.oraculo.distorcao = null;
+      this.oraculo.erro = null;
+      const fId = Number(this.oraculo.fixtureId);
+      const t = Date.now();
+      try {
+        const [pred, dist] = await Promise.all([
+          analisarDistorcaoPalpites(fId),
+          this._distribuicaoLocalGM(fId)
+        ]);
+        this.oraculo.predicoes = pred;
+        this.oraculo.distribuicao = dist;
+        if (dist.total > 0) {
+          this.oraculo.distorcao = {
+            home: (dist.homePct - pred.percent.home).toFixed(1),
+            draw: (dist.drawPct - pred.percent.draw).toFixed(1),
+            away: (dist.awayPct - pred.percent.away).toFixed(1),
+            zebraAlert: Math.max(Math.abs(dist.homePct - pred.percent.home), Math.abs(dist.awayPct - pred.percent.away)) > 25
+          };
+        }
+        this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
+      } catch(err) {
+        this.oraculo.erro = err.message;
+        this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'ERROR', Date.now() - t, err.message);
+      } finally {
+        this.oraculo.loading = false;
+      }
+    },
+
+    async _distribuicaoLocalGM(fixtureId) {
+      const { data, error } = await sbClient.from('guesses').select('score_home, score_away').eq('match_id', fixtureId);
+      if (error || !data || data.length === 0) return { total: 0, homePct: 0, drawPct: 0, awayPct: 0, raw: { home: 0, draw: 0, away: 0 } };
+      let home = 0, draw = 0, away = 0;
+      data.forEach(g => { if (g.score_home > g.score_away) home++; else if (g.score_home < g.score_away) away++; else draw++; });
+      const total = data.length;
+      return { total, homePct: (home/total)*100, drawPct: (draw/total)*100, awayPct: (away/total)*100, raw: { home, draw, away } };
     }
   };
 }
 
 // ============================================================
-// FUNÇÕES STANDALONE — Terminal do Mago (admin.html)
+// FUNÇÕES STANDALONE — compartilhadas entre adminApp e admin.html legado
 // ============================================================
 
 async function analisarDistorcaoPalpites(fixtureId) {
@@ -948,10 +994,8 @@ function validarLiquidez(distribuicao) {
     detalhes: distribuicao };
 }
 
-// ============================================================
-// Alpine Component — Terminal do Mago
-// ============================================================
-
+// terminalApp() removido — funcionalidades integradas no gm.html
+// (mantido como stub para não quebrar cache de navegador)
 function terminalApp() {
   return {
     loading: true,

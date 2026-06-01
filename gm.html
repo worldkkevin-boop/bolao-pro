@@ -126,6 +126,9 @@
           <button @click="abaAtiva = 'desafios'; carregarDesafiosGM()" :class="abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? 'bg-amber-600/20 text-amber-300 font-bold border border-amber-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
             <span>⚡</span> Desafios do Mago
           </button>
+          <button @click="abaAtiva = 'oraculo'" :class="abaAtiva === 'oraculo' ? 'bg-emerald-600/20 text-emerald-300 font-bold border border-emerald-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span>◉</span> Oráculo
+          </button>
           <div class="h-px bg-zinc-800 my-3"></div>
           <a href="index.html" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left text-zinc-500 hover:text-white hover:bg-zinc-800/50">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
@@ -150,7 +153,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-zinc-950/90">
       <!-- Top header -->
       <header class="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/40">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? 'Gerenciador de Grupos' : (abaAtiva === 'usuarios' ? 'Gerenciador de Perfis' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : 'Painel')))"></h1>
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? 'Gerenciador de Grupos' : (abaAtiva === 'usuarios' ? 'Gerenciador de Perfis' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo — Radar de Distorção' : 'Painel'))))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
         </div>
@@ -849,7 +852,7 @@
               <p class="text-[10px] text-zinc-500 mt-1">Fixture ID: <span class="text-purple-400 font-mono" x-text="novoDesafio.fixture_id"></span></p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1.5">Tipo de Evento</label>
                 <select x-model="novoDesafio.event_type" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-purple-500 outline-none">
@@ -860,8 +863,12 @@
                 </select>
               </div>
               <div>
-                <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1.5">Pontos</label>
+                <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1.5">Prêmio (Pontos)</label>
                 <input type="number" x-model.number="novoDesafio.points" min="1" max="50" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-purple-500 outline-none">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-bold text-amber-500/80 block mb-1.5">🎫 Custo (Fichas)</label>
+                <input type="number" x-model.number="novoDesafio.custo_fichas" min="0" max="20" class="w-full bg-zinc-950 border border-amber-500/30 rounded-xl px-4 py-2.5 text-xs text-amber-300 font-bold focus:border-amber-500 outline-none">
               </div>
             </div>
 
@@ -891,6 +898,124 @@
         </div>
 
       </div>
+
+      <!-- =================== ABA: ORÁCULO =================== -->
+      <div x-show="abaAtiva === 'oraculo'" class="flex-1 overflow-y-auto p-8 space-y-6" x-cloak>
+
+        <div class="bg-emerald-950/30 border border-emerald-500/20 rounded-2xl p-5 flex items-start gap-4">
+          <span class="text-emerald-400 text-2xl mt-0.5">◉</span>
+          <div>
+            <h2 class="text-emerald-400 font-bold text-sm uppercase tracking-widest">Radar de Distorção — Oráculo</h2>
+            <p class="text-zinc-400 text-xs mt-1 leading-relaxed">Cruza a probabilidade real da API-Football com a distribuição de apostas do seu bolão. Detecta distorções e identifica candidatos à Zebra Dinâmica.</p>
+          </div>
+        </div>
+
+        <!-- Input fixture_id -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">ID da Partida (fixture_id)</h3>
+          <div class="flex gap-3">
+            <input
+              type="number"
+              x-model="oraculo.fixtureId"
+              @keydown.enter="analisarOraculoGM()"
+              placeholder="ex: 1208098  —  encontre em Desafios → Buscar Partida"
+              class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 font-mono text-emerald-400 text-sm outline-none focus:border-emerald-500/50 placeholder-zinc-700"
+            >
+            <button
+              @click="analisarOraculoGM()"
+              :disabled="oraculo.loading || !oraculo.fixtureId"
+              class="px-6 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-500 transition-colors active:scale-95"
+            >
+              <span x-show="!oraculo.loading">Analisar</span>
+              <span x-show="oraculo.loading" class="flex items-center gap-2"><span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>...</span>
+            </button>
+          </div>
+          <div x-show="oraculo.erro" class="text-red-400 text-xs font-mono bg-red-950/30 border border-red-500/20 rounded-xl p-3" x-text="oraculo.erro"></div>
+        </div>
+
+        <!-- Resultados -->
+        <template x-if="oraculo.predicoes">
+          <div class="space-y-4">
+
+            <!-- Alerta Zebra -->
+            <template x-if="oraculo.distorcao?.zebraAlert">
+              <div class="bg-yellow-950/40 border border-yellow-500/40 rounded-2xl p-5 flex items-center gap-4">
+                <span class="text-3xl">🦓</span>
+                <div>
+                  <p class="text-yellow-400 font-bold text-sm">ALERTA DE ZEBRA DETECTADO</p>
+                  <p class="text-yellow-400/70 text-xs mt-0.5">Distorção &gt;25% entre o bolão e a probabilidade real. Alto potencial de Zebra Dinâmica nesta partida.</p>
+                </div>
+              </div>
+            </template>
+
+            <!-- Tabela de comparação -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+              <div class="grid grid-cols-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-6 py-3 border-b border-zinc-800 bg-zinc-950/50">
+                <span>Resultado</span>
+                <span class="text-right">API-Football</span>
+                <span class="text-right">Nosso Bolão</span>
+                <span class="text-right">Distorção</span>
+              </div>
+              <template x-for="row in [
+                { label: oraculo.predicoes?.teams?.home?.name || 'Casa', api: oraculo.predicoes?.percent?.home, db: oraculo.distribuicao?.homePct, delta: oraculo.distorcao?.home },
+                { label: 'Empate',                                        api: oraculo.predicoes?.percent?.draw, db: oraculo.distribuicao?.drawPct, delta: oraculo.distorcao?.draw },
+                { label: oraculo.predicoes?.teams?.away?.name || 'Fora', api: oraculo.predicoes?.percent?.away, db: oraculo.distribuicao?.awayPct, delta: oraculo.distorcao?.away }
+              ]" :key="row.label">
+                <div class="grid grid-cols-4 items-center px-6 py-4 border-b border-zinc-800/50 last:border-0 hover:bg-zinc-800/20 transition-colors">
+                  <span class="font-bold text-sm text-white truncate" x-text="row.label"></span>
+                  <div class="flex items-center justify-end gap-3">
+                    <div class="w-24 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                      <div class="h-full bg-emerald-500 rounded-full transition-all" :style="'width:' + (row.api || 0) + '%'"></div>
+                    </div>
+                    <span class="font-mono text-emerald-400 font-bold text-sm w-10 text-right" x-text="(row.api || 0).toFixed(0) + '%'"></span>
+                  </div>
+                  <div class="flex items-center justify-end gap-3">
+                    <template x-if="oraculo.distribuicao?.total > 0">
+                      <div class="flex items-center gap-3">
+                        <div class="w-24 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                          <div class="h-full bg-indigo-400 rounded-full transition-all" :style="'width:' + (row.db || 0) + '%'"></div>
+                        </div>
+                        <span class="font-mono text-indigo-400 font-bold text-sm w-10 text-right" x-text="(row.db || 0).toFixed(0) + '%'"></span>
+                      </div>
+                    </template>
+                    <template x-if="!oraculo.distribuicao?.total">
+                      <span class="text-zinc-600 text-sm">sem dados</span>
+                    </template>
+                  </div>
+                  <div class="text-right">
+                    <template x-if="oraculo.distorcao">
+                      <span
+                        class="font-mono text-sm font-bold"
+                        :class="Math.abs(parseFloat(row.delta || 0)) > 20 ? 'text-yellow-400' : parseFloat(row.delta || 0) > 0 ? 'text-red-400' : 'text-zinc-500'"
+                        x-text="(parseFloat(row.delta || 0) > 0 ? '+' : '') + row.delta + '%'"
+                      ></span>
+                    </template>
+                    <template x-if="!oraculo.distorcao"><span class="text-zinc-700">—</span></template>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Meta info -->
+            <div class="grid grid-cols-3 gap-4">
+              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Conselho da API</p>
+                <p class="text-zinc-300 text-xs leading-snug" x-text="oraculo.predicoes?.advice || '—'"></p>
+              </div>
+              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Palpites no Bolão</p>
+                <p class="text-emerald-400 font-bold text-lg font-mono" x-text="(oraculo.distribuicao?.total || 0) + ' votos'"></p>
+              </div>
+              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Fixture ID</p>
+                <p class="text-purple-400 font-mono font-bold text-lg" x-text="oraculo.fixtureId"></p>
+              </div>
+            </div>
+          </div>
+        </template>
+
+      </div>
+
     </main>
 
   </div>
