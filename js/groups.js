@@ -245,7 +245,22 @@ async function criarGrupoReal() {
 
   const { data: novoGrupo, error } = await sbClient
     .from('groups')
-    .insert([{ name: nome, invite_code: codigo, owner_id: user.id, league_id: leagueId, max_participants: 3 }])
+    .insert([{
+      name: nome,
+      invite_code: codigo,
+      owner_id: user.id,
+      league_id: leagueId,
+      max_participants: 3,
+      pt_placar_exato: 12,
+      pt_vencedor_saldo: 7,
+      pt_empate_nao_exato: 6,
+      pt_apenas_vencedor: 3,
+      pt_vencedor_gols_time: 0,
+      pt_vencedor_gols_perdedor: 0,
+      pt_gols_um_time: 0,
+      mult_fase_final: 2,
+      regra_zebra_dinamica: false
+    }])
     .select()
     .single();
 
