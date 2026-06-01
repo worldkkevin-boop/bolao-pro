@@ -902,125 +902,269 @@
       <!-- =================== ABA: ORÁCULO =================== -->
       <div x-show="abaAtiva === 'oraculo'" class="flex-1 overflow-y-auto p-8 space-y-6" x-cloak>
 
-        <div class="bg-emerald-950/30 border border-emerald-500/20 rounded-2xl p-5 flex items-start gap-4">
-          <span class="text-emerald-400 text-2xl mt-0.5">◉</span>
-          <div>
-            <h2 class="text-emerald-400 font-bold text-sm uppercase tracking-widest">Radar de Distorção — Oráculo</h2>
-            <p class="text-zinc-400 text-xs mt-1 leading-relaxed">Cruza a probabilidade real da API-Football com a distribuição de apostas do seu bolão. Detecta distorções e identifica candidatos à Zebra Dinâmica.</p>
+        <!-- Oracle Header Card -->
+        <div class="relative overflow-hidden bg-gradient-to-r from-emerald-950/40 to-zinc-900 border border-emerald-500/30 rounded-2xl p-6 shadow-xl shadow-emerald-950/10">
+          <div class="absolute -right-16 -top-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl"></div>
+          <div class="relative flex items-start gap-5">
+            <div class="flex-shrink-0 w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
+              <span class="text-emerald-400 text-2xl animate-pulse">👁️</span>
+            </div>
+            <div>
+              <h2 class="text-emerald-400 font-extrabold text-sm uppercase tracking-widest">Radar de Distorção — Oráculo</h2>
+              <p class="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-3xl">
+                O Oráculo cruza dados estatísticos da <span class="text-white font-semibold">API-Football</span> com o padrão de palpites reais do seu bolão.
+                Ele analisa distorções de probabilidade e sinaliza com precisão os cenários onde a <span class="text-yellow-400 font-semibold">Zebra Dinâmica</span> (dobro de pontos) pode ser acionada.
+              </p>
+            </div>
           </div>
         </div>
 
-        <!-- Input fixture_id -->
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">ID da Partida (fixture_id)</h3>
-          <div class="flex gap-3">
-            <input
-              type="number"
-              x-model="oraculo.fixtureId"
-              @keydown.enter="analisarOraculoGM()"
-              placeholder="ex: 1208098  —  encontre em Desafios → Buscar Partida"
-              class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 font-mono text-emerald-400 text-sm outline-none focus:border-emerald-500/50 placeholder-zinc-700"
-            >
-            <button
-              @click="analisarOraculoGM()"
-              :disabled="oraculo.loading || !oraculo.fixtureId"
-              class="px-6 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-500 transition-colors active:scale-95"
-            >
-              <span x-show="!oraculo.loading">Analisar</span>
-              <span x-show="oraculo.loading" class="flex items-center gap-2"><span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>...</span>
-            </button>
+        <!-- Inputs / Search Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Lado Esquerdo: Input Manual -->
+          <div class="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between space-y-4 shadow-lg">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">🔍 Análise Manual de Fixture</h3>
+              <p class="text-[10px] text-zinc-500 mb-4">Insira o código numérico da partida da API de futebol para executar a varredura completa de distorções.</p>
+              
+              <div class="flex gap-3">
+                <input
+                  type="number"
+                  x-model="oraculo.fixtureId"
+                  @keydown.enter="analisarOraculoGM()"
+                  placeholder="ex: 1208098"
+                  class="flex-1 bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 font-mono text-emerald-400 text-sm outline-none transition-all placeholder-zinc-700 shadow-inner"
+                >
+                <button
+                  @click="analisarOraculoGM()"
+                  :disabled="oraculo.loading || !oraculo.fixtureId"
+                  class="px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/10"
+                >
+                  <span x-show="!oraculo.loading">Analisar</span>
+                  <span x-show="oraculo.loading" class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div x-show="oraculo.erro" class="text-red-400 text-xs font-mono bg-red-950/20 border border-red-500/25 rounded-xl p-3" x-text="oraculo.erro"></div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-zinc-800/60">
+              <span class="text-[9px] text-zinc-500 font-mono">🔬 Dev: Resultados detalhados no console</span>
+              <button
+                onclick="testarOraculoAmistosos().catch(e => console.error(e))"
+                class="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-500 hover:text-emerald-400 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all border border-zinc-800 active:scale-95"
+              >Teste de Fogo 🔬</button>
+            </div>
           </div>
-          <div x-show="oraculo.erro" class="text-red-400 text-xs font-mono bg-red-950/30 border border-red-500/20 rounded-xl p-3" x-text="oraculo.erro"></div>
-          <!-- Dev Tool: Backtest com amistosos reais -->
-          <div class="flex items-center justify-between pt-3 border-t border-zinc-800/50">
-            <span class="text-[10px] text-zinc-600 font-mono">🔬 Resultado aparece no console (F12 → Console)</span>
-            <button
-              onclick="testarOraculoAmistosos().catch(e => console.error(e))"
-              class="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors border border-zinc-700/50 active:scale-95"
-            >Teste de Fogo 🔬</button>
+
+          <!-- Lado Direito: Busca Integrada -->
+          <div class="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">⚽ Buscar Partida na API</h3>
+              <p class="text-[10px] text-zinc-500 mb-4">Busque partidas por time para obter o ID instantaneamente sem sair da aba.</p>
+              
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  x-model="buscaFixture" 
+                  @keydown.enter="buscarPartidas()"
+                  placeholder="Nome do time (ex: Brasil, Flamengo, Real)..." 
+                  class="flex-1 bg-zinc-950 border border-zinc-800 focus:border-purple-500/50 rounded-xl px-4 py-3 text-xs text-white outline-none transition-all placeholder-zinc-700"
+                >
+                <button 
+                  @click="buscarPartidas()" 
+                  class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-5 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5" 
+                  :disabled="buscaFixtureLoading"
+                >
+                  <span x-show="!buscaFixtureLoading">Buscar</span>
+                  <span x-show="buscaFixtureLoading" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista rápida de resultados da busca -->
+            <div x-show="resultadoBuscaFixtures.length > 0" class="mt-4 space-y-2 max-h-40 overflow-y-auto border border-zinc-800/40 rounded-xl p-2 bg-zinc-950/40">
+              <template x-for="jogo in resultadoBuscaFixtures" :key="jogo.fixture.id">
+                <button 
+                  @click="oraculo.fixtureId = jogo.fixture.id; analisarOraculoGM()" 
+                  class="w-full flex items-center justify-between gap-3 bg-zinc-900 hover:bg-emerald-950/20 border border-zinc-800 hover:border-emerald-500/30 rounded-lg px-3 py-2 transition-all text-left"
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    <img :src="jogo.teams.home.logo" class="w-4 h-4 object-contain">
+                    <span class="text-[11px] font-bold text-white truncate" x-text="jogo.teams.home.name"></span>
+                    <span class="text-[9px] text-zinc-500">vs</span>
+                    <span class="text-[11px] font-bold text-white truncate" x-text="jogo.teams.away.name"></span>
+                    <img :src="jogo.teams.away.logo" class="w-4 h-4 object-contain">
+                  </div>
+                  <span class="text-[9px] text-zinc-500 flex-shrink-0" x-text="new Date(jogo.fixture.date).toLocaleDateString('pt-BR')"></span>
+                </button>
+              </template>
+            </div>
+            
+            <div x-show="resultadoBuscaFixtures.length === 0" class="mt-4 py-6 border border-dashed border-zinc-850 rounded-xl text-center text-[10px] text-zinc-650 font-bold uppercase tracking-wider">
+              Nenhuma busca realizada recente.
+            </div>
           </div>
+
         </div>
 
-        <!-- Resultados -->
-        <template x-if="oraculo.predicoes">
-          <div class="space-y-4">
+        <!-- Radar Sweep Animation / Idle state -->
+        <div x-show="!oraculo.predicoes && !oraculo.loading" class="flex flex-col items-center justify-center py-16 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl">
+          <div class="relative w-36 h-36 border border-emerald-500/20 rounded-full flex items-center justify-center mb-6">
+            <div class="absolute inset-2 border border-emerald-500/10 rounded-full"></div>
+            <div class="absolute inset-8 border border-emerald-500/5 rounded-full"></div>
+            <!-- Radar Line -->
+            <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-transparent to-emerald-500/20 animate-spin" style="animation-duration: 4s;"></div>
+            <span class="text-3xl filter drop-shadow(0 0 10px rgba(16,185,129,0.4))">🔮</span>
+          </div>
+          <p class="text-xs text-zinc-500 uppercase tracking-widest font-black">Aguardando Fixture ID para Varredura</p>
+          <p class="text-[10px] text-zinc-600 mt-1">Insira um ID ou busque uma partida para iniciar o radar.</p>
+        </div>
 
-            <!-- Alerta Zebra -->
-            <template x-if="oraculo.distorcao?.zebraAlert">
-              <div class="bg-yellow-950/40 border border-yellow-500/40 rounded-2xl p-5 flex items-center gap-4">
-                <span class="text-3xl">🦓</span>
+        <!-- Loading Radar State -->
+        <div x-show="oraculo.loading" class="flex flex-col items-center justify-center py-16 bg-zinc-900/30 border border-emerald-500/10 rounded-2xl">
+          <div class="relative w-36 h-36 border border-emerald-500/40 rounded-full flex items-center justify-center mb-6">
+            <div class="absolute inset-2 border border-emerald-500/25 rounded-full"></div>
+            <div class="absolute inset-8 border border-emerald-500/10 rounded-full"></div>
+            <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-transparent to-emerald-400/40 animate-spin" style="animation-duration: 1.5s;"></div>
+            <span class="text-3xl animate-bounce">⚡</span>
+          </div>
+          <p class="text-xs text-emerald-400 uppercase tracking-widest font-black animate-pulse">Varrendo Ecossistema & API...</p>
+          <p class="text-[10px] text-zinc-500 mt-1">Calculando desvios matemáticos de apostas...</p>
+        </div>
+
+        <!-- RESULTADOS DA ANÁLISE -->
+        <div x-show="oraculo.predicoes && !oraculo.loading" class="space-y-6" x-transition>
+
+          <!-- Cabeçalho da Partida Analisada -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <img :src="oraculo.predicoes?.teams?.home?.logo" class="w-10 h-10 object-contain">
+                <span class="text-sm font-black text-white" x-text="oraculo.predicoes?.teams?.home?.name"></span>
+              </div>
+              <span class="font-mono text-zinc-650 font-bold text-xs uppercase px-2.5 py-1 rounded bg-zinc-950">VS</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-white" x-text="oraculo.predicoes?.teams?.away?.name"></span>
+                <img :src="oraculo.predicoes?.teams?.away?.logo" class="w-10 h-10 object-contain">
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-950/60 px-3 py-1.5 border border-zinc-800 rounded-xl" x-text="'Fixture #' + oraculo.fixtureId"></span>
+              <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-xl" x-text="oraculo.predicoes?.winner?.name ? 'Predição: ' + oraculo.predicoes.winner.name : 'Sem vencedor claro'"></span>
+            </div>
+          </div>
+
+          <!-- Alerta de Zebra Dinâmica -->
+          <div 
+            x-show="oraculo.distorcao?.zebraAlert" 
+            class="relative overflow-hidden bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 rounded-2xl p-5 shadow-lg shadow-amber-950/5"
+          >
+            <div class="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl"></div>
+            <div class="flex items-start gap-4">
+              <span class="text-3xl filter drop-shadow(0 0 10px rgba(251,191,36,0.5))">🦓</span>
+              <div>
+                <p class="text-amber-400 font-black text-xs uppercase tracking-widest">ALERTA DE ZEBRA ATIVA DO ORÁCULO</p>
+                <p class="text-zinc-300 text-xs mt-1.5 leading-relaxed">
+                  Há uma distorção crítica de sentimento superior a <span class="text-amber-400 font-bold">25%</span> entre as probabilidades matemáticas e a distribuição de votos do seu grupo. 
+                  Cenário perfeito para ativar o multiplicador de **Zebra Dinâmica (2x pontos)** para premiar o risco!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPARATIVO LADO A LADO -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <template x-for="item in [
+              { title: oraculo.predicoes?.teams?.home?.name || 'Casa', api: oraculo.predicoes?.percent?.home || 0, db: oraculo.distribuicao?.homePct || 0, delta: oraculo.distorcao?.home || 0, color: 'text-emerald-400', barBg: 'bg-emerald-500' },
+              { title: 'Empate', api: oraculo.predicoes?.percent?.draw || 0, db: oraculo.distribuicao?.drawPct || 0, delta: oraculo.distorcao?.draw || 0, color: 'text-blue-400', barBg: 'bg-blue-500' },
+              { title: oraculo.predicoes?.teams?.away?.name || 'Fora', api: oraculo.predicoes?.percent?.away || 0, db: oraculo.distribuicao?.awayPct || 0, delta: oraculo.distorcao?.away || 0, color: 'text-purple-400', barBg: 'bg-purple-500' }
+            ]">
+              <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-md flex flex-col justify-between">
                 <div>
-                  <p class="text-yellow-400 font-bold text-sm">ALERTA DE ZEBRA DETECTADO</p>
-                  <p class="text-yellow-400/70 text-xs mt-0.5">Distorção &gt;25% entre o bolão e a probabilidade real. Alto potencial de Zebra Dinâmica nesta partida.</p>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white truncate max-w-[120px]" x-text="item.title"></span>
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 uppercase tracking-wider text-zinc-400" x-text="parseFloat(item.delta) > 0 ? 'Sobrealocado' : 'Subalocado'"></span>
+                  </div>
+                  
+                  <div class="mt-4 space-y-3">
+                    <!-- API Football Prob -->
+                    <div>
+                      <div class="flex justify-between text-[10px] mb-1 font-bold">
+                        <span class="text-zinc-500">Probabilidade Real (API)</span>
+                        <span class="font-mono text-emerald-400" x-text="item.api.toFixed(0) + '%'"></span>
+                      </div>
+                      <div class="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-zinc-850">
+                        <div class="h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/25" :style="`width: ${item.api}%`"></div>
+                      </div>
+                    </div>
+
+                    <!-- DB Bolão Distrib -->
+                    <div>
+                      <div class="flex justify-between text-[10px] mb-1 font-bold">
+                        <span class="text-zinc-500">Distribuição no Bolão</span>
+                        <span class="font-mono text-indigo-400" x-text="item.db.toFixed(0) + '%'"></span>
+                      </div>
+                      <div class="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-zinc-850">
+                        <div class="h-full rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/25" :style="`width: ${item.db}%`"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Delta Distorção -->
+                <div class="pt-4 border-t border-zinc-850 mt-4 flex items-center justify-between">
+                  <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Desvio de Sentimento</span>
+                  <span 
+                    class="font-mono text-sm font-black px-2 py-1 rounded" 
+                    :class="Math.abs(parseFloat(item.delta)) > 20 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : parseFloat(item.delta) > 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-zinc-950 text-zinc-500 border border-zinc-850'"
+                    x-text="(parseFloat(item.delta) > 0 ? '+' : '') + parseFloat(item.delta).toFixed(1) + '%'"
+                  ></span>
                 </div>
               </div>
             </template>
 
-            <!-- Tabela de comparação -->
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-              <div class="grid grid-cols-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-6 py-3 border-b border-zinc-800 bg-zinc-950/50">
-                <span>Resultado</span>
-                <span class="text-right">API-Football</span>
-                <span class="text-right">Nosso Bolão</span>
-                <span class="text-right">Distorção</span>
-              </div>
-              <template x-for="row in [
-                { label: oraculo.predicoes?.teams?.home?.name || 'Casa', api: oraculo.predicoes?.percent?.home, db: oraculo.distribuicao?.homePct, delta: oraculo.distorcao?.home },
-                { label: 'Empate',                                        api: oraculo.predicoes?.percent?.draw, db: oraculo.distribuicao?.drawPct, delta: oraculo.distorcao?.draw },
-                { label: oraculo.predicoes?.teams?.away?.name || 'Fora', api: oraculo.predicoes?.percent?.away, db: oraculo.distribuicao?.awayPct, delta: oraculo.distorcao?.away }
-              ]" :key="row.label">
-                <div class="grid grid-cols-4 items-center px-6 py-4 border-b border-zinc-800/50 last:border-0 hover:bg-zinc-800/20 transition-colors">
-                  <span class="font-bold text-sm text-white truncate" x-text="row.label"></span>
-                  <div class="flex items-center justify-end gap-3">
-                    <div class="w-24 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                      <div class="h-full bg-emerald-500 rounded-full transition-all" :style="'width:' + (row.api || 0) + '%'"></div>
-                    </div>
-                    <span class="font-mono text-emerald-400 font-bold text-sm w-10 text-right" x-text="(row.api || 0).toFixed(0) + '%'"></span>
-                  </div>
-                  <div class="flex items-center justify-end gap-3">
-                    <template x-if="oraculo.distribuicao?.total > 0">
-                      <div class="flex items-center gap-3">
-                        <div class="w-24 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                          <div class="h-full bg-indigo-400 rounded-full transition-all" :style="'width:' + (row.db || 0) + '%'"></div>
-                        </div>
-                        <span class="font-mono text-indigo-400 font-bold text-sm w-10 text-right" x-text="(row.db || 0).toFixed(0) + '%'"></span>
-                      </div>
-                    </template>
-                    <template x-if="!oraculo.distribuicao?.total">
-                      <span class="text-zinc-600 text-sm">sem dados</span>
-                    </template>
-                  </div>
-                  <div class="text-right">
-                    <template x-if="oraculo.distorcao">
-                      <span
-                        class="font-mono text-sm font-bold"
-                        :class="Math.abs(parseFloat(row.delta || 0)) > 20 ? 'text-yellow-400' : parseFloat(row.delta || 0) > 0 ? 'text-red-400' : 'text-zinc-500'"
-                        x-text="(parseFloat(row.delta || 0) > 0 ? '+' : '') + row.delta + '%'"
-                      ></span>
-                    </template>
-                    <template x-if="!oraculo.distorcao"><span class="text-zinc-700">—</span></template>
-                  </div>
-                </div>
-              </template>
+          </div>
+
+          <!-- DETALHES DE LIQUIDEZ E CONSELHOS -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-sm">
+              <h4 class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2">🔮 Conselho do Oráculo</h4>
+              <p class="text-zinc-300 text-xs leading-relaxed" x-text="oraculo.predicoes?.advice || '—'"></p>
             </div>
 
-            <!-- Meta info -->
-            <div class="grid grid-cols-3 gap-4">
-              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Conselho da API</p>
-                <p class="text-zinc-300 text-xs leading-snug" x-text="oraculo.predicoes?.advice || '—'"></p>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-sm">
+              <h4 class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2">📊 Volume de Amostragem</h4>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-black text-emerald-400 font-mono" x-text="oraculo.distribuicao?.total || 0"></span>
+                <span class="text-xs text-zinc-500 uppercase font-bold">palpites ativos</span>
               </div>
-              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Palpites no Bolão</p>
-                <p class="text-emerald-400 font-bold text-lg font-mono" x-text="(oraculo.distribuicao?.total || 0) + ' votos'"></p>
-              </div>
-              <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Fixture ID</p>
-                <p class="text-purple-400 font-mono font-bold text-lg" x-text="oraculo.fixtureId"></p>
+              <p class="text-[9px] text-zinc-655 mt-2">Destaques calculados com base em todos os grupos integrados com o mesmo Fixture ID.</p>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div>
+                <h4 class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2">🎯 Média de Gols Esperados</h4>
+                <div class="flex justify-between items-center text-xs font-bold py-1 border-b border-zinc-850">
+                  <span class="text-zinc-400" x-text="oraculo.predicoes?.teams?.home?.name || 'Casa'"></span>
+                  <span class="text-emerald-400 font-mono" x-text="oraculo.predicoes?.goals?.home || '0'"></span>
+                </div>
+                <div class="flex justify-between items-center text-xs font-bold py-1">
+                  <span class="text-zinc-400" x-text="oraculo.predicoes?.teams?.away?.name || 'Fora'"></span>
+                  <span class="text-emerald-400 font-mono" x-text="oraculo.predicoes?.goals?.away || '0'"></span>
+                </div>
               </div>
             </div>
+
           </div>
-        </template>
+
+        </div>
 
       </div>
 
