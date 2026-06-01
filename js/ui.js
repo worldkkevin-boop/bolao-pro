@@ -4,10 +4,12 @@ let intervaloAoVivo = null;
 
 // Função para renderizar Telas Vazias (Empty States) com padrão Premium
 function renderEmptyState(icone, titulo, descricao) {
+  const isSvg = icone.trim().startsWith('<svg');
+  const iconeHtml = isSvg ? icone : `<span class="text-4xl opacity-80 drop-shadow-md">${icone}</span>`;
   return `
     <div class="flex flex-col items-center justify-center py-16 text-center px-4 animate-fade-in">
       <div class="w-20 h-20 bg-card-bg rounded-full flex items-center justify-center mb-5 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.15)]">
-        <span class="text-4xl opacity-80 drop-shadow-md">${icone}</span>
+        ${iconeHtml}
       </div>
       <h3 class="text-white font-black text-[15px] mb-2 tracking-wide uppercase">${titulo}</h3>
       <p class="text-text-muted text-[12px] max-w-[260px] mx-auto leading-relaxed">${descricao}</p>
@@ -2142,7 +2144,7 @@ async function carregarDesafiosUsuarioView() {
 
       if (desafiosGrupo.length === 0) {
         listaAtivos.innerHTML = renderEmptyState(
-          '🪄', 
+          `<svg class="w-10 h-10 text-brand-green filter drop-shadow-[0_0_10px_rgba(16,185,129,0.6)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`, 
           'Calmaria em Campo', 
           'Nenhum desafio ativo no momento. Fique ligado, O Mago pode tirar uma aposta da cartola a qualquer momento!'
         );
@@ -2245,7 +2247,11 @@ async function carregarDesafiosUsuarioView() {
       const historicoDesafios = (votos || []).filter(v => v.desafios && v.desafios.status === 'resolved');
 
       if (historicoDesafios.length === 0) {
-        listaHistorico.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Nenhum palpite em desafios finalizados.</p>';
+        listaHistorico.innerHTML = renderEmptyState(
+          `<svg class="w-10 h-10 text-zinc-500 filter drop-shadow-[0_0_8px_rgba(113,113,122,0.3)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+          'Sem Registros',
+          'Você ainda não participou de nenhum desafio encerrado.'
+        );
         return;
       }
 
