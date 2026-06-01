@@ -17,6 +17,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Alpine.js CDN (Deferred) -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- ApexCharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
     .bg-glow {
@@ -1021,6 +1023,15 @@
           </div>
         </div>
 
+        <!-- Mode Toggle for Oracle -->
+        <div class="flex items-center justify-center p-1 bg-zinc-900/60 rounded-xl border border-zinc-800/80 w-max mx-auto mt-4 mb-2">
+          <button @click="oraculo.modo = 'zebra'" :class="(!oraculo.modo || oraculo.modo === 'zebra') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10' : 'text-zinc-500 hover:text-white'" class="px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all">🦓 Radar de Zebra</button>
+          <button @click="oraculo.modo = 'quant'" :class="oraculo.modo === 'quant' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shadow-md shadow-[#10b981]/10' : 'text-zinc-500 hover:text-white'" class="px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all">📈 Análise Quant</button>
+        </div>
+
+        <!-- MODO ZEBRA (Original) -->
+        <div x-show="!oraculo.modo || oraculo.modo === 'zebra'" class="space-y-6" x-transition>
+
         <!-- Inputs / Search Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
@@ -1373,10 +1384,117 @@
               </span>
             </button>
           </div>
+        </div> <!-- FECHA MODO ZEBRA -->
 
+        <!-- MODO QUANTITATIVO -->
+        <div x-show="oraculo.modo === 'quant'" class="space-y-6" x-transition x-cloak>
+          
+          <div class="flex flex-col items-center justify-center py-6">
+            <!-- MOBILE-FIRST QUANT CARD -->
+            <div class="w-full max-w-[380px] bg-[#0a0a0a] rounded-[2.5rem] border border-zinc-800/80 p-6 shadow-2xl shadow-[#10b981]/5 relative overflow-hidden" x-init="if (typeof initQuantChart === 'function') setTimeout(initQuantChart, 100)">
+              
+              <!-- Glow background -->
+              <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#10b981]/10 blur-[50px] rounded-full pointer-events-none"></div>
+
+              <!-- 1. Header do Confronto -->
+              <div class="flex items-center justify-between mb-8 relative z-10">
+                <div class="flex items-center gap-3">
+                  <div class="flex -space-x-3">
+                    <!-- Fictional logos -->
+                    <img src="https://media.api-sports.io/football/teams/774.png" class="w-10 h-10 rounded-full border-[3px] border-[#0a0a0a] bg-zinc-900 object-contain p-1 relative z-10" alt="Home">
+                    <img src="https://media.api-sports.io/football/teams/773.png" class="w-10 h-10 rounded-full border-[3px] border-[#0a0a0a] bg-zinc-900 object-contain p-1 relative z-0" alt="Away">
+                  </div>
+                  <div>
+                    <h3 class="text-white font-extrabold text-sm leading-tight max-w-[120px] truncate">Turquia vs Macedônia do Norte</h3>
+                    <p class="text-zinc-500 text-[9px] font-semibold mt-0.5">Macedônia do Norte</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                  <!-- Grade Badge -->
+                  <div class="flex flex-col items-center justify-center relative top-1">
+                    <span class="text-[6px] text-zinc-500 uppercase font-black tracking-widest mb-1 absolute -top-3">Grade</span>
+                    <div class="w-7 h-7 rounded-full border-2 border-[#10b981] bg-[#10b981]/10 text-[#10b981] font-black text-xs flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                      B
+                    </div>
+                  </div>
+                  
+                  <!-- SVG Progress Confiança -->
+                  <div class="relative w-11 h-11 flex items-center justify-center">
+                    <span class="absolute -top-3 text-[6px] text-zinc-500 uppercase font-black tracking-widest whitespace-nowrap">Confiança</span>
+                    <svg class="transform -rotate-90 w-11 h-11">
+                      <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="2" fill="transparent" class="text-zinc-800" />
+                      <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="2" fill="transparent" :stroke-dasharray="2 * Math.PI * 18" :stroke-dashoffset="(2 * Math.PI * 18) - ((72 / 100) * (2 * Math.PI * 18))" class="text-[#10b981] transition-all duration-1000 ease-out" stroke-linecap="round" />
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center">
+                      <span class="text-[10px] text-[#10b981] font-black leading-none tracking-tighter">72%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. A Linha Analisada -->
+              <div class="bg-gradient-to-b from-zinc-900/90 to-zinc-950/50 rounded-3xl border border-zinc-800/80 p-4 mb-6 shadow-inner relative z-10">
+                
+                <div class="bg-[#0a0a0a]/80 rounded-xl px-4 py-3 border border-[#10b981]/20 flex items-center justify-between mb-4 shadow-sm shadow-[#10b981]/5">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[#10b981] font-black text-sm">O</span>
+                    <span class="text-zinc-200 font-bold text-[13px] tracking-wide">1.5 Cartões Visitante</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-amber-400 font-black text-sm">@1.52</span>
+                    <span class="text-amber-400/50 text-xs">↗</span>
+                    <span class="text-zinc-600 text-xs text-right">⇄</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center divide-x divide-zinc-800/60">
+                  <div class="pt-1">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5">Projeção</p>
+                    <p class="text-[#10b981] font-black text-xl flex items-center justify-center gap-0.5 tracking-tighter">2.6 <span class="text-xs">↗</span></p>
+                  </div>
+                  <div class="pt-1">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5">Média L10</p>
+                    <p class="text-white font-black text-xl tracking-tighter">2.6</p>
+                  </div>
+                  <div class="pt-1">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-2.5">Streak L5</p>
+                    <div class="flex items-center justify-center gap-1">
+                      <template x-for="s in [1, 1, 1, 0, 1]">
+                        <div class="w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[7px]" :class="s === 1 ? 'bg-[#10b981] text-zinc-950' : 'bg-red-500 text-white'">
+                          <span x-text="s === 1 ? '✓' : '✕'"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. O Gráfico -->
+              <div class="mb-4 relative -mx-4 z-10 h-[220px]">
+                <div id="quantChart" class="w-full h-full"></div>
+              </div>
+
+              <!-- 4. Footer de Tendências -->
+              <div class="grid grid-cols-5 gap-1 pt-4 relative z-10">
+                <template x-for="t in [
+                  { label: 'Tend.', val: '98%', hl: true },
+                  { label: 'L5', val: '100%', hl: true },
+                  { label: 'L10', val: '90%', hl: true },
+                  { label: 'H2H', val: '60%', hl: false },
+                  { label: 'Temp.', val: '90%', hl: true }
+                ]">
+                  <div class="text-center relative">
+                    <p class="text-[8px] text-zinc-600 font-bold uppercase tracking-widest mb-1" x-text="t.label"></p>
+                    <p class="font-bold text-xs" :class="t.hl ? 'text-[#10b981]' : 'text-[#10b981]/50'" x-text="t.val"></p>
+                    <div x-show="t.label === 'L10'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-[2px] bg-[#10b981] rounded-full"></div>
+                  </div>
+                </template>
+              </div>
+
+            </div>
+          </div>
         </div>
-
-      </div>
 
       </div>
 

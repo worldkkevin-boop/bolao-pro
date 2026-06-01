@@ -1645,3 +1645,105 @@ function terminalApp() {
     }
   };
 }
+
+// ============================================================
+// ORÁCULO QUANTITATIVO - INICIALIZAÇÃO DO GRÁFICO (MOCK)
+// ============================================================
+window.initQuantChart = function() {
+  const chartEl = document.querySelector("#quantChart");
+  if (!chartEl) return;
+  
+  // Previne múltiplas renderizações
+  if (chartEl.innerHTML !== "") {
+    chartEl.innerHTML = "";
+  }
+
+  const options = {
+    series: [{
+      name: 'Valor',
+      data: [6, 2, 2, 2, 1, 3, 2]
+    }],
+    chart: {
+      type: 'bar',
+      height: 220,
+      toolbar: { show: false },
+      background: 'transparent',
+      fontFamily: 'Inter, sans-serif',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800,
+        animateGradually: { enabled: true, delay: 150 },
+        dynamicAnimation: { enabled: true, speed: 350 }
+      }
+    },
+    plotOptions: {
+      bar: {
+        borderRadius: 4,
+        columnWidth: '55%',
+        colors: {
+          ranges: [
+            { from: 0, to: 1.49, color: '#ef4444' }, // Red for Loss (abaixo da linha 1.5)
+            { from: 1.5, to: 100, color: '#10b981' } // Neon Green for Win
+          ]
+        },
+        dataLabels: {
+          position: 'bottom' // Coloca o label embaixo
+        }
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      offsetY: -20,
+      style: { fontSize: '12px', fontWeight: 'bold', colors: ['#ffffff'] },
+      background: { enabled: false, dropShadow: { enabled: false } }
+    },
+    xaxis: {
+      categories: ['05/06', '08/06', '06/09', '09/10', '12/10', '17/11', '25/03'],
+      labels: { 
+        style: { colors: '#71717a', fontSize: '9px', fontWeight: 'bold' },
+        offsetY: -2
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      tooltip: { enabled: false }
+    },
+    yaxis: {
+      show: true,
+      tickAmount: 2,
+      labels: { style: { colors: '#71717a', fontSize: '9px', fontWeight: 'bold' } },
+      axisBorder: { show: false }
+    },
+    grid: { 
+      show: false,
+      padding: { top: 0, right: 0, bottom: 0, left: 10 }
+    },
+    theme: { mode: 'dark' },
+    tooltip: {
+      enabled: true,
+      theme: 'dark',
+      y: { formatter: function (val) { return val + " Cartões" } }
+    },
+    annotations: {
+      yaxis: [{
+        y: 1.5,
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        strokeDashArray: 0,
+        label: {
+          text: '1.5',
+          style: { 
+            color: '#0a0a0a', 
+            background: '#ffffff', 
+            fontSize: '9px', 
+            fontWeight: '900', 
+            padding: { left: 4, right: 4, top: 2, bottom: 2 } 
+          }
+        }
+      }]
+    }
+  };
+
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
+};
