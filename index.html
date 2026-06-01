@@ -272,6 +272,19 @@
         <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
       </div>
 
+      <!-- Loja Pro -->
+      <div class="mt-6 mb-2">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Planos &amp; Fichas</h2>
+        <button onclick="switchView('view-loja')" class="w-full bg-card-bg border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 hover:bg-card-hover transition-colors active:scale-95 text-left">
+          <div class="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-[14px] text-white">Loja Pro</h3>
+            <p class="text-[11px] text-zinc-500">Fichas · Upgrade de Grupo · Planos</p>
+          </div>
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-amber-400 flex-shrink-0"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
       <!-- Small start footer with support and install quick links -->
       <div class="text-center mt-8 pb-4 flex flex-col items-center gap-1.5">
         <p class="text-[11px] text-text-muted">Bolão Pro Beta v1.2 • <span class="text-amber-500 font-semibold">Fase de Testes</span></p>
@@ -280,6 +293,130 @@
           <span class="text-zinc-700 text-[10px]">•</span>
           <button onclick="abrirModal('modal-instalar-app')" class="text-[11px] text-brand-green hover:underline font-bold flex items-center gap-1">Instalar no Celular 📲</button>
         </div>
+      </div>
+
+    </div>
+
+    <!-- View: Loja Pro -->
+    <div id="view-loja" class="fade-in hidden px-4 pb-28 pt-0">
+
+      <!-- Header -->
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5 flex-shrink-0">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="flex-1">
+          <h1 class="text-xl font-black tracking-tight">🛍️ Loja Pro</h1>
+          <p class="text-[11px] text-zinc-500">Fichas e Planos de Grupo</p>
+        </div>
+        <span class="badge-fichas text-[12px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full">🎫 ...</span>
+      </div>
+
+      <!-- SEÇÃO: Fichas -->
+      <div class="mb-8">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="flex-1 h-px bg-white/5"></div>
+          <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest px-2">💰 Fichas</span>
+          <div class="flex-1 h-px bg-white/5"></div>
+        </div>
+
+        <p class="text-[12px] text-zinc-400 mb-4 text-center">Use fichas para entrar nos Desafios do Mago e acumular pontos extras.</p>
+
+        <!-- Saldo atual -->
+        <div class="bg-amber-500/5 border border-amber-500/15 rounded-xl px-4 py-3 flex items-center justify-between mb-4">
+          <span class="text-[12px] text-zinc-400 font-medium">Seu saldo atual</span>
+          <span class="badge-fichas text-[14px] font-black text-amber-400">🎫 ...</span>
+        </div>
+
+        <!-- 3 pacotes -->
+        <div class="grid grid-cols-3 gap-3">
+          <!-- Starter -->
+          <button onclick="comprarFichasPacote(10, '4,90')" class="bg-card-bg border border-white/5 rounded-2xl p-4 text-center hover:border-amber-500/30 transition-all active:scale-95">
+            <span class="text-3xl font-black text-white block leading-none">10</span>
+            <span class="text-[9px] text-zinc-500 uppercase font-bold block mt-1 mb-3">fichas</span>
+            <span class="text-[13px] font-black text-brand-green block">R$ 4,90</span>
+          </button>
+          <!-- Popular -->
+          <button onclick="comprarFichasPacote(25, '9,90')" class="bg-card-bg border border-amber-500/30 rounded-2xl p-4 text-center relative hover:border-amber-500/60 transition-all active:scale-95 shadow-[0_0_15px_rgba(245,158,11,0.08)]">
+            <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">POPULAR</div>
+            <span class="text-3xl font-black text-amber-400 block leading-none">25</span>
+            <span class="text-[9px] text-zinc-500 uppercase font-bold block mt-1 mb-3">fichas</span>
+            <span class="text-[13px] font-black text-brand-green block">R$ 9,90</span>
+          </button>
+          <!-- Sniper -->
+          <button onclick="comprarFichasPacote(100, '29,90')" class="bg-card-bg border border-purple-500/20 rounded-2xl p-4 text-center hover:border-purple-500/40 transition-all active:scale-95">
+            <div class="text-[8px] font-black text-purple-400 uppercase tracking-widest mb-1">SNIPER</div>
+            <span class="text-3xl font-black text-white block leading-none">100</span>
+            <span class="text-[9px] text-zinc-500 uppercase font-bold block mt-1 mb-3">fichas</span>
+            <span class="text-[13px] font-black text-brand-green block">R$ 29,90</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SEÇÃO: Upgrade de Grupo -->
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="flex-1 h-px bg-white/5"></div>
+          <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest px-2">⬆️ Upgrade de Grupo</span>
+          <div class="flex-1 h-px bg-white/5"></div>
+        </div>
+
+        <!-- Seletor de grupo -->
+        <div class="mb-5">
+          <label class="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-2">Qual grupo você quer turbinar?</label>
+          <select id="loja-grupo-select" class="w-full bg-zinc-900 border border-white/10 text-white text-[13px] font-bold rounded-xl px-4 py-3.5 outline-none focus:border-purple-500/50 cursor-pointer">
+            <option value="">Carregando grupos...</option>
+          </select>
+        </div>
+
+        <!-- Planos -->
+        <div class="space-y-3">
+          <!-- Básico -->
+          <button onclick="comprarPlanoGrupo('basico', '9,90', 15)" class="w-full bg-card-bg border border-white/5 rounded-2xl p-4 hover:border-brand-green/30 transition-all active:scale-95 text-left">
+            <div class="flex items-center justify-between">
+              <div class="min-w-0">
+                <h3 class="font-black text-[14px] text-white">⚡ Básico</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Até 15 jogadores · Ranking completo · TV Ao Vivo</p>
+              </div>
+              <div class="text-right ml-4 flex-shrink-0">
+                <span class="text-[15px] font-black text-brand-green block">R$ 9,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+          </button>
+          <!-- Pro (RECOMENDADO) -->
+          <button onclick="comprarPlanoGrupo('pro', '19,90', 30)" class="w-full bg-card-bg border border-purple-500/30 rounded-2xl p-4 hover:border-purple-500/60 transition-all active:scale-95 text-left relative shadow-[0_0_20px_rgba(139,92,246,0.06)]">
+            <div class="absolute -top-2.5 right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">RECOMENDADO</div>
+            <div class="flex items-center justify-between">
+              <div class="min-w-0">
+                <h3 class="font-black text-[14px] text-purple-300">🚀 Pro</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Até 30 jogadores · Tudo + Desafios do Mago</p>
+              </div>
+              <div class="text-right ml-4 flex-shrink-0">
+                <span class="text-[15px] font-black text-purple-400 block">R$ 19,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+          </button>
+          <!-- Elite -->
+          <button onclick="comprarPlanoGrupo('elite', '39,90', 100)" class="w-full bg-card-bg border border-amber-500/15 rounded-2xl p-4 hover:border-amber-500/35 transition-all active:scale-95 text-left">
+            <div class="flex items-center justify-between">
+              <div class="min-w-0">
+                <h3 class="font-black text-[14px] text-amber-400">👑 Elite</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Até 100 jogadores · Tudo incluso · Prioridade</p>
+              </div>
+              <div class="text-right ml-4 flex-shrink-0">
+                <span class="text-[15px] font-black text-amber-400 block">R$ 39,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Nota de pagamento -->
+        <p class="text-[10px] text-zinc-600 text-center mt-6 leading-relaxed">
+          Pagamento via PIX · Ativação em até 30 minutos<br>Suporte direto pelo WhatsApp
+        </p>
       </div>
 
     </div>

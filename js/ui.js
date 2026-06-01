@@ -85,7 +85,7 @@ function switchView(targetViewId) {
     localStorage.setItem('last_active_view', targetViewId);
   }
 
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -155,6 +155,8 @@ function switchView(targetViewId) {
     }
   } else if (targetViewId === 'view-desafios') {
     if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
+  } else if (targetViewId === 'view-loja') {
+    if (typeof carregarViewLoja === 'function') carregarViewLoja();
   } else if (targetViewId === 'view-regras') {
     if (typeof renderizarRegrasGrupo === 'function') renderizarRegrasGrupo();
   } else if (targetViewId === 'view-painel') {
@@ -2415,6 +2417,60 @@ function fecharOnboarding() {
       }
     }, 300);
   }
+}
+
+// ============ LOJA PRO ============
+
+async function carregarViewLoja() {
+  atualizarDisplayFichas();
+  const select = document.getElementById('loja-grupo-select');
+  if (!select || !sbClient || !usuarioAtual) return;
+
+  select.innerHTML = '<option value="">Carregando grupos...</option>';
+  try {
+    const { data: memberships } = await sbClient
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', usuarioAtual.id)
+      .neq('role', 'pending');
+
+    if (!memberships?.length) {
+      select.innerHTML = '<option value="">Nenhum grupo encontrado</option>';
+      return;
+    }
+
+    const { data: grupos } = await sbClient
+      .from('groups')
+      .select('id, name, max_participants')
+      .in('id', memberships.map(m => m.group_id))
+      .order('created_at', { ascending: false });
+
+    select.innerHTML = '<option value="">Selecione um grupo...</option>';
+    (grupos || []).forEach(g => {
+      const plano = g.max_participants > 3 ? '✓ Pro' : 'Grátis';
+      select.innerHTML += `<option value="${g.id}">${g.name} — ${plano}</option>`;
+    });
+  } catch (e) {
+    select.innerHTML = '<option value="">Erro ao carregar grupos</option>';
+  }
+}
+
+function comprarFichasPacote(fichas, preco) {
+  const email = usuarioAtual?.email || 'jogador';
+  const msg = `Oi! Quero comprar o pacote de *${fichas} Fichas* (R$ ${preco}) para o usuário *${email}* no Bolão Pro. 🎫`;
+  window.open(`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function comprarPlanoGrupo(plano, preco, limite) {
+  const select = document.getElementById('loja-grupo-select');
+  if (!select?.value) {
+    showToast('Selecione um grupo antes de escolher o plano!', 'error');
+    return;
+  }
+  const nomeGrupo = select.options[select.selectedIndex].text.replace(/ — .*/, '');
+  const nomePlano = { basico: `Básico (${limite} jogadores)`, pro: `Pro (${limite} jogadores)`, elite: `Elite (${limite} jogadores)` }[plano];
+  const msg = `Oi! Quero assinar o *Plano ${nomePlano}* (R$ ${preco}/mês) para o grupo *${nomeGrupo}* no Bolão Pro. ⚡`;
+  window.open(`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ============ TELA DE UPGRADE (CHECKOUT) ============
