@@ -126,8 +126,7 @@ serve(async (req) => {
     } else if (paymentType === 'passe' || paymentType === 'usuario') {
       const { error } = await adminClient
         .from('profiles')
-        .update({ max_grupos: limit })
-        .eq('id', targetId)
+        .upsert({ id: targetId, max_grupos: limit })
       if (error) {
         console.error("Erro ao atualizar passe do usuário:", error)
         return new Response(JSON.stringify({ error: 'Falha ao atualizar passe', details: error }), {
