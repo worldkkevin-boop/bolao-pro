@@ -83,8 +83,11 @@ function adminApp() {
     buscaFixtureLoading: false,
     resultadoBuscaFixtures: [],
 
-    // Oráculo
+    // Oráculo (aba dedicada)
     oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
+
+    // Oráculo inline no formulário de novo desafio
+    oraculoDesafio: { loading: false, dados: null, sugestao: null },
 
     // Finalização de desafio com vencedor
     desafioParaFinalizar: null,
@@ -663,6 +666,55 @@ function adminApp() {
     selecionarPartida(jogo) {
       this.novoDesafio.fixture_id = jogo.fixture.id;
       this.novoDesafio.match_name = `${jogo.teams.home.name} vs ${jogo.teams.away.name}`;
+      this.oraculoDesafio = { loading: true, dados: null, sugestao: null };
+      this._buscarOraculoDesafio(jogo.fixture.id);
+    },
+
+    async _buscarOraculoDesafio(fixtureId) {
+      try {
+        const [pred, dist] = await Promise.all([
+          analisarDistorcaoPalpites(fixtureId),
+          this._distribuicaoLocalGM(fixtureId)
+        ]);
+
+        let zebraAlert = false;
+        let maxDesvio = 0;
+        if (dist.total > 0) {
+          maxDesvio = Math.max(
+            Math.abs(dist.homePct - pred.percent.home),
+            Math.abs(dist.awayPct - pred.percent.away)
+          );
+          zebraAlert = maxDesvio > 25;
+        }
+
+        let sugestao;
+        if (zebraAlert) {
+          sugestao = { pts: 15, fichas: 8, tipo: 'Goal', zebraAlert: true,
+            motivo: '🦓 Zebra Dinâmica detectada! Alto desvio entre a matemática e o bolão — alto risco, alta recompensa.' };
+        } else if (maxDesvio > 15) {
+          sugestao = { pts: 10, fichas: 5, tipo: 'Goal', zebraAlert: false,
+            motivo: `Desvio de sentimento moderado (${maxDesvio.toFixed(0)}%). Partida com distorção interessante.` };
+        } else {
+          const golsEsperados = (parseFloat(pred.goals?.home) || 0) + (parseFloat(pred.goals?.away) || 0);
+          const tipo = golsEsperados < 1.5 ? 'Card' : 'Goal';
+          sugestao = { pts: 5, fichas: 3, tipo, zebraAlert: false,
+            motivo: tipo === 'Card'
+              ? 'Jogo travado esperado (< 1.5 gols) — desafio de cartão é mais provável de engajar.'
+              : 'Partida equilibrada e aberta — bom para desafio de gol.' };
+        }
+
+        this.oraculoDesafio = { loading: false, dados: pred, sugestao };
+      } catch {
+        this.oraculoDesafio = { loading: false, dados: null, sugestao: null };
+      }
+    },
+
+    aplicarSugestaoOraculo() {
+      const s = this.oraculoDesafio.sugestao;
+      if (!s) return;
+      this.novoDesafio.event_type = s.tipo;
+      this.novoDesafio.points = s.pts;
+      this.novoDesafio.custo_fichas = s.fichas;
     },
 
     adicionarJogadorDesafio() {

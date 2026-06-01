@@ -872,6 +872,59 @@
               <span class="text-[9px] text-emerald-400 font-black bg-emerald-500/10 border border-emerald-500/20 rounded px-2.5 py-1 uppercase">Partida Vinculada</span>
             </div>
 
+            <!-- Conselho do Oráculo (carrega após selecionar partida) -->
+            <div x-show="oraculoDesafio.loading || oraculoDesafio.dados" class="rounded-xl border overflow-hidden" :class="oraculoDesafio.sugestao?.zebraAlert ? 'border-amber-500/30 bg-amber-950/10' : 'border-emerald-500/20 bg-emerald-950/15'">
+
+              <!-- Loading -->
+              <div x-show="oraculoDesafio.loading" class="flex items-center gap-2.5 p-4">
+                <span class="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Consultando o Oráculo...</span>
+              </div>
+
+              <!-- Dados carregados -->
+              <div x-show="!oraculoDesafio.loading && oraculoDesafio.dados" class="p-4 space-y-3">
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">👁️</span>
+                    <span class="text-[10px] font-black uppercase tracking-wider" :class="oraculoDesafio.sugestao?.zebraAlert ? 'text-amber-400' : 'text-emerald-400'">Conselho do Oráculo</span>
+                    <span x-show="oraculoDesafio.sugestao?.zebraAlert" class="text-[8px] font-black px-2 py-0.5 bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded-full uppercase animate-pulse">🦓 Zebra!</span>
+                  </div>
+                  <button @click="aplicarSugestaoOraculo()" class="text-[9px] font-black px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 rounded-lg transition-all uppercase tracking-wider active:scale-95">
+                    ✦ Aplicar Tudo
+                  </button>
+                </div>
+
+                <!-- Advice traduzido -->
+                <p class="text-zinc-300 text-[11px] leading-relaxed italic" x-text="traduzirAdvice(oraculoDesafio.dados?.advice)"></p>
+
+                <!-- 3 chips de sugestão clicáveis -->
+                <div class="grid grid-cols-3 gap-2">
+                  <!-- Tipo de evento -->
+                  <button @click="novoDesafio.event_type = oraculoDesafio.sugestao.tipo" class="bg-zinc-950/70 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-500/40 rounded-xl p-2.5 text-center transition-all active:scale-95 group">
+                    <span class="text-lg block" x-text="oraculoDesafio.sugestao?.tipo === 'Goal' ? '⚽' : '🟨'"></span>
+                    <span class="text-[9px] font-black text-zinc-300 uppercase block mt-0.5" x-text="oraculoDesafio.sugestao?.tipo === 'Goal' ? 'Gol' : 'Cartão'"></span>
+                    <span class="text-[8px] text-purple-400 group-hover:text-purple-300">evento</span>
+                  </button>
+                  <!-- Pontos -->
+                  <button @click="novoDesafio.points = oraculoDesafio.sugestao.pts" class="bg-zinc-950/70 hover:bg-amber-950/40 border border-zinc-800 hover:border-amber-500/40 rounded-xl p-2.5 text-center transition-all active:scale-95 group">
+                    <span class="text-sm font-mono font-black text-amber-400 block" x-text="'+' + oraculoDesafio.sugestao?.pts + ' pts'"></span>
+                    <span class="text-[9px] font-black text-zinc-300 uppercase block mt-0.5">Pontos</span>
+                    <span class="text-[8px] text-purple-400 group-hover:text-purple-300">recompensa</span>
+                  </button>
+                  <!-- Fichas -->
+                  <button @click="novoDesafio.custo_fichas = oraculoDesafio.sugestao.fichas" class="bg-zinc-950/70 hover:bg-zinc-800/50 border border-zinc-800 hover:border-zinc-600 rounded-xl p-2.5 text-center transition-all active:scale-95 group">
+                    <span class="text-sm font-mono font-black text-zinc-200 block" x-text="'🎫 ' + oraculoDesafio.sugestao?.fichas"></span>
+                    <span class="text-[9px] font-black text-zinc-300 uppercase block mt-0.5">Fichas</span>
+                    <span class="text-[8px] text-purple-400 group-hover:text-purple-300">entrada</span>
+                  </button>
+                </div>
+
+                <!-- Motivo da sugestão -->
+                <p class="text-[9px] text-zinc-600 leading-relaxed" x-text="oraculoDesafio.sugestao?.motivo"></p>
+              </div>
+            </div>
+
             <!-- Parameters inputs -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
