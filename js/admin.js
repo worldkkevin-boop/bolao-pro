@@ -810,10 +810,9 @@ function adminApp() {
                 <api-sports-widget data-type="game" data-game-id="${fixtureId}" data-game-tab="events"></api-sports-widget>
               </body>
               </html>
-            `;
-            const blob = new Blob([widgetHtml], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            container.innerHTML = `<iframe src="${url}" style="width:100%; height:350px; border:none; overflow:hidden;"></iframe>`;
+            `.replace(/"/g, '&quot;'); // Escapa aspas para o srcdoc
+            
+            container.innerHTML = `<iframe srcdoc="${widgetHtml}" style="width:100%; height:350px; border:none; overflow:hidden;"></iframe>`;
           } else {
             container.innerHTML = '';
           }
