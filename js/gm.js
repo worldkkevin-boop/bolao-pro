@@ -18,10 +18,7 @@ function verificarUsuarioGM() {
 
 // Direciona para a view do GM
 function abrirPainelGM() {
-  if (typeof switchView === 'function') {
-    switchView('view-gm-panel');
-    switchGMTab('desafios');
-  }
+  window.location.href = 'gm.html';
 }
 
 // Normaliza strings para busca/comparação insensível a acentos e maiúsculas
