@@ -841,7 +841,7 @@ async function excluirGrupoReal() {
       grupoAtual = null;
       
       // Redireciona para a view de grupos
-      switchView('view-grupos');
+      switchView('view-inicio');
       carregarGrupos();
     } catch (e) {
       console.error(e);
