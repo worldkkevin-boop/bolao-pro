@@ -646,8 +646,8 @@
               <button @click="carregarDesafiosGM()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 border border-zinc-700/50">
                 🔄 Atualizar
               </button>
-              <button @click="abaAtiva = 'novo-desafio'; novoDesafio = { fixture_id: '', match_name: '', event_type: 'Goal', points: 5, custo_fichas: 5, players: [], status: 'active', hasPenalty: false }; buscaFixture = ''; resultadoBuscaFixtures = [];" class="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black py-2.5 px-5 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-amber-500/10 border border-amber-400/20">
-                + Novo Desafio
+              <button @click="abaAtiva = 'oraculo'" class="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 font-black py-2.5 px-5 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 border border-emerald-500/20">
+                ◉ Criar via Oráculo
               </button>
             </div>
           </div>
@@ -1225,7 +1225,7 @@
 
           <!-- DETALHES DE LIQUIDEZ E CONSELHOS -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-sm">
               <h4 class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2">🔮 Conselho do Oráculo</h4>
               <p class="text-zinc-300 text-xs leading-relaxed" x-text="traduzirAdvice(oraculo.predicoes?.advice)"></p>
@@ -1254,6 +1254,99 @@
               </div>
             </div>
 
+          </div>
+
+          <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
+          <div class="relative overflow-hidden bg-zinc-900 border rounded-2xl p-6 shadow-xl" :class="oraculo.distorcao?.zebraAlert ? 'border-amber-500/30' : 'border-zinc-800'">
+            <div class="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl pointer-events-none" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/8' : 'bg-purple-500/5'"></div>
+
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-purple-500/10 border border-purple-500/20'">
+                  <span class="text-base">⚡</span>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white uppercase tracking-wider">Lançar Desafio</h3>
+                  <p class="text-[9px] text-zinc-500 mt-0.5" x-text="desafioRapido.motivo || 'Parâmetros sugeridos pelo Oráculo'"></p>
+                </div>
+              </div>
+              <span
+                class="text-[9px] font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border"
+                :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' : 'bg-zinc-800 text-zinc-400 border-zinc-700'"
+                x-text="oraculo.distorcao?.zebraAlert ? '🦓 Zebra Ativa' : '⚡ Pronto para lançar'"
+              ></span>
+            </div>
+
+            <!-- 3 parâmetros editáveis -->
+            <div class="grid grid-cols-3 gap-3 mb-5">
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Tipo de Evento</label>
+                <select x-model="desafioRapido.eventType" class="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer">
+                  <option value="Goal">⚽ Gol</option>
+                  <option value="Goal_penalty">⚽ Gol + Pen.</option>
+                  <option value="Card">🟨 Cartão</option>
+                  <option value="Card_penalty">🟨 Cartão + Pen.</option>
+                </select>
+              </div>
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Recompensa</label>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-amber-400 text-[11px] font-black">+</span>
+                  <input type="number" x-model.number="desafioRapido.pts" min="1" max="100" class="w-full bg-transparent text-amber-400 text-sm font-black font-mono outline-none">
+                  <span class="text-zinc-600 text-[9px] font-bold">pts</span>
+                </div>
+              </div>
+              <div class="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800 space-y-1">
+                <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Custo Entrada</label>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px]">🎫</span>
+                  <input type="number" x-model.number="desafioRapido.fichas" min="0" max="50" class="w-full bg-transparent text-zinc-200 text-sm font-black font-mono outline-none">
+                  <span class="text-zinc-600 text-[9px] font-bold">fichas</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Opções de aposta -->
+            <div class="space-y-2.5 mb-5">
+              <label class="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">Opções para os Jogadores Apostarem <span class="text-zinc-700">(mínimo 2)</span></label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  x-model="desafioRapido.jogadorInput"
+                  @keydown.enter.prevent="adicionarOpcaoDesafio()"
+                  placeholder="Ex: Vini Jr, Neymar, Nenhum gol..."
+                  class="flex-1 bg-zinc-950 border border-zinc-800 focus:border-amber-500/40 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-700 outline-none transition-all"
+                >
+                <button @click="adicionarOpcaoDesafio()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase transition-all active:scale-95">+ Add</button>
+              </div>
+              <div class="flex flex-wrap gap-2 min-h-[30px] items-center">
+                <template x-for="(op, idx) in desafioRapido.players" :key="idx">
+                  <span class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">
+                    <span x-text="op"></span>
+                    <button @click="desafioRapido.players.splice(idx, 1)" class="text-red-400 hover:text-red-300 font-bold text-xs leading-none">×</button>
+                  </span>
+                </template>
+                <span x-show="desafioRapido.players.length === 0" class="text-[10px] text-zinc-700 italic">nenhuma opção adicionada ainda...</span>
+              </div>
+            </div>
+
+            <!-- Botão Lançar -->
+            <button
+              @click="lancarDesafioDoOraculo()"
+              :disabled="desafioRapido.lancando || desafioRapido.players.length < 2"
+              :class="desafioRapido.players.length < 2
+                ? 'opacity-25 cursor-not-allowed bg-zinc-800 text-zinc-500'
+                : oraculo.distorcao?.zebraAlert
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black active:scale-95 shadow-lg shadow-amber-500/20'
+                  : 'bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-zinc-950 font-black active:scale-95 shadow-lg shadow-purple-600/15'"
+              class="w-full py-4 rounded-xl text-xs uppercase tracking-widest transition-all"
+            >
+              <span x-show="!desafioRapido.lancando">⚡ Lançar Desafio no Bolão</span>
+              <span x-show="desafioRapido.lancando" class="flex items-center justify-center gap-2">
+                <span class="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></span>
+                Lançando...
+              </span>
+            </button>
           </div>
 
         </div>

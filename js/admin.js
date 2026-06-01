@@ -86,7 +86,10 @@ function adminApp() {
     // Oráculo (aba dedicada)
     oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
 
-    // Oráculo inline no formulário de novo desafio
+    // Desafio rápido — lançado diretamente do Oráculo
+    desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
+
+    // Oráculo inline no formulário de novo desafio (legado)
     oraculoDesafio: { loading: false, dados: null, sugestao: null },
 
     // Finalização de desafio com vencedor
@@ -1011,11 +1014,79 @@ function adminApp() {
           };
         }
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
+        this._popularDesafioRapido(pred, dist);
       } catch(err) {
         this.oraculo.erro = err.message;
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'ERROR', Date.now() - t, err.message);
       } finally {
         this.oraculo.loading = false;
+      }
+    },
+
+    _popularDesafioRapido(pred, dist) {
+      const zAlert = this.oraculo.distorcao?.zebraAlert || false;
+      const maxD = dist.total > 0
+        ? Math.max(Math.abs(dist.homePct - pred.percent.home), Math.abs(dist.awayPct - pred.percent.away))
+        : 0;
+      const golsEsp = (parseFloat(pred.goals?.home) || 0) + (parseFloat(pred.goals?.away) || 0);
+
+      let eventType, pts, fichas, motivo;
+      if (zAlert) {
+        eventType = 'Goal'; pts = 15; fichas = 8;
+        motivo = '🦓 Zebra Dinâmica — alto risco, alta recompensa';
+      } else if (maxD > 15) {
+        eventType = 'Goal'; pts = 10; fichas = 5;
+        motivo = `Distorção ${maxD.toFixed(0)}% — desafio de nível médio`;
+      } else {
+        eventType = golsEsp < 1.5 ? 'Card' : 'Goal';
+        pts = 5; fichas = 3;
+        motivo = eventType === 'Card'
+          ? `Jogo travado (${golsEsp.toFixed(1)} gols) — cartão é mais provável`
+          : 'Partida equilibrada — desafio de gol padrão';
+      }
+      this.desafioRapido = { ...this.desafioRapido, eventType, pts, fichas, motivo, players: [], jogadorInput: '' };
+    },
+
+    adicionarOpcaoDesafio() {
+      const nome = this.desafioRapido.jogadorInput.trim();
+      if (!nome) return;
+      if (!this.desafioRapido.players.includes(nome)) this.desafioRapido.players.push(nome);
+      this.desafioRapido.jogadorInput = '';
+    },
+
+    async lancarDesafioDoOraculo() {
+      if (this.desafioRapido.lancando) return;
+      if (!this.oraculo.fixtureId || this.desafioRapido.players.length < 2) {
+        showToast('Adicione pelo menos 2 opções antes de lançar.', 'error');
+        return;
+      }
+      this.desafioRapido.lancando = true;
+      const matchName = this.oraculo.predicoes?.teams
+        ? `${this.oraculo.predicoes.teams.home.name} vs ${this.oraculo.predicoes.teams.away.name}`
+        : `Fixture #${this.oraculo.fixtureId}`;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('desafios').insert([{
+          fixture_id: Number(this.oraculo.fixtureId),
+          match_name: matchName,
+          event_type: this.desafioRapido.eventType,
+          points: this.desafioRapido.pts,
+          custo_fichas: this.desafioRapido.fichas,
+          players: this.desafioRapido.players,
+          status: 'active'
+        }]);
+        if (error) throw error;
+        this.adicionarLog('Supabase', 'INSERT desafios (via Oráculo)', 'SUCCESS', Date.now() - t, matchName);
+        showToast(`⚡ Desafio lançado! "${matchName}" está ativo.`, 'mago');
+        this.desafioRapido.players = [];
+        this.desafioRapido.jogadorInput = '';
+        this.abaAtiva = 'desafios';
+        this.carregarDesafiosGM();
+      } catch(err) {
+        this.adicionarLog('Supabase', 'INSERT desafios', 'ERROR', Date.now() - t, err.message);
+        showToast('Erro ao lançar: ' + err.message, 'error');
+      } finally {
+        this.desafioRapido.lancando = false;
       }
     },
 
