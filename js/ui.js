@@ -2573,18 +2573,29 @@ function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
     child?.classList.add('scale-100', 'opacity-100');
   }, 100);
 
+  // Timeout de 10 minutos: se não confirmar, mostra mensagem de suporte
+  const pollTimeout = setTimeout(() => {
+    if (!paymentPollInterval) return;
+    clearInterval(paymentPollInterval);
+    paymentPollInterval = null;
+    const spinnerEl = overlay.querySelector('.animate-spin')?.parentElement;
+    if (spinnerEl) {
+      spinnerEl.innerHTML = `<span class="text-xs text-red-400 text-center leading-relaxed">⚠️ Pagamento não confirmado automaticamente.<br><span class="text-zinc-500">Se você pagou, entre em contato via WhatsApp.</span></span>`;
+    }
+  }, 10 * 60 * 1000);
+
   // Polling adaptado por tipo de produto
   paymentPollInterval = setInterval(async () => {
     try {
       if (produto.tipo === 'grupo') {
         const { data: grp } = await sbClient.from('groups').select('max_participants').eq('id', targetId).single();
-        if (grp && grp.max_participants >= produto.limite) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+        if (grp && grp.max_participants >= produto.limite) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
       } else if (produto.tipo === 'passe') {
         const { data: prof } = await sbClient.from('profiles').select('max_grupos').eq('id', targetId).single();
-        if (prof && prof.max_grupos >= produto.limite) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+        if (prof && prof.max_grupos >= produto.limite) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
       } else if (produto.tipo === 'fichas') {
         const { data: prof } = await sbClient.from('profiles').select('fichas_desafio').eq('id', targetId).single();
-        if (prof && (prof.fichas_desafio || 0) > fichasAntes) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+        if (prof && (prof.fichas_desafio || 0) > fichasAntes) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
       }
     } catch (err) { console.error('Polling error:', err); }
   }, 4000);
