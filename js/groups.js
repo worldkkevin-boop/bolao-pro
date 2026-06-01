@@ -824,14 +824,52 @@ async function excluirGrupoReal() {
   if (confirm("ALERTA DE PERIGO! 🚨\nVocê tem certeza que quer excluir o bolão \"" + (grupoAtual.name || grupoAtual.nome || 'Grupo') + "\"? Todos os palpites, pontuações e membros serão permanentemente apagados. ISSO NÃO TEM VOLTA!")) {
     try {
       showToast("Excluindo grupo...", "info");
-      const { error } = await sbClient
+      
+      // 1. Deleta todos os palpites dos usuários no grupo
+      const { error: errGuesses } = await sbClient
+        .from('guesses')
+        .delete()
+        .eq('group_id', grupoAtual.id);
+        
+      if (errGuesses) {
+        console.error("Erro ao deletar palpites do grupo:", errGuesses.message);
+        showToast("Erro ao limpar palpites: " + errGuesses.message, "error");
+        return;
+      }
+
+      // 2. Deleta todas as respostas de desafios no grupo
+      const { error: errDesafios } = await sbClient
+        .from('user_desafios')
+        .delete()
+        .eq('group_id', grupoAtual.id);
+        
+      if (errDesafios) {
+        console.error("Erro ao deletar respostas dos desafios:", errDesafios.message);
+        showToast("Erro ao limpar desafios: " + errDesafios.message, "error");
+        return;
+      }
+
+      // 3. Deleta todos os membros do grupo
+      const { error: errMembers } = await sbClient
+        .from('group_members')
+        .delete()
+        .eq('group_id', grupoAtual.id);
+        
+      if (errMembers) {
+        console.error("Erro ao deletar membros do grupo:", errMembers.message);
+        showToast("Erro ao limpar membros: " + errMembers.message, "error");
+        return;
+      }
+      
+      // 4. Deleta o grupo em si
+      const { error: errGroup } = await sbClient
         .from('groups')
         .delete()
         .eq('id', grupoAtual.id);
         
-      if (error) {
-        console.error("Erro ao deletar grupo:", error.message);
-        showToast("Erro ao excluir o grupo. Tente novamente.", "error");
+      if (errGroup) {
+        console.error("Erro ao deletar grupo:", errGroup.message);
+        showToast("Erro ao excluir o grupo: " + errGroup.message, "error");
         return;
       }
       
@@ -845,7 +883,7 @@ async function excluirGrupoReal() {
       carregarGrupos();
     } catch (e) {
       console.error(e);
-      showToast("Erro ao processar a exclusão.", "error");
+      showToast("Erro ao processar a exclusão: " + e.message, "error");
     }
   }
 }
