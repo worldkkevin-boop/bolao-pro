@@ -1,0 +1,16 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/gm.html",
+      "destination": "/gm",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/gm",
+      "destination": "/gm/index.html"
+    }
+  ]
+}

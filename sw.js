@@ -12,7 +12,7 @@ self.addEventListener('push', function(event) {
     
     const options = {
       body: data.body || 'Você tem uma novidade no bolão!',
-      icon: '/icon-192.png', // Aponta para a imagem na raiz do projeto
+      icon: '/midia/icon-192.png', // Aponta para a imagem na pasta midia
       vibrate: [200, 100, 200, 100, 200], // Vibração personalizada 📳
       data: {
         url: data.url || '/' // Para onde o app vai se o cara clicar na notificação

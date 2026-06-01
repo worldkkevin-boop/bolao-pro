@@ -18,7 +18,7 @@ function verificarUsuarioGM() {
 
 // Direciona para a view do GM
 function abrirPainelGM() {
-  window.location.href = 'gm.html';
+  window.location.href = '/gm';
 }
 
 // Normaliza strings para busca/comparação insensível a acentos e maiúsculas
