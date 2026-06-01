@@ -775,10 +775,28 @@ function adminApp() {
 
     selecionarVencedorUI(desafio) {
       this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: false };
+      this.injetarWidgetAPI(desafio.fixture_id);
     },
 
     editarVencedorUI(desafio) {
       this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: true };
+      this.injetarWidgetAPI(desafio.fixture_id);
+    },
+
+    injetarWidgetAPI(fixtureId) {
+      setTimeout(() => {
+        const container = document.getElementById('api-widget-container');
+        if (container) {
+          if (fixtureId) {
+            container.innerHTML = `<api-sports-widget data-key="47ca2bb05eb5931347aca04964818eb5" data-type="game" data-game-id="${fixtureId}" data-game-tab="events"></api-sports-widget>`;
+            if (window.APISportsWidget && typeof window.APISportsWidget.init === 'function') {
+              window.APISportsWidget.init();
+            }
+          } else {
+            container.innerHTML = '';
+          }
+        }
+      }, 50);
     },
 
     nomesCoincidem(nome1, nome2) {
