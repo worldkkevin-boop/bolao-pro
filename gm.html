@@ -1306,6 +1306,14 @@
               </div>
             </div>
 
+            <!-- Hint do assistente de precificação -->
+            <p
+              x-show="desafioRapido.fichas > 0"
+              x-cloak
+              x-text="sugerirPtsParaFichas()"
+              class="text-[9px] text-zinc-500 text-center -mt-2 mb-4 leading-relaxed transition-all"
+            ></p>
+
             <!-- Opções de aposta — auto-preenchidas com os times -->
             <div class="space-y-2.5 mb-5">
               <div class="flex items-center justify-between">

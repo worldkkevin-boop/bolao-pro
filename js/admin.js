@@ -1063,6 +1063,23 @@ function adminApp() {
       this.desafioRapido.players = [...base, ...keeps];
     },
 
+    sugerirPtsParaFichas() {
+      const f = this.desafioRapido.fichas;
+      if (!f || f <= 0) return '';
+      if (f <= 2) {
+        const min = Math.round(f * 2);
+        const max = Math.round(f * 2.5);
+        return `💡 Recomendado: ${min} a ${max} pts`;
+      } else if (f <= 5) {
+        const min = Math.round(f * 2.5);
+        const max = Math.round(f * 3);
+        return `💡 Recomendado: ${min} a ${max} pts`;
+      } else {
+        const ideal = Math.round(f * 2);
+        return `⚠️ Nível Sniper — Recomendado: ${ideal} pts (acima disso desequilibra o ranking)`;
+      }
+    },
+
     adicionarOpcaoDesafio() {
       const nome = this.desafioRapido.jogadorInput.trim();
       if (!nome) return;
