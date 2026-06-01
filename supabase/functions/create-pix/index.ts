@@ -145,6 +145,7 @@ async function gerarPix(user: any, amount: number, description: string, extRef: 
       payment_method_id: 'pix',
       description,
       external_reference: extRef,
+      notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
       payer: {
         email: user.email,
         first_name: user.user_metadata?.full_name?.split(' ')[0] || 'Jogador',
