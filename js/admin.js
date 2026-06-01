@@ -774,7 +774,99 @@ function adminApp() {
     },
 
     selecionarVencedorUI(desafio) {
-      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points };
+      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, isEdit: false };
+    },
+
+    editarVencedorUI(desafio) {
+      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, isEdit: true };
+    },
+
+    nomesCoincidem(nome1, nome2) {
+      if (!nome1 || !nome2) return false;
+      const n1 = nome1.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const n2 = nome2.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      if (n1 === n2) return true;
+      const p1 = n1.split(' ');
+      const p2 = n2.split(' ');
+      const last1 = p1[p1.length - 1];
+      const last2 = p2[p2.length - 1];
+      return (last1 === last2 && (p1[0] === p2[0] || p1[0].charAt(0) === p2[0].charAt(0)));
+    },
+
+    async resolverDesafioAPI(desafio) {
+      if (!confirm('Deseja realmente obter os dados da API para resolver este desafio?')) return;
+      
+      const fixtureId = desafio.fixture_id;
+      const eventType = desafio.event_type;
+      const players = desafio.players || [];
+      const cleanEventType = eventType.replace('_penalty', '');
+      
+      try {
+        showToast('Consultando API...', 'mago');
+        let jogadoresVencedores = [];
+
+        if (cleanEventType.startsWith('CornersOver') || cleanEventType.startsWith('CardsOver')) {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers: { "x-rapidapi-host": "v3.football.api-sports.io", "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5" } });
+          const json = await resp.json();
+          const stats = json.response || [];
+          
+          let total = 0;
+          stats.forEach(team => {
+            if (cleanEventType.startsWith('CornersOver')) {
+              const s = team.statistics.find(x => x.type === 'Corner Kicks');
+              if (s && s.value) total += parseInt(s.value);
+            } else {
+              const sy = team.statistics.find(x => x.type === 'Yellow Cards');
+              const sr = team.statistics.find(x => x.type === 'Red Cards');
+              if (sy && sy.value) total += parseInt(sy.value);
+              if (sr && sr.value) total += parseInt(sr.value);
+            }
+          });
+          
+          const limit = parseFloat(cleanEventType.replace(/[^0-9.]/g, '')) || 0;
+          const isOver = cleanEventType.startsWith('CornersOver') ? (total > limit) : (total > limit);
+          const resultText = total > limit ? `Mais de ${limit}` : `Menos de ${limit}`;
+          jogadoresVencedores.push(resultText);
+          
+        } else if (cleanEventType === 'BTTS') {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?id=${fixtureId}`, { headers: { "x-rapidapi-host": "v3.football.api-sports.io", "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5" } });
+          const json = await resp.json();
+          const fixtureData = json.response && json.response[0] ? json.response[0] : null;
+          if (fixtureData && fixtureData.goals.home > 0 && fixtureData.goals.away > 0) {
+            jogadoresVencedores.push('Sim');
+          } else {
+            jogadoresVencedores.push('Não');
+          }
+        } else {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures/events?fixture=${fixtureId}`, { headers: { "x-rapidapi-host": "v3.football.api-sports.io", "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5" } });
+          const json = await resp.json();
+          const eventos = json.response || [];
+          
+          eventos.forEach(evt => {
+            if (evt.type === 'Goal' && (cleanEventType === 'Goal' || cleanEventType === 'Assist')) {
+              players.forEach(p => {
+                if (cleanEventType === 'Goal' && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                if (cleanEventType === 'Assist' && this.nomesCoincidem(evt.assist?.name, p)) jogadoresVencedores.push(p);
+              });
+            } else if (evt.type === 'Card' && cleanEventType.startsWith('Card')) {
+              players.forEach(p => {
+                if (cleanEventType === 'CardYellow' && evt.detail?.toLowerCase().includes('yellow') && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                if (cleanEventType === 'CardRed' && evt.detail?.toLowerCase().includes('red') && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                if (cleanEventType === 'Card' && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+              });
+            }
+          });
+        }
+
+        if (jogadoresVencedores.length > 0) {
+          showToast(`A API encontrou o vencedor: ${jogadoresVencedores[0]}`, 'success');
+          this.selecionarVencedorUI(desafio);
+        } else {
+          showToast('A API não encontrou nenhuma das opções como vencedora ainda.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao consultar API: ' + err.message, 'error');
+      }
     },
 
     async confirmarVencedorGM(vencedor) {
@@ -784,6 +876,14 @@ function adminApp() {
 
       const startTime = Date.now();
       try {
+        if (d.isEdit) {
+          // Zera os pontos distribuídos anteriormente
+          await sbClient
+            .from('user_desafios')
+            .update({ points_awarded: 0 })
+            .eq('desafio_id', d.id);
+        }
+
         const { error: e1 } = await sbClient
           .from('desafios')
           .update({ status: 'resolved', vencedor })
