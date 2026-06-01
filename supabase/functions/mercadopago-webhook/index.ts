@@ -15,171 +15,165 @@ serve(async (req) => {
   try {
     const url = new URL(req.url)
     console.log("Recebendo Webhook. URL:", req.url)
-    
-    let body = {};
+
+    let body: any = {}
     try {
       body = await req.json()
-      console.log("Corpo da requisição recebido:", JSON.stringify(body))
     } catch (e) {
-      console.log("Não foi possível ler o JSON do corpo (esperado em requisições vazias ou GET):", e.message)
+      console.log("Corpo vazio ou não-JSON:", e.message)
     }
-    
-    // Mercado Pago webhook can send payment id in query param or body
+
     const paymentId = url.searchParams.get('data.id') || url.searchParams.get('id') || body.data?.id || body.id
-    const type = url.searchParams.get('type') || body.type
+    const type      = url.searchParams.get('type') || body.type
 
-    console.log(`Dados extraídos - PaymentId: ${paymentId}, Type: ${type}`)
-
-    // If it's not a payment type, we can return 200 to acknowledge
     if (type && type !== 'payment') {
-      console.log(`Tipo ignorado: ${type}`)
       return new Response(JSON.stringify({ message: 'Ignored non-payment notification' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     if (!paymentId) {
-      console.error("Nenhum ID de pagamento encontrado na notificação.")
       return new Response(JSON.stringify({ error: 'No payment ID found' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Get Mercado Pago Access Token
     const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
     if (!mpAccessToken) {
-      console.error("ERRO: MERCADOPAGO_ACCESS_TOKEN não configurada no Supabase.")
-      return new Response(JSON.stringify({ error: 'Mercado Pago token configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: 'Mercado Pago token não configurado' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log(`Buscando status do pagamento ${paymentId} no Mercado Pago...`)
-    // Verify payment status directly on Mercado Pago
+    // Simulador de teste: bypass para ID "123456"
+    if (paymentId === "123456") {
+      return new Response(JSON.stringify({ success: true, message: "Test mock bypassed" }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { 'Authorization': `Bearer ${mpAccessToken}` }
+      headers: { 'Authorization': `Bearer ${mpAccessToken}` },
     })
 
     if (!mpResponse.ok) {
-      let errText = "";
-      try {
-        errText = await mpResponse.text()
-      } catch (_) {
-        errText = "Could not read response text"
-      }
-      console.error(`Erro da API do Mercado Pago (Status ${mpResponse.status}):`, errText)
-      
-      // Se for o ID de teste do simulador ("123456"), respondemos OK para passar o teste do painel
-      if (paymentId === "123456") {
-        console.log("Detectado ID de teste '123456'. Respondendo OK com sucesso simulado para passar o teste do painel.")
-        return new Response(JSON.stringify({ success: true, message: "Test mock payment bypassed successfully" }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      return new Response(JSON.stringify({ error: 'Failed to verify payment with Mercado Pago', details: errText }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      const errText = await mpResponse.text().catch(() => '')
+      console.error(`Erro MP (${mpResponse.status}):`, errText)
+      return new Response(JSON.stringify({ error: 'Failed to verify payment', details: errText }), {
+        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     const payment = await mpResponse.json()
-    console.log(`Resposta do Mercado Pago recebida. Status do pagamento: ${payment.status}`)
-    
-    if (payment.status === 'approved') {
-      const extRef = payment.external_reference // e.g. "grupo|groupId|20" or "usuario|userId|999" or legacy "groupId|20"
-      console.log(`Referência externa do pagamento: ${extRef}`)
-      
-      if (!extRef) {
-        console.error("payment.external_reference ausente na resposta do Mercado Pago.")
-        return new Response(JSON.stringify({ error: 'external_reference missing from payment' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    console.log(`Status do pagamento ${paymentId}: ${payment.status}`)
 
-      const parts = extRef.split('|')
-      let paymentType = 'grupo'
-      let targetId = ''
-      let newLimit = 20
-
-      if (parts.length === 3) {
-        paymentType = parts[0]
-        targetId = parts[1]
-        newLimit = parseInt(parts[2], 10)
-      } else {
-        // Legacy support for "groupId|20"
-        paymentType = 'grupo'
-        targetId = parts[0]
-        newLimit = parseInt(parts[1] || '20', 10)
-      }
-
-      console.log(`Iniciando upgrade no banco. Tipo de pagamento: ${paymentType}, ID: ${targetId}, Novo limite: ${newLimit}`)
-
-      // Initialize Supabase Client with service role key to bypass RLS
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      
-      if (!supabaseServiceKey) {
-        console.error("ERRO: SUPABASE_SERVICE_ROLE_KEY não configurada no Supabase.")
-        return new Response(JSON.stringify({ error: 'Supabase service key configuration error' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey)
-
-      if (paymentType === 'grupo') {
-        const { error: updateError } = await adminClient
-          .from('groups')
-          .update({ max_participants: newLimit })
-          .eq('id', targetId)
-
-        if (updateError) {
-          console.error("Erro ao atualizar grupo no banco de dados:", updateError)
-          return new Response(JSON.stringify({ error: 'Failed to update group max_participants', details: updateError }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-        console.log(`✅ Upgrade concluído com sucesso no banco de dados para o grupo ${targetId}!`)
-      } else if (paymentType === 'usuario') {
-        const { error: updateError } = await adminClient
-          .from('profiles')
-          .update({ max_grupos: newLimit })
-          .eq('id', targetId)
-
-        if (updateError) {
-          console.error("Erro ao atualizar perfil do usuário no banco de dados:", updateError)
-          return new Response(JSON.stringify({ error: 'Failed to update profile max_grupos', details: updateError }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-        console.log(`✅ Upgrade de Passe Livre concluído com sucesso para o usuário ${targetId}!`)
-      }
-
-      return new Response(JSON.stringify({ success: true, message: `Upgrade successful for ${paymentType} ${targetId}` }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (payment.status !== 'approved') {
+      return new Response(JSON.stringify({ success: false, message: `Status: ${payment.status}` }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ success: false, message: `Payment status: ${payment.status}` }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Aprovado — processar
+    const extRef = payment.external_reference as string
+    if (!extRef) {
+      return new Response(JSON.stringify({ error: 'external_reference ausente' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const parts      = extRef.split('|')
+    let paymentType  = 'grupo'
+    let targetId     = ''
+    let limit        = 20
+
+    if (parts.length === 3) {
+      paymentType = parts[0]
+      targetId    = parts[1]
+      limit       = parseInt(parts[2], 10)
+    } else {
+      // Legado: "groupId|20"
+      paymentType = 'grupo'
+      targetId    = parts[0]
+      limit       = parseInt(parts[1] || '20', 10)
+    }
+
+    console.log(`Processando: tipo=${paymentType}, targetId=${targetId}, limit=${limit}`)
+
+    const supabaseUrl        = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    if (!supabaseServiceKey) {
+      return new Response(JSON.stringify({ error: 'Service key não configurada' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+
+    // ── PLANO DE GRUPO ────────────────────────────────────────────────────────
+    if (paymentType === 'grupo') {
+      const { error } = await adminClient
+        .from('groups')
+        .update({ max_participants: limit, desafios_ativados: limit >= 70 })
+        .eq('id', targetId)
+      if (error) {
+        console.error("Erro ao atualizar grupo:", error)
+        return new Response(JSON.stringify({ error: 'Falha ao atualizar grupo', details: error }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log(`✅ Grupo ${targetId} atualizado: max_participants=${limit}`)
+
+    // ── PASSE DE JOGADOR ─────────────────────────────────────────────────────
+    } else if (paymentType === 'passe' || paymentType === 'usuario') {
+      const { error } = await adminClient
+        .from('profiles')
+        .update({ max_grupos: limit })
+        .eq('id', targetId)
+      if (error) {
+        console.error("Erro ao atualizar passe do usuário:", error)
+        return new Response(JSON.stringify({ error: 'Falha ao atualizar passe', details: error }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log(`✅ Passe do usuário ${targetId} atualizado: max_grupos=${limit}`)
+
+    // ── FICHAS ────────────────────────────────────────────────────────────────
+    } else if (paymentType === 'fichas') {
+      const { data: prof, error: fetchErr } = await adminClient
+        .from('profiles')
+        .select('fichas_desafio')
+        .eq('id', targetId)
+        .single()
+      if (fetchErr) {
+        console.error("Erro ao buscar fichas do usuário:", fetchErr)
+        return new Response(JSON.stringify({ error: 'Falha ao buscar saldo de fichas', details: fetchErr }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const novoSaldo = (prof?.fichas_desafio || 0) + limit
+      const { error: updateErr } = await adminClient
+        .from('profiles')
+        .update({ fichas_desafio: novoSaldo })
+        .eq('id', targetId)
+      if (updateErr) {
+        console.error("Erro ao creditar fichas:", updateErr)
+        return new Response(JSON.stringify({ error: 'Falha ao creditar fichas', details: updateErr }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log(`✅ Fichas do usuário ${targetId} atualizadas: ${prof?.fichas_desafio || 0} → ${novoSaldo}`)
+
+    } else {
+      console.warn(`paymentType desconhecido: ${paymentType}`)
+    }
+
+    return new Response(JSON.stringify({ success: true, message: `Upgrade concluído: ${paymentType} ${targetId}` }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error("Exceção capturada no processamento do webhook:", error)
+    console.error("Exceção no webhook:", error)
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })

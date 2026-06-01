@@ -2421,56 +2421,202 @@ function fecharOnboarding() {
 
 // ============ LOJA PRO ============
 
+const PRODUTOS_LOJA = {
+  // Planos de grupo
+  grupo_serie_a:   { tipo:'grupo',  label:'Série A',       icon:'⚡', subLabel:'Até 30 jogadores',            valorFmt:'29,90', limite:30,  successMsg:'Grupo expandido para até 30 jogadores!' },
+  grupo_champions: { tipo:'grupo',  label:'Champions',     icon:'🏆', subLabel:'Até 70 jogadores + Desafios', valorFmt:'49,90', limite:70,  successMsg:'Champions ativo! Desafios do Mago liberados.' },
+  grupo_god_mode:  { tipo:'grupo',  label:'God Mode',      icon:'👑', subLabel:'Ilimitado + Controle total',  valorFmt:'99,90', limite:999, successMsg:'God Mode ativado! Grupo ilimitado.' },
+  // Passes de jogador
+  passe_camisa10:  { tipo:'passe',  label:'Camisa 10',     icon:'🎟️', subLabel:'Jogue em até 3 grupos',      valorFmt:'9,90',  limite:3,   successMsg:'Passe Camisa 10 ativo! Você pode entrar em 3 grupos.' },
+  passe_lenda:     { tipo:'passe',  label:'Lenda da Copa', icon:'🌟', subLabel:'Grupos ilimitados + Borda Neon',valorFmt:'19,90',limite:999, successMsg:'Você é uma Lenda! Grupos ilimitados desbloqueados.' },
+  // Fichas
+  fichas_resenha:  { tipo:'fichas', label:'Pacote Resenha',icon:'🪙', subLabel:'15 Fichas para Desafios',    valorFmt:'1,99',  limite:15,  successMsg:'+15 fichas adicionadas ao seu saldo!' },
+  fichas_sniper:   { tipo:'fichas', label:'Kit Sniper',    icon:'💎', subLabel:'40 Fichas para Desafios',    valorFmt:'4,90',  limite:40,  successMsg:'+40 fichas adicionadas ao seu saldo!' },
+  fichas_bau:      { tipo:'fichas', label:'Baú do Mago',   icon:'🎁', subLabel:'100 Fichas para Desafios',   valorFmt:'9,90',  limite:100, successMsg:'+100 fichas adicionadas ao seu saldo! 🔥' },
+};
+
 async function carregarViewLoja() {
   atualizarDisplayFichas();
+  mudarTabLoja('grupos');
+  await carregarSelectGruposLoja();
+}
+
+async function carregarSelectGruposLoja() {
   const select = document.getElementById('loja-grupo-select');
   if (!select || !sbClient || !usuarioAtual) return;
-
-  select.innerHTML = '<option value="">Carregando grupos...</option>';
+  select.innerHTML = '<option value="">Carregando seus grupos...</option>';
   try {
-    const { data: memberships } = await sbClient
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', usuarioAtual.id)
-      .neq('role', 'pending');
-
-    if (!memberships?.length) {
-      select.innerHTML = '<option value="">Nenhum grupo encontrado</option>';
-      return;
-    }
-
     const { data: grupos } = await sbClient
       .from('groups')
       .select('id, name, max_participants')
-      .in('id', memberships.map(m => m.group_id))
+      .eq('owner_id', usuarioAtual.id)
       .order('created_at', { ascending: false });
-
-    select.innerHTML = '<option value="">Selecione um grupo...</option>';
-    (grupos || []).forEach(g => {
-      const plano = g.max_participants > 3 ? '✓ Pro' : 'Grátis';
-      select.innerHTML += `<option value="${g.id}">${g.name} — ${plano}</option>`;
+    if (!grupos?.length) {
+      select.innerHTML = '<option value="">Você não criou nenhum grupo</option>';
+      return;
+    }
+    select.innerHTML = '<option value="">— Selecione um grupo —</option>';
+    grupos.forEach(g => {
+      const plano = g.max_participants >= 999 ? '👑 God Mode' : g.max_participants >= 70 ? '🏆 Champions' : g.max_participants >= 30 ? '⚡ Série A' : 'Grátis';
+      select.innerHTML += `<option value="${g.id}">${g.name} (${plano})</option>`;
     });
   } catch (e) {
     select.innerHTML = '<option value="">Erro ao carregar grupos</option>';
   }
 }
 
-function comprarFichasPacote(fichas, preco) {
-  const email = usuarioAtual?.email || 'jogador';
-  const msg = `Oi! Quero comprar o pacote de *${fichas} Fichas* (R$ ${preco}) para o usuário *${email}* no Bolão Pro. 🎫`;
-  window.open(`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+function mudarTabLoja(tab) {
+  ['grupos','passes','fichas'].forEach(t => {
+    const el  = document.getElementById(`loja-tab-${t}`);
+    const btn = document.getElementById(`loja-btn-${t}`);
+    if (!el || !btn) return;
+    if (t === tab) {
+      el.classList.remove('hidden');
+      btn.classList.add('bg-white/10','text-white');
+      btn.classList.remove('text-zinc-500');
+    } else {
+      el.classList.add('hidden');
+      btn.classList.remove('bg-white/10','text-white');
+      btn.classList.add('text-zinc-500');
+    }
+  });
+  if (tab === 'fichas') atualizarDisplayFichas();
 }
 
-function comprarPlanoGrupo(plano, preco, limite) {
-  const select = document.getElementById('loja-grupo-select');
-  if (!select?.value) {
-    showToast('Selecione um grupo antes de escolher o plano!', 'error');
-    return;
+async function gerarPagamentoPix(productId) {
+  const produto = PRODUTOS_LOJA[productId];
+  if (!produto) { showToast('Produto não encontrado', 'error'); return; }
+
+  let targetId;
+  if (produto.tipo === 'grupo') {
+    const sel = document.getElementById('loja-grupo-select');
+    targetId = sel?.value;
+    if (!targetId) { showToast('Selecione um grupo primeiro! ☝️', 'error'); return; }
+  } else {
+    targetId = usuarioAtual?.id;
+    if (!targetId) { showToast('Você precisa estar logado.', 'error'); return; }
   }
-  const nomeGrupo = select.options[select.selectedIndex].text.replace(/ — .*/, '');
-  const nomePlano = { basico: `Básico (${limite} jogadores)`, pro: `Pro (${limite} jogadores)`, elite: `Elite (${limite} jogadores)` }[plano];
-  const msg = `Oi! Quero assinar o *Plano ${nomePlano}* (R$ ${preco}/mês) para o grupo *${nomeGrupo}* no Bolão Pro. ⚡`;
-  window.open(`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  showToast(`Gerando PIX de R$ ${produto.valorFmt}...`, 'success');
+
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) { showToast('Sessão expirada. Faça login novamente.', 'error'); return; }
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-pix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ productId, targetId }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || 'Erro ao gerar pagamento.', 'error');
+      return;
+    }
+
+    const fichasAntes = usuarioAtual?.fichas || 0;
+    _mostrarOverlayPIX(data, produto, targetId, fichasAntes);
+  } catch (err) {
+    console.error('gerarPagamentoPix error:', err);
+    showToast('Erro de conexão ao gerar pagamento.', 'error');
+  }
+}
+
+function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
+  if (paymentPollInterval) clearInterval(paymentPollInterval);
+  fecharModalPagamento();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'payment-overlay';
+  overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] transition-all duration-300 opacity-0';
+  setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+  const qrSrc  = `data:image/png;base64,${pixData.qr_code_base64}`;
+  const qrCode = pixData.qr_code;
+
+  overlay.innerHTML = `
+    <div class="bg-[#121214] border border-purple-500/20 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(139,92,246,0.15)] overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+      <div class="p-5 text-center border-b border-white/5 relative">
+        <button onclick="fecharModalPagamento()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+        <div class="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center border border-purple-500/30 mx-auto mb-2 text-2xl">${produto.icon}</div>
+        <h2 class="text-white font-black text-base uppercase tracking-wide">${produto.label}</h2>
+        <p class="text-purple-400 text-[11px] font-bold">${produto.subLabel}</p>
+      </div>
+      <div class="p-6 flex flex-col items-center">
+        <p class="text-gray-300 text-xs text-center mb-4 leading-relaxed">
+          Escaneie o QR Code ou copie o código para pagar <strong class="text-white">R$ ${produto.valorFmt}</strong>. Ativação automática após confirmação.
+        </p>
+        <div class="bg-white p-3 rounded-xl mb-4 border-2 border-purple-500/20 shadow-[0_0_20px_rgba(255,255,255,0.05)] w-44 h-44 flex items-center justify-center">
+          <img src="${qrSrc}" alt="QR Code PIX" class="w-full h-full object-contain">
+        </div>
+        <div class="w-full bg-[#18181b] border border-white/5 rounded-xl p-3 mb-5">
+          <label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Pix Copia e Cola</label>
+          <div class="flex gap-2">
+            <input type="text" id="pix-copia-cola" readonly value="${qrCode}" class="bg-transparent border-0 text-white text-xs w-full focus:ring-0 focus:outline-none overflow-hidden text-ellipsis whitespace-nowrap">
+            <button onclick="copiarPixCodigo()" id="btn-copy-pix" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1 rounded-lg text-[10px] uppercase tracking-wide transition-all active:scale-95 shrink-0">Copiar</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-xs text-gray-400 font-medium">Aguardando confirmação do PIX...</span>
+        </div>
+        <p class="text-[10px] text-gray-500 text-center">Processado via Mercado Pago · 100% seguro</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    const child = overlay.firstElementChild;
+    child?.classList.remove('scale-95', 'opacity-0');
+    child?.classList.add('scale-100', 'opacity-100');
+  }, 100);
+
+  // Polling adaptado por tipo de produto
+  paymentPollInterval = setInterval(async () => {
+    try {
+      if (produto.tipo === 'grupo') {
+        const { data: grp } = await sbClient.from('groups').select('max_participants').eq('id', targetId).single();
+        if (grp && grp.max_participants >= produto.limite) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+      } else if (produto.tipo === 'passe') {
+        const { data: prof } = await sbClient.from('profiles').select('max_grupos').eq('id', targetId).single();
+        if (prof && prof.max_grupos >= produto.limite) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+      } else if (produto.tipo === 'fichas') {
+        const { data: prof } = await sbClient.from('profiles').select('fichas_desafio').eq('id', targetId).single();
+        if (prof && (prof.fichas_desafio || 0) > fichasAntes) _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes);
+      }
+    } catch (err) { console.error('Polling error:', err); }
+  }, 4000);
+}
+
+function _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes) {
+  clearInterval(paymentPollInterval);
+  paymentPollInterval = null;
+  showToast(produto.successMsg, 'success');
+
+  // Atualiza estado local
+  if (produto.tipo === 'grupo' && grupoAtual?.id === targetId) {
+    grupoAtual.max_participants = produto.limite;
+    localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
+  } else if (produto.tipo === 'fichas' && usuarioAtual) {
+    usuarioAtual.fichas = fichasAntes + produto.limite;
+    atualizarDisplayFichas();
+  }
+
+  const card = overlay.firstElementChild;
+  if (card) {
+    card.innerHTML = `
+      <div class="p-8 text-center flex flex-col items-center">
+        <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mb-4 text-3xl animate-bounce">🎉</div>
+        <h2 class="text-white font-black text-lg uppercase tracking-wide mb-2">Compra Confirmada!</h2>
+        <p class="text-gray-300 text-xs leading-relaxed mb-6">${produto.successMsg}</p>
+        <button onclick="fecharModalPagamento()" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
+          Continuar
+        </button>
+      </div>
+    `;
+  }
 }
 
 // ============ TELA DE UPGRADE (CHECKOUT) ============
