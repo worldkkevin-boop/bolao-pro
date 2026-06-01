@@ -513,6 +513,133 @@ function adminApp() {
       }
     },
 
+    // ============================================================
+    // PROJETO GOD MODE: DOSSIÊ DE JOGADORES (Poderes do GM)
+    // ============================================================
+
+    async abrirRaioXUsuario(u) {
+      this.usuarioSelecionado = u;
+      this.abaAtiva = 'usuario-detalhe';
+      if (!u.is_banned) u.is_banned = false; // Garante prop reativa
+      document.querySelector('main').scrollTop = 0;
+
+      // Buscar os grupos em tempo real para o Raio-X
+      try {
+        const { data } = await sbClient
+          .from('group_members')
+          .select('group_id, role, groups(name)')
+          .eq('user_id', u.id);
+        
+        // Garante a reatividade no Alpine
+        this.usuarioSelecionado._gruposLista = data || [];
+      } catch (err) {
+        console.error("Erro ao buscar grupos do usuário:", err);
+        this.usuarioSelecionado._gruposLista = [];
+      }
+    },
+
+    async injetarFichas(usuarioId, qtdStr) {
+      const qtd = parseInt(qtdStr);
+      if (isNaN(qtd) || qtd <= 0) {
+        showToast("Quantidade inválida.", "error");
+        return;
+      }
+      const t = Date.now();
+      try {
+        const u = this.usuarioSelecionado;
+        const novasFichas = (u.fichas_desafio || 0) + qtd;
+        const { error } = await sbClient.from('profiles').update({ fichas_desafio: novasFichas }).eq('id', usuarioId);
+        if (error) throw error;
+        
+        u.fichas_desafio = novasFichas;
+        this.adicionarLog('Supabase', 'UPDATE profiles (fichas)', 'SUCCESS', Date.now() - t, `+${qtd} fichas para ${u.full_name}`);
+        
+        // Registrar na auditoria
+        await this._registrarAuditoria('INJECT_FICHAS', 'profiles', usuarioId, { added: qtd, new_total: novasFichas });
+        
+        showToast(`${qtd} fichas injetadas com sucesso!`, "success");
+        document.getElementById('inputFichasInjetar').value = '';
+      } catch (err) {
+        showToast("Erro ao injetar fichas: " + err.message, "error");
+        this.adicionarLog('Supabase', 'UPDATE profiles', 'ERROR', Date.now() - t, err.message);
+      }
+    },
+
+    async zerarFichas(usuarioId) {
+      const u = this.usuarioSelecionado;
+      if (!confirm(`⚠️ Atenção: Isso vai zerar TODAS as fichas de ${u.full_name}. Confirma?`)) return;
+      const t = Date.now();
+      try {
+        const oldTotal = u.fichas_desafio || 0;
+        const { error } = await sbClient.from('profiles').update({ fichas_desafio: 0 }).eq('id', usuarioId);
+        if (error) throw error;
+        
+        u.fichas_desafio = 0;
+        this.adicionarLog('Supabase', 'UPDATE profiles (fichas=0)', 'SUCCESS', Date.now() - t, `Fichas zeradas para ${u.full_name}`);
+        await this._registrarAuditoria('ZERO_FICHAS', 'profiles', usuarioId, { old_total: oldTotal, new_total: 0 });
+        
+        showToast("Saldo zerado.", "success");
+      } catch (err) {
+        showToast("Erro ao zerar fichas: " + err.message, "error");
+      }
+    },
+
+    async alternarBanimento(usuarioId, banir) {
+      const u = this.usuarioSelecionado;
+      const acao = banir ? 'banir' : 'desbanir';
+      if (!confirm(`⚠️ Tem certeza que deseja ${acao} a conta de ${u.full_name}?`)) return;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('profiles').update({ is_banned: banir }).eq('id', usuarioId);
+        if (error) throw error;
+        
+        u.is_banned = banir;
+        this.adicionarLog('Supabase', 'UPDATE profiles (is_banned)', 'SUCCESS', Date.now() - t, `Usuário ${banir ? 'BANIDO' : 'DESBANIDO'}: ${u.full_name}`);
+        await this._registrarAuditoria(banir ? 'BAN_USER' : 'UNBAN_USER', 'profiles', usuarioId, { is_banned: banir });
+        
+        showToast(`Conta ${banir ? 'banida' : 'reativada'} com sucesso!`, banir ? "error" : "success");
+      } catch (err) {
+        showToast("Erro na moderação: " + err.message, "error");
+      }
+    },
+
+    async expulsarCirurgico(usuarioId, grupoId, grupoName) {
+      if (!confirm(`⚠️ Expulsar o jogador do grupo "${grupoName}"? Ele perderá acesso ao bolão desse grupo.`)) return;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('group_members').delete().eq('user_id', usuarioId).eq('group_id', grupoId);
+        if (error) throw error;
+        
+        // Remove localmente da UI
+        this.usuarioSelecionado._gruposLista = this.usuarioSelecionado._gruposLista.filter(g => g.group_id !== grupoId);
+        this.usuarioSelecionado._gruposCount = Math.max(0, this.usuarioSelecionado._gruposCount - 1);
+        
+        this.adicionarLog('Supabase', 'DELETE group_members', 'SUCCESS', Date.now() - t, `Usuário expulso de ${grupoName}`);
+        await this._registrarAuditoria('SURGICAL_KICK', 'group_members', usuarioId, { group_id: grupoId, group_name: grupoName });
+        
+        showToast(`Jogador expulso do grupo ${grupoName}`, "success");
+      } catch (err) {
+        showToast("Erro ao expulsar: " + err.message, "error");
+      }
+    },
+
+    async _registrarAuditoria(action, targetType, targetId, details) {
+      try {
+        if (!this.usuario?.id) return;
+        await sbClient.from('audit_logs').insert([{
+          admin_id: this.usuario.id,
+          action,
+          target_type: targetType,
+          target_id: targetId,
+          details
+        }]);
+      } catch (e) {
+        console.error("Aviso: Falha ao gravar log de auditoria. Tabela criada?", e);
+      }
+    },
+
+    // ============ FIM: DOSSIÊ DE JOGADORES ============
+
     // ============ DESAFIOS DO GM ============
 
     traduzirRegra(eventType) {

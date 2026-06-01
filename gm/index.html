@@ -112,29 +112,41 @@
         </div>
 
         <nav class="space-y-1">
-          <button @click="abaAtiva = 'dashboard'" :class="abaAtiva === 'dashboard' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>📊</span> Dashboard
+          <!-- DEP 1: Dossiê -->
+          <button @click="abaAtiva = 'usuarios'; carregarUsuarios()" :class="abaAtiva === 'usuarios' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20 shadow-lg shadow-purple-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">👤</span> Dossiê de Jogadores
           </button>
-          <button @click="abaAtiva = 'grupos'; carregarGrupos()" :class="abaAtiva === 'grupos' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>👥</span> Gerenciar Grupos
+          
+          <!-- DEP 2: Matriz -->
+          <button @click="abaAtiva = 'grupos'; carregarGrupos()" :class="abaAtiva === 'grupos' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20 shadow-lg shadow-purple-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">👥</span> Controle da Matriz
           </button>
-          <button @click="abaAtiva = 'usuarios'; carregarUsuarios()" :class="abaAtiva === 'usuarios' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>👤</span> Gerenciar Usuários
+
+          <!-- DEP 3: Tesouraria -->
+          <button @click="abaAtiva = 'tesouraria'; carregarTesouraria()" :class="abaAtiva === 'tesouraria' ? 'bg-emerald-600/20 text-emerald-400 font-bold border border-emerald-500/20 shadow-lg shadow-emerald-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">💸</span> Tesouraria e PIX
           </button>
-          <button @click="abaAtiva = 'ferramentas'; carregarGrupos()" :class="abaAtiva === 'ferramentas' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>🔄</span> Migrar Jogadores
+          
+          <!-- DEP 4: Auditoria -->
+          <button @click="abaAtiva = 'auditoria'; carregarAuditoria()" :class="abaAtiva === 'auditoria' ? 'bg-blue-600/20 text-blue-400 font-bold border border-blue-500/20 shadow-lg shadow-blue-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">📝</span> Auditoria (Big Brother)
           </button>
+
           <div class="h-px bg-zinc-800 my-3"></div>
-          <button @click="abaAtiva = 'desafios'; carregarDesafiosGM()" :class="abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? 'bg-amber-600/20 text-amber-300 font-bold border border-amber-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>⚡</span> Desafios do Mago
+          
+          <!-- Ferramentas Avançadas -->
+          <button @click="abaAtiva = 'desafios'; carregarDesafiosGM()" :class="abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? 'bg-amber-600/20 text-amber-300 font-bold border border-amber-500/20 shadow-lg shadow-amber-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">⚡</span> Desafios do Mago
           </button>
-          <button @click="abaAtiva = 'oraculo'" :class="abaAtiva === 'oraculo' ? 'bg-emerald-600/20 text-emerald-300 font-bold border border-emerald-500/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
-            <span>◉</span> Oráculo
+          
+          <button @click="abaAtiva = 'oraculo'" :class="abaAtiva === 'oraculo' ? 'bg-emerald-600/20 text-emerald-300 font-bold border border-emerald-500/20 shadow-lg shadow-emerald-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">◉</span> Oráculo Quant
           </button>
+
           <div class="h-px bg-zinc-800 my-3"></div>
           <a href="index.html" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left text-zinc-500 hover:text-white hover:bg-zinc-800/50">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-            Voltar ao App
+            Voltar ao App Original
           </a>
         </nav>
       </div>
@@ -155,7 +167,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-zinc-950/90">
       <!-- Top header -->
       <header class="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/40">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? 'Gerenciador de Grupos' : (abaAtiva === 'usuarios' ? 'Gerenciador de Perfis' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo — Radar de Distorção' : 'Painel'))))"></h1>
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria & Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : 'Painel'))))))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
         </div>
@@ -512,17 +524,17 @@
           </div>
         </div>
 
-        <!-- ABA: USUÁRIOS -->
+        <!-- =================== DEPARTAMENTO 1: DOSSIÊ =================== -->
         <div x-show="abaAtiva === 'usuarios'" class="space-y-6" x-cloak>
 
           <!-- Header com pesquisa -->
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 class="text-lg font-black text-white">Todos os Usuários</h2>
-              <p class="text-[10px] text-zinc-500 font-medium">Lista completa de jogadores registrados no Bolão Pro.</p>
+              <h2 class="text-lg font-black text-white">Dossiê de Jogadores</h2>
+              <p class="text-[10px] text-zinc-500 font-medium">Controle de limites, injeção de fichas e banimento de contas.</p>
             </div>
             <div class="flex items-center gap-3">
-              <input type="text" x-model="usuariosFiltro" placeholder="Pesquisar nome ou e-mail..." class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:border-purple-500 outline-none w-64 transition-colors">
+              <input type="text" x-model="usuariosFiltro" placeholder="Pesquisar jogador..." class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:border-purple-500 outline-none w-64 transition-colors">
               <button @click="carregarUsuarios()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
                 🔄 Atualizar
               </button>
@@ -532,7 +544,7 @@
           <!-- Loading -->
           <div x-show="usuariosLoading" class="py-12 flex flex-col items-center justify-center gap-2">
             <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-            <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Carregando usuários...</span>
+            <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Carregando dossiês...</span>
           </div>
 
           <!-- Tabela de Usuários -->
@@ -543,9 +555,9 @@
                   <th class="py-3 px-4">Usuário</th>
                   <th class="py-3 px-4">E-mail</th>
                   <th class="py-3 px-4 text-center">Grupos</th>
-                  <th class="py-3 px-4 text-center">Palpites</th>
-                  <th class="py-3 px-4 text-center">Limite Grupos</th>
-                  <th class="py-3 px-4">Registrado em</th>
+                  <th class="py-3 px-4 text-center">Fichas</th>
+                  <th class="py-3 px-4 text-center">Status</th>
+                  <th class="py-3 px-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -561,21 +573,24 @@
                   <tr class="border-b border-zinc-850 hover:bg-zinc-800/20 transition-colors">
                     <td class="py-3 px-4">
                       <div class="flex items-center gap-3">
-                        <img :src="u.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.full_name || '?') + '&background=27272a&color=a1a1aa&size=32')" class="w-8 h-8 rounded-full border border-zinc-700 flex-shrink-0">
-                        <span class="font-bold text-white text-sm" x-text="u.full_name || 'Sem nome'"></span>
+                        <img :src="u.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.full_name || '?') + '&background=27272a&color=a1a1aa&size=32')" class="w-8 h-8 rounded-full border border-zinc-700 flex-shrink-0" :class="u.is_banned ? 'opacity-30 grayscale' : ''">
+                        <span class="font-bold text-sm" :class="u.is_banned ? 'text-zinc-600 line-through' : 'text-white'" x-text="u.full_name || 'Sem nome'"></span>
                       </div>
                     </td>
                     <td class="py-3 px-4 text-zinc-400 text-[11px]" x-text="u.email"></td>
                     <td class="py-3 px-4 text-center">
-                      <span class="text-white font-black" x-text="u._gruposCount || 0"></span>
+                      <span class="text-white font-black" x-text="u._gruposCount || 0"></span><span class="text-zinc-500 text-[10px]" x-text="' / ' + (u.max_grupos || 1)"></span>
                     </td>
                     <td class="py-3 px-4 text-center">
-                      <span class="text-white font-black" x-text="u._palpitesCount || 0"></span>
+                      <span class="font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20" x-text="u.fichas_desafio || 0"></span>
                     </td>
                     <td class="py-3 px-4 text-center">
-                      <input type="number" :value="u.max_grupos || 1" @change="atualizarLimiteUsuarioManual(u.id, $event.target.value)" class="bg-zinc-950 border border-zinc-800 rounded-lg w-16 text-center text-[11px] text-white py-1 font-black focus:border-purple-500 outline-none">
+                      <span x-show="u.is_banned" class="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 uppercase">Banido</span>
+                      <span x-show="!u.is_banned" class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">Ativo</span>
                     </td>
-                    <td class="py-3 px-4 text-zinc-500 text-[10px]" x-text="new Date(u.created_at).toLocaleDateString('pt-BR') + ' ' + new Date(u.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })"></td>
+                    <td class="py-3 px-4 text-right">
+                      <button @click="abrirRaioXUsuario(u)" class="text-[10px] font-bold text-purple-400 hover:text-purple-300 uppercase tracking-wider bg-purple-500/10 hover:bg-purple-500/20 px-3 py-1.5 rounded-lg border border-purple-500/20 transition-all">Raio-X 👁️</button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -583,8 +598,125 @@
           </div>
 
           <!-- Resumo -->
-          <div class="text-[10px] text-zinc-500 font-medium">
-            Total de registros: <strong class="text-zinc-300" x-text="usuariosFiltrados().length"></strong>
+          <div class="text-[10px] text-zinc-500 font-medium flex justify-between">
+            <span>Total de registros: <strong class="text-zinc-300" x-text="usuariosFiltrados().length"></strong></span>
+          </div>
+        </div>
+
+        <!-- ABA: RAIO-X DO USUÁRIO (Dossiê Detalhado) -->
+        <div x-show="abaAtiva === 'usuario-detalhe' && usuarioSelecionado" class="space-y-6" x-cloak>
+          <div class="flex items-center gap-4 mb-2">
+            <button @click="abaAtiva = 'usuarios'" class="w-9 h-9 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center justify-center text-sm transition-all active:scale-95">←</button>
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-3">
+                <span x-text="usuarioSelecionado?.full_name || 'Jogador'"></span>
+                <span x-show="usuarioSelecionado?.is_banned" class="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">CONTA BANIDA</span>
+              </h2>
+              <p class="text-[10px] text-zinc-500 font-mono" x-text="usuarioSelecionado?.email"></p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- CARD 1: Informações Básicas e Limites -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg">
+              <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2"><span>📊</span> Dados da Conta</h3>
+              
+              <div class="space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b border-zinc-800/60">
+                  <span class="text-[11px] text-zinc-500 font-medium">Data de Registro</span>
+                  <span class="text-xs font-bold text-white" x-text="usuarioSelecionado ? new Date(usuarioSelecionado.created_at).toLocaleDateString('pt-BR') : ''"></span>
+                </div>
+                
+                <div class="flex justify-between items-center pb-2 border-b border-zinc-800/60">
+                  <span class="text-[11px] text-zinc-500 font-medium">Total de Palpites</span>
+                  <span class="text-xs font-bold text-white" x-text="usuarioSelecionado?._palpitesCount || 0"></span>
+                </div>
+
+                <div class="pt-2">
+                  <label class="text-[11px] text-zinc-500 font-medium block mb-2">Limite de Criação de Grupos</label>
+                  <div class="flex gap-2">
+                    <input type="number" :value="usuarioSelecionado?.max_grupos || 1" id="inputLimiteUser" class="bg-zinc-950 border border-zinc-800 rounded-lg w-full text-center text-sm text-white py-2 font-black focus:border-purple-500 outline-none">
+                    <button @click="atualizarLimiteUsuarioManual(usuarioSelecionado.id, document.getElementById('inputLimiteUser').value)" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 rounded-lg text-xs uppercase transition-all">Salvar</button>
+                  </div>
+                  <p class="text-[9px] text-zinc-600 mt-1">Aumente para dar passe VIP ao jogador sem cobrar.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 2: Fichas do Mago -->
+            <div class="bg-zinc-900 border border-amber-500/20 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+              <div class="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-amber-500 mb-4 flex items-center gap-2 relative z-10"><span>🪙</span> Fichas do Mago</h3>
+              
+              <div class="flex items-center gap-4 mb-6 relative z-10">
+                <div class="text-4xl font-black text-amber-400 drop-shadow-md" x-text="usuarioSelecionado?.fichas_desafio || 0"></div>
+                <span class="text-[10px] text-amber-500/70 uppercase font-bold tracking-widest leading-tight">Fichas<br>Disponíveis</span>
+              </div>
+
+              <div class="space-y-3 relative z-10">
+                <div class="flex gap-2">
+                  <input type="number" id="inputFichasInjetar" placeholder="Qtd" class="bg-zinc-950 border border-amber-500/30 rounded-lg w-20 text-center text-sm text-white py-2 font-black focus:border-amber-500 outline-none placeholder-zinc-700">
+                  <button @click="injetarFichas(usuarioSelecionado.id, document.getElementById('inputFichasInjetar').value)" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 rounded-lg text-[10px] uppercase transition-all shadow-lg shadow-amber-900/20">Injetar Fichas</button>
+                </div>
+                <button @click="zerarFichas(usuarioSelecionado.id)" class="w-full bg-zinc-950 border border-red-500/20 hover:bg-red-500/10 text-red-400 font-bold py-2 rounded-lg text-[10px] uppercase transition-all">Zerar Saldo</button>
+              </div>
+            </div>
+
+            <!-- CARD 3: Tribunal (Banimento) -->
+            <div class="bg-zinc-900 border border-red-500/20 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+              <div class="absolute -left-8 -bottom-8 w-32 h-32 bg-red-500/5 rounded-full blur-2xl pointer-events-none"></div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-red-500 mb-4 flex items-center gap-2 relative z-10"><span>⚖️</span> Tribunal do Mago</h3>
+              
+              <p class="text-[10px] text-zinc-400 leading-relaxed mb-6 relative z-10">
+                Bloqueia o acesso completo do usuário ao sistema. Ele não poderá fazer login nem interagir com os grupos.
+              </p>
+
+              <div class="mt-auto relative z-10">
+                <button x-show="!usuarioSelecionado?.is_banned" @click="alternarBanimento(usuarioSelecionado.id, true)" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-900/30 flex justify-center items-center gap-2">
+                  <span>🔨</span> Banir Conta
+                </button>
+                <button x-show="usuarioSelecionado?.is_banned" @click="alternarBanimento(usuarioSelecionado.id, false)" class="w-full bg-zinc-800 hover:bg-zinc-700 text-emerald-400 font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all border border-emerald-500/30 flex justify-center items-center gap-2">
+                  <span>🔓</span> Revogar Banimento
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- LISTA DE GRUPOS DO JOGADOR (Expulsão Cirúrgica) -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg">
+            <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4">Grupos Ativos do Jogador</h3>
+            
+            <div x-show="!usuarioSelecionado?._gruposLista || usuarioSelecionado._gruposLista.length === 0" class="py-6 text-center border border-dashed border-zinc-800 rounded-xl">
+              <span class="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">O jogador não participa de nenhum grupo.</span>
+            </div>
+
+            <div x-show="usuarioSelecionado?._gruposLista?.length > 0" class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-zinc-800 text-[10px] text-zinc-500 font-bold uppercase">
+                    <th class="py-2 px-3">Nome do Grupo</th>
+                    <th class="py-2 px-3">Cargo</th>
+                    <th class="py-2 px-3 text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="g in usuarioSelecionado?._gruposLista" :key="g.group_id">
+                    <tr class="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                      <td class="py-3 px-3 font-bold text-white text-sm" x-text="g.groups?.name"></td>
+                      <td class="py-3 px-3">
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase" :class="g.role === 'owner' ? 'bg-amber-500/10 text-amber-400' : 'bg-zinc-800 text-zinc-400'" x-text="g.role === 'owner' ? 'Admin' : 'Membro'"></span>
+                      </td>
+                      <td class="py-3 px-3 text-right">
+                        <button x-show="g.role !== 'owner'" @click="expulsarCirurgico(usuarioSelecionado.id, g.group_id, g.groups?.name)" class="text-[10px] font-bold text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded border border-red-500/20 uppercase transition-colors">Expulsar</button>
+                        <span x-show="g.role === 'owner'" class="text-[9px] text-zinc-600 font-bold uppercase">Inexpulsável</span>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
