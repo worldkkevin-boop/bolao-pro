@@ -994,6 +994,94 @@ function validarLiquidez(distribuicao) {
     detalhes: distribuicao };
 }
 
+// ============================================================
+// TESTE DE FOGO — Backtest do Oráculo com Amistosos Pré-Copa
+// Uso: abra o console (F12) na página do GM e chame testarOraculoAmistosos()
+// ============================================================
+async function testarOraculoAmistosos() {
+  const KEY = '47ca2bb05eb5931347aca04964818eb5';
+  const HOST = 'v3.football.api-sports.io';
+  const headers = { 'x-rapidapi-key': KEY, 'x-rapidapi-host': HOST };
+  const hoje = new Date().toISOString().split('T')[0];
+  const amanha = new Date(Date.now() + 864e5).toISOString().split('T')[0];
+
+  console.group('🧪 [Backtest Oráculo] Amistosos Pré-Copa');
+  console.log('Datas pesquisadas:', hoje, amanha);
+
+  const [r1, r2] = await Promise.all([
+    fetch(`https://${HOST}/fixtures?date=${hoje}`, { headers }).then(r => r.json()),
+    fetch(`https://${HOST}/fixtures?date=${amanha}`, { headers }).then(r => r.json())
+  ]);
+
+  const todos = [...(r1.response || []), ...(r2.response || [])];
+  // Amistosos internacionais: nome contém "friend" ou league_id 10 (Clubs Friendly) / 325 (Friendlies)
+  const amistosos = todos.filter(f =>
+    f.league.name.toLowerCase().includes('friend') || [10, 325].includes(f.league.id)
+  );
+
+  console.log(`Total fixtures: ${todos.length} | Amistosos filtrados: ${amistosos.length}`);
+
+  if (amistosos.length === 0) {
+    console.warn('Nenhum amistoso encontrado nas datas. Exibindo top-5 de hoje para inspeção manual:');
+    console.table(todos.slice(0, 5).map(f => ({
+      fixture_id: f.fixture.id,
+      liga: f.league.name,
+      home: f.teams.home.name,
+      away: f.teams.away.name,
+      status: f.fixture.status.short
+    })));
+    console.groupEnd();
+    return todos;
+  }
+
+  console.table(amistosos.map(f => ({
+    fixture_id: f.fixture.id,
+    liga: f.league.name,
+    home: f.teams.home.name,
+    away: f.teams.away.name,
+    data: new Date(f.fixture.date).toLocaleString('pt-BR'),
+    status: f.fixture.status.short
+  })));
+
+  const fId = amistosos[0].fixture.id;
+  console.log(`\n🎯 Analisando fixture_id ${fId}: ${amistosos[0].teams.home.name} vs ${amistosos[0].teams.away.name}`);
+
+  // Chama /predictions e /odds em paralelo
+  const [predRes, oddsRes] = await Promise.all([
+    fetch(`https://${HOST}/predictions?fixture=${fId}`, { headers }).then(r => r.json()),
+    fetch(`https://${HOST}/odds?fixture=${fId}`, { headers }).then(r => r.json())
+  ]);
+
+  // Predictions
+  if (predRes.response?.length > 0) {
+    const p = predRes.response[0];
+    console.group('📊 /predictions');
+    console.log('Advice:', p.predictions.advice);
+    console.log('Vencedor previsto:', p.predictions.winner?.name || 'Empate');
+    console.log('Probabilidades:', p.predictions.percent);
+    console.log('Gols esperados:', p.predictions.goals);
+    console.groupEnd();
+  } else {
+    console.warn('/predictions vazio ou sem suporte para este fixture:', predRes.errors);
+  }
+
+  // Odds (plano free pode não incluir)
+  if (oddsRes.response?.length > 0) {
+    const bm = oddsRes.response[0].bookmakers?.[0];
+    const mw = bm?.bets?.find(b => b.name === 'Match Winner');
+    console.group(`💰 /odds — ${bm?.name || 'Casa 1'} (Match Winner)`);
+    (mw?.values || []).forEach(v => console.log(`  ${v.value}: ${v.odd}`));
+    console.groupEnd();
+  } else {
+    console.warn('/odds vazio — plano Free não inclui odds:', oddsRes.errors);
+  }
+
+  console.log('\n✅ Backtest concluído. Copie o fixture_id acima e cole no campo do Oráculo para análise completa.');
+  console.groupEnd();
+
+  return { fId, amistosos, predictions: predRes.response?.[0], odds: oddsRes.response?.[0] };
+}
+
 // terminalApp() removido — funcionalidades integradas no gm.html
 // (mantido como stub para não quebrar cache de navegador)
 function terminalApp() {
