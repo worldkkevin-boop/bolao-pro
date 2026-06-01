@@ -788,10 +788,22 @@ function adminApp() {
         const container = document.getElementById('api-widget-container');
         if (container) {
           if (fixtureId) {
-            container.innerHTML = `<api-sports-widget data-key="47ca2bb05eb5931347aca04964818eb5" data-type="game" data-game-id="${fixtureId}" data-game-tab="events"></api-sports-widget>`;
-            if (window.APISportsWidget && typeof window.APISportsWidget.init === 'function') {
-              window.APISportsWidget.init();
-            }
+            const widgetHtml = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <script type="module" src="https://widgets.api-sports.io/2.0.0/widget.js"></script>
+                <style>body { margin: 0; background-color: #09090b; overflow: hidden; font-family: sans-serif; }</style>
+              </head>
+              <body>
+                <api-sports-widget data-key="47ca2bb05eb5931347aca04964818eb5" data-type="game" data-game-id="${fixtureId}" data-refresh="true"></api-sports-widget>
+              </body>
+              </html>
+            `;
+            const blob = new Blob([widgetHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            container.innerHTML = `<iframe src="${url}" style="width:100%; height:350px; border:none; overflow:hidden;"></iframe>`;
           } else {
             container.innerHTML = '';
           }
