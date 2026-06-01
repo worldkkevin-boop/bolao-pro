@@ -608,18 +608,23 @@ async function buscarDesafioAtivoHome() {
 
       const votosMap = new Set((meusVotos || []).map(v => v.desafio_id));
 
+      let homeDesafiosHtml = '';
       desafiosAtivosGrupo.forEach(desafio => {
         const jaVotou = votosMap.has(desafio.id);
-        const descTexto = jaVotou 
-          ? `${desafio.match_name} - Seu palpite foi registrado!` 
-          : `${desafio.match_name} - Participe e ganhe +${desafio.points} pts!`;
-        
+        const descTexto = jaVotou
+          ? `${desafio.match_name} — palpite registrado!`
+          : `${desafio.match_name} — +${desafio.points} pts`;
+
         const badgeTexto = jaVotou ? 'Ver' : 'Palpitar';
-        const badgeClass = jaVotou 
-          ? 'text-purple-400 text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20' 
+        const badgeClass = jaVotou
+          ? 'text-purple-400 text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20'
           : 'text-purple-400 text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20 animate-pulse';
 
-        const cardHtml = `
+        const custoBadge = (desafio.custo_fichas > 0 && !jaVotou)
+          ? `<span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full flex-shrink-0">🎫 ${desafio.custo_fichas}</span>`
+          : '';
+
+        homeDesafiosHtml += `
           <div onclick="if (typeof abrirTelaPalpite === 'function') abrirTelaPalpite(${desafio.fixture_id})" class="bg-gradient-to-r from-purple-650/40 via-purple-650/5 to-transparent p-5 rounded-2xl border border-purple-500/30 transition-all hover:border-purple-500/50 cursor-pointer flex items-center justify-between shadow-[0_0_20px_rgba(139,92,246,0.08)] active:scale-[0.98]">
             <div class="flex items-center gap-3 min-w-0">
               <div class="relative flex h-2.5 w-2.5 flex-shrink-0">
@@ -630,14 +635,14 @@ async function buscarDesafioAtivoHome() {
                 <h3 class="font-black text-[13px] text-white flex items-center gap-1.5 uppercase tracking-wide truncate">
                   <span>🏆</span> DESAFIO DO GM NO AR!
                 </h3>
-                <p class="text-[10px] text-zinc-300 mt-0.5 truncate">${descTexto}</p>
+                <p class="text-[10px] text-zinc-300 mt-0.5 truncate flex items-center gap-1.5">${descTexto} ${custoBadge}</p>
               </div>
             </div>
             <span class="${badgeClass} flex-shrink-0 ml-3">${badgeTexto}</span>
           </div>
         `;
-        container.innerHTML += cardHtml;
       });
+      container.innerHTML = homeDesafiosHtml;
 
       container.classList.remove('hidden');
     } else {

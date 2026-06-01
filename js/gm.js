@@ -117,29 +117,34 @@ async function carregarGMView() {
         return;
       }
 
-      listaDesafios.innerHTML = '';
+      let gmListHtml = '';
       desafios.forEach(d => {
         const statusClass = d.status === 'active' ? 'bg-brand-green/20 text-brand-green border-brand-green/30' : 'bg-zinc-800 text-zinc-500 border-zinc-700';
         const labelStatus = d.status === 'active' ? 'Ativo' : 'Resolvido';
+        const custoBadge = d.custo_fichas > 0
+          ? `<span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">🎫 ${d.custo_fichas}</span>`
+          : '';
 
-        listaDesafios.innerHTML += `
+        gmListHtml += `
           <div class="bg-card-bg border border-white/5 rounded-2xl p-4 mb-3">
             <div class="flex justify-between items-start mb-2">
-              <div>
-                <h4 class="font-black text-[14px] text-white">${d.match_name}</h4>
-                <p class="text-[12px] text-text-muted mt-0.5">Regra: <strong>${traduzirRegraDesafio(d.event_type)}</strong> (+${d.points} pts)</p>
+              <div class="min-w-0 flex-1">
+                <h4 class="font-black text-[14px] text-white truncate">${d.match_name}</h4>
+                <p class="text-[12px] text-text-muted mt-0.5 flex items-center gap-2">
+                  Regra: <strong>${traduzirRegraDesafio(d.event_type)}</strong> · +${d.points} pts ${custoBadge}
+                </p>
               </div>
-              <span class="text-[9px] font-black px-2 py-0.5 rounded-full border ${statusClass}">${labelStatus}</span>
+              <span class="text-[9px] font-black px-2 py-0.5 rounded-full border ${statusClass} ml-2 flex-shrink-0">${labelStatus}</span>
             </div>
             <p class="text-[11px] text-text-muted">Opções: <span class="text-white">${d.players.join(', ')}</span></p>
-            
+
             <div class="flex gap-2 mt-4">
               ${d.status === 'active' ? `
                 <button onclick="resolverDesafioReal('${d.id}', ${d.fixture_id}, '${d.event_type}', ${JSON.stringify(d.players).replace(/"/g, '&quot;')})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
                   Resolver com API
                 </button>
                 <button onclick="compartilharDesafioGM('${d.match_name.replace(/'/g, "\\'")}', '${d.event_type}', ${d.points}, ${JSON.stringify(d.players).replace(/"/g, '&quot;')}, ${d.fixture_id})" class="px-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-1">
-                  📲 Compartilhar
+                  📲
                 </button>
               ` : ''}
               <button onclick="excluirDesafioReal('${d.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wide transition-all active:scale-95">
@@ -149,6 +154,7 @@ async function carregarGMView() {
           </div>
         `;
       });
+      listaDesafios.innerHTML = gmListHtml;
     } catch (e) {
       console.error(e);
       listaDesafios.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro no processamento.</p>';
@@ -162,12 +168,14 @@ async function criarDesafioReal() {
   const selectEvento = document.getElementById('select-gm-evento');
   const inputPontos = document.getElementById('input-gm-pontos');
   const checkboxPenalty = document.getElementById('checkbox-gm-penalty');
-  
+  const inputFichas = document.getElementById('input-gm-fichas');
+
   if (!selectJogo || !selectEvento || !inputPontos) return;
 
   const fixtureId = parseInt(selectJogo.value);
   let eventType = selectEvento.value;
   const points = parseInt(inputPontos.value) || 50;
+  const custoFichas = parseInt(inputFichas?.value) || 0;
   const hasPenalty = checkboxPenalty ? checkboxPenalty.checked : false;
 
   if (!fixtureId) { showToast('Selecione uma partida!', 'error'); return; }
@@ -204,6 +212,7 @@ async function criarDesafioReal() {
         match_name: matchName,
         event_type: eventType,
         points: points,
+        custo_fichas: custoFichas,
         players: players,
         status: 'active'
       }]);

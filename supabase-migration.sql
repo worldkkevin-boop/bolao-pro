@@ -21,3 +21,18 @@ ALTER TABLE groups ADD COLUMN IF NOT EXISTS regra_zebra_dinamica boolean DEFAULT
 -- 3. Adicionando o limite de grupos por usuário na tabela profiles
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS max_grupos integer DEFAULT 1; -- Limite padrão de grupos que um jogador pode criar
 
+-- ======================================================================
+-- MIGRAÇÃO: SISTEMA DE FICHAS + FLAGS DE MONETIZAÇÃO (Fase 2)
+-- ======================================================================
+-- Cole abaixo no SQL Editor e clique em Run
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS fichas_desafio INT DEFAULT 3,   -- Saldo de fichas do jogador (padrão: 3 fichas grátis)
+  ADD COLUMN IF NOT EXISTS is_gm BOOLEAN DEFAULT false;    -- Flag de Game Master global
+
+ALTER TABLE groups
+  ADD COLUMN IF NOT EXISTS desafios_ativados BOOLEAN DEFAULT false; -- Liga/desliga desafios no grupo
+
+ALTER TABLE desafios
+  ADD COLUMN IF NOT EXISTS custo_fichas INT DEFAULT 0;     -- Custo em fichas para participar do desafio
+
