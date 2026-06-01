@@ -620,8 +620,8 @@ function adminApp() {
 
       const startTime = Date.now();
       try {
-        // Busca nas 3 ligas: Brasileirão (71), Libertadores (13), Copa do Mundo (1)
-        const ligas = [71, 13, 1];
+        // Busca nas ligas: Copa do Mundo (1), Brasileirão (71), Libertadores (13), Nordeste (325), Amistosos (10)
+        const ligas = [1, 71, 13, 325, 10];
         const hoje = new Date();
         const from = hoje.toISOString().split('T')[0];
         const ate = new Date(hoje.getTime() + 15 * 24 * 3600 * 1000).toISOString().split('T')[0];
@@ -629,7 +629,7 @@ function adminApp() {
         let todosJogos = [];
 
         for (const liga of ligas) {
-          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2025&from=${from}&to=${ate}`, {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026&from=${from}&to=${ate}`, {
             headers: {
               'x-rapidapi-host': 'v3.football.api-sports.io',
               'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
@@ -1015,8 +1015,10 @@ async function testarOraculoAmistosos() {
 
   const todos = [...(r1.response || []), ...(r2.response || [])];
   // Amistosos internacionais: nome contém "friend" ou league_id 10 (Clubs Friendly) / 325 (Friendlies)
+  // Exclui cancelados (CANC) e adiados (PST)
   const amistosos = todos.filter(f =>
-    f.league.name.toLowerCase().includes('friend') || [10, 325].includes(f.league.id)
+    (f.league.name.toLowerCase().includes('friend') || [10, 325].includes(f.league.id)) &&
+    !['CANC', 'PST', 'ABD', 'WD'].includes(f.fixture.status.short)
   );
 
   console.log(`Total fixtures: ${todos.length} | Amistosos filtrados: ${amistosos.length}`);
