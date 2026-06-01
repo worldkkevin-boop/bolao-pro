@@ -127,7 +127,7 @@
   <div x-show="!loading && usuario && acessoAutorizado && pinDesbloqueado" class="flex-1 flex overflow-hidden relative z-10" x-cloak>
     
     <!-- Sidebar fixa à esquerda -->
-    <aside class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between flex-shrink-0">
+    <aside class="w-64 bg-[#0a0a0a]/60 backdrop-blur-2xl border-r border-zinc-800/60 flex flex-col justify-between flex-shrink-0 z-20">
       <!-- Logo Area -->
       <div class="h-20 flex items-center px-6 border-b border-zinc-800/50">
         <div class="flex items-center gap-3">
@@ -143,6 +143,13 @@
 
       <div class="p-6">
         <nav class="space-y-1">
+          <!-- DASHBOARD -->
+          <button @click="abaAtiva = 'dashboard'" :class="abaAtiva === 'dashboard' ? 'bg-zinc-800/80 text-white font-bold border border-zinc-700 shadow-lg shadow-black/50' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">📊</span> Home (Dashboard)
+          </button>
+
+          <div class="h-px bg-zinc-800/50 my-4"></div>
+
           <!-- DEP 1: Dossiê -->
           <button @click="abaAtiva = 'usuarios'; carregarUsuarios()" :class="abaAtiva === 'usuarios' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20 shadow-lg shadow-purple-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
             <span class="text-lg">👤</span> Dossiê de Jogadores
@@ -183,7 +190,7 @@
       </div>
 
       <!-- Rodapé da Sidebar (Usuário Logado) -->
-      <div class="p-4 border-t border-zinc-800 bg-zinc-950/40 flex items-center justify-between">
+      <div class="p-4 border-t border-zinc-800/50 bg-black/40 flex items-center justify-between backdrop-blur-md">
         <div class="flex items-center gap-2 min-w-0">
           <img :src="usuario ? (usuario.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=Mago&background=8b5cf6&color=fff') : ''" class="w-8 h-8 rounded-full border border-purple-500/30 flex-shrink-0">
           <div class="min-w-0">
@@ -195,9 +202,9 @@
     </aside>
 
     <!-- Área de Conteúdo Central -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-zinc-950/90">
+    <main class="flex-1 flex flex-col overflow-hidden bg-transparent relative z-10">
       <!-- Top header -->
-      <header class="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/40">
+      <header class="h-16 border-b border-zinc-800/50 px-8 flex items-center justify-between bg-black/20 backdrop-blur-xl">
         <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria & Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : 'Painel'))))))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
@@ -214,7 +221,7 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             
             <!-- Card: Usuários -->
-            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="glass-panel rounded-2xl p-6 shadow-2xl flex items-center justify-between relative overflow-hidden">
               <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Usuários Ativos</span>
                 <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.usuarios">0</h3>
@@ -226,7 +233,7 @@
             </div>
 
             <!-- Card: Grupos -->
-            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="glass-panel rounded-2xl p-6 shadow-2xl flex items-center justify-between relative overflow-hidden">
               <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Grupos Criados</span>
                 <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.grupos">0</h3>
@@ -238,7 +245,7 @@
             </div>
 
             <!-- Card: Palpites -->
-            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="glass-panel rounded-2xl p-6 shadow-2xl flex items-center justify-between relative overflow-hidden">
               <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Palpites Enviados</span>
                 <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.palpites">0</h3>
@@ -250,7 +257,7 @@
             </div>
 
             <!-- Card: Desafios -->
-            <div class="bg-zinc-900 border border-zinc-850 rounded-2xl p-6 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="glass-panel rounded-2xl p-6 shadow-2xl flex items-center justify-between relative overflow-hidden">
               <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-zinc-500">Desafios do Mago</span>
                 <h3 class="text-3xl font-black mt-1 text-white" x-text="metricas.loading ? '...' : metricas.desafios">0</h3>
