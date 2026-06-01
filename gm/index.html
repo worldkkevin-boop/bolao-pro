@@ -12,15 +12,41 @@
   <meta name="apple-mobile-web-app-title" content="Bolão Pro">
   <!-- Aqui vai o ícone para o iPhone -->
   <link rel="apple-touch-icon" href="/midia/icon-192.png?v=5">
+  
+  <!-- Fonte Premium: Outfit (Inspirada em Terminais Quantitativos) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Alpine.js CDN (Deferred) -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- ApexCharts CDN -->
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    /* Reset e Fonte */
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #050505; /* Preto Abissal - Estilo Prop Firm */
+      color: #e4e4e7;
+    }
+    [x-cloak] { display: none !important; }
+    
+    /* Efeitos Cyberpunk / Glassmorphism */
+    .glass-panel {
+      background: rgba(20, 24, 32, 0.6);
+      backdrop-filter: blur(16px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Scrollbar minimalista */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
     .bg-glow {
       position: absolute; width: 600px; height: 600px;
       background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(9, 9, 11, 0) 70%);
@@ -28,7 +54,7 @@
     }
   </style>
 </head>
-<body class="h-full overflow-hidden flex flex-col relative" x-data="adminApp()" x-init="init()">
+<body class="antialiased min-h-screen flex overflow-hidden" x-data="adminApp()" x-init="init()">
 
   <!-- Background decorative glows -->
   <div class="bg-glow top-[-200px] left-[-200px] pointer-events-none"></div>
@@ -102,15 +128,20 @@
     
     <!-- Sidebar fixa à esquerda -->
     <aside class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between flex-shrink-0">
-      <div class="p-6">
-        <div class="flex items-center gap-3 mb-8">
-          <span class="text-2xl">🔮</span>
-          <div>
-            <h2 class="font-black text-sm uppercase leading-tight tracking-wider">Painel do Mago</h2>
-            <span class="text-[10px] text-purple-400 font-bold tracking-widest uppercase">Modo Desktop</span>
+      <!-- Logo Area -->
+      <div class="h-20 flex items-center px-6 border-b border-zinc-800/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+            GM
+          </div>
+          <div class="flex flex-col">
+            <span class="font-black text-lg tracking-tight text-white leading-tight">GOD MODE</span>
+            <span class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">Sistema Quantitativo</span>
           </div>
         </div>
+      </div>
 
+      <div class="p-6">
         <nav class="space-y-1">
           <!-- DEP 1: Dossiê -->
           <button @click="abaAtiva = 'usuarios'; carregarUsuarios()" :class="abaAtiva === 'usuarios' ? 'bg-purple-600/20 text-white font-bold border border-purple-500/20 shadow-lg shadow-purple-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
