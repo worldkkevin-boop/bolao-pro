@@ -1947,8 +1947,13 @@ function resgatarPremio(nomePote, valor) {
   // Monta a mensagem persuasiva
   const texto = `Fala Mago! 🪄 Fui o campeão da disputa *${nomePote}*!\n\n💰 Meu prêmio: *R$ ${valor.toFixed(2)}*\n🔑 Minha Chave PIX é: *${chavePix}*\n\nAguardando o pix cair na conta pra comemorar! 🍻`;
   
-  // O truque da URL: api.whatsapp sem número fixo abre a lista de contatos do cara para ele escolher o grupo ou o GM!
-  const urlBase = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
+  // No grupo "Amistosos da Copa", a cobrança vai direto pro WhatsApp do GM
+  let urlBase;
+  if (grupoAtual && grupoAtual.name === 'Amistosos da Copa') {
+    urlBase = 'https://api.whatsapp.com/send?phone=5596991767788&text=' + encodeURIComponent(texto);
+  } else {
+    urlBase = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
+  }
   
   // Abre direto (no celular, isso abre o App do WhatsApp na hora sem ser bloqueado por popup)
   window.location.href = urlBase;
