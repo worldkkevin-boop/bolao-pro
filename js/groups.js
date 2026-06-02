@@ -1793,7 +1793,7 @@ async function carregarPoteBanner() {
 
       let botaoGeral = '';
       if (!meuStatus) {
-         botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${poteGeral.chave_pix_gm}')" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
+         botaoGeral = `<button onclick="abrirModalConfirmacaoPote('${poteGeral.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${poteGeral.chave_pix_gm}')" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
       } else if (meuStatus.status_pagamento === 'pendente') {
          if (usarMercadoPago) {
             botaoGeral = `<button onclick="pagarPotePix('${meuStatus.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
@@ -1831,7 +1831,7 @@ async function carregarPoteBanner() {
 
         let botaoHTML = '';
         if (!meuStatus) {
-          botaoHTML = `<button onclick="entrarNoPote('${pote.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${pote.chave_pix_gm}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
+          botaoHTML = `<button onclick="abrirModalConfirmacaoPote('${pote.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${pote.chave_pix_gm}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
         } else if (meuStatus.status_pagamento === 'pendente') {
           if (usarMercadoPago) {
             botaoHTML = `<button onclick="pagarPotePix('${meuStatus.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
@@ -2208,6 +2208,67 @@ async function compartilharListaPoteWhatsApp() {
     console.error("Erro ao gerar/compartilhar lista:", err);
     showToast("Erro ao gerar a lista do WhatsApp.", "error");
   }
+}
+
+function abrirModalConfirmacaoPote(poteId, valor, nomePote, usarMercadoPago, chavePixGm) {
+  // Remove qualquer overlay anterior
+  const overlayAntigo = document.getElementById('pote-confirm-overlay');
+  if (overlayAntigo) overlayAntigo.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pote-confirm-overlay';
+  overlay.className = 'fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] flex items-center justify-center p-4 transition-all duration-300 opacity-0';
+  setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+  overlay.innerHTML = `
+    <div class="bg-card-bg border border-yellow-500/30 rounded-[2rem] w-full max-w-sm shadow-[0_0_50px_rgba(234,179,8,0.15)] overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+      
+      <!-- Cabeçalho do Modal -->
+      <div class="bg-gradient-to-br from-yellow-900/40 to-black p-6 text-center border-b border-white/5 relative">
+        <button onclick="document.getElementById('pote-confirm-overlay').remove()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+        <div class="w-16 h-16 bg-yellow-600/20 rounded-full flex items-center justify-center border border-yellow-500/50 mx-auto mb-3">
+          <span class="text-3xl animate-pulse">🏆</span>
+        </div>
+        <h2 class="text-white font-black text-xl uppercase tracking-widest leading-tight">${nomePote}</h2>
+        <p class="text-brand-green font-bold mt-1 text-sm">Entrada: R$ ${parseFloat(valor).toFixed(2)}</p>
+      </div>
+      
+      <!-- Benefícios / Info -->
+      <div class="p-6">
+        <div class="space-y-4 mb-8">
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-lg flex-shrink-0">✅</span>
+            <p class="text-[13px] text-gray-200">Entre na disputa pelo prêmio acumulado</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-yellow-500 text-lg flex-shrink-0">⚡</span>
+            <p class="text-[13px] text-gray-200">${usarMercadoPago ? 'Liberação automática imediata via PIX MP' : 'Confirmação rápida após envio do comprovante'}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-brand-green text-lg flex-shrink-0">⚽</span>
+            <p class="text-[13px] text-gray-200">Pontue nos palpites do grupo para faturar o pote</p>
+          </div>
+        </div>
+        
+        <!-- Botão Confirmar -->
+        <button onclick="document.getElementById('pote-confirm-overlay').remove(); entrarNoPote('${poteId}', ${valor}, '${nomePote.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${chavePixGm}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black font-black py-4 rounded-xl uppercase tracking-wide transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(234,179,8,0.3)]">
+          ${usarMercadoPago ? 'Confirmar e Pagar com PIX' : 'Confirmar e Ver Chave PIX'}
+        </button>
+        <p class="text-[10px] text-center text-gray-500 mt-3 flex items-center justify-center gap-1">
+          🔒 Transação 100% segura
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    const child = overlay.firstElementChild;
+    if (child) {
+      child.classList.remove('scale-95', 'opacity-0');
+      child.classList.add('scale-100', 'opacity-100');
+    }
+  }, 100);
 }
 
 
