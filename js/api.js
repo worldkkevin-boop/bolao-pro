@@ -14,6 +14,18 @@ async function carregarJogos() {
     const dados = await resposta.json();
     todosOsJogos = dados.response;
 
+    // Filtro específico para o grupo "Amistosos da Copa" (Apenas jogos de 06 a 11 de Junho de 2026)
+    if (grupoAtual && grupoAtual.name === 'Amistosos da Copa' && Array.isArray(todosOsJogos)) {
+      todosOsJogos = todosOsJogos.filter(j => {
+        if (!j.fixture || !j.fixture.date) return false;
+        const dateObj = new Date(j.fixture.date);
+        const ano = dateObj.getUTCFullYear();
+        const mes = dateObj.getUTCMonth(); // Junho é 5 (0-indexed)
+        const dia = dateObj.getUTCDate();
+        return ano === 2026 && mes === 5 && dia >= 6 && dia <= 11;
+      });
+    }
+
     // Busca palpites existentes do usuário para esse grupo
     palpitesUsuario = [];
     distribuicaoPalpitesGrupo = {};
