@@ -58,8 +58,19 @@ function adminApp() {
     gruposLoading: false,
     gruposFiltro: '',
     grupoSelecionado: null,
-    grupoMembros: [],
+    grupoSelecionadoMembros: [],
     grupoMembrosLoading: false,
+
+    // Tesouraria
+    tesourariaLoading: false,
+    transacoesTesouraria: [],
+    
+    transacoesPendentes() {
+      return this.transacoesTesouraria.filter(t => t.status === 'pending');
+    },
+    transacoesHistorico() {
+      return this.transacoesTesouraria.filter(t => t.status !== 'pending').sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    },
 
     // Usuários
     usuariosLista: [],
@@ -750,6 +761,91 @@ function adminApp() {
     },
 
     // ============ FIM: CONTROLE DA MATRIZ ============
+
+    // ============================================================
+    // PROJETO GOD MODE: TESOURARIA & PIX
+    // ============================================================
+
+    async carregarTesouraria() {
+      this.tesourariaLoading = true;
+      const t = Date.now();
+      try {
+        const { data, error } = await sbClient
+          .from('transactions')
+          .select('*, profiles(full_name, email)')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        this.transacoesTesouraria = data || [];
+        this.adicionarLog('Supabase', 'SELECT transactions', 'SUCCESS', Date.now() - t, `${this.transacoesTesouraria.length} registros de PIX carregados`);
+      } catch (err) {
+        showToast("Erro ao carregar os cofres da Tesouraria: " + err.message, "error");
+        this.adicionarLog('Supabase', 'SELECT transactions', 'ERROR', Date.now() - t, err.message);
+      } finally {
+        this.tesourariaLoading = false;
+      }
+    },
+
+    async aprovarTransacaoPix(transacaoId, userId, amount, type) {
+      if (!confirm(`⚠️ Aprovar entrada de PIX no valor de R$ ${parseFloat(amount).toFixed(2)}?`)) return;
+      
+      // O GM decide quantas fichas injetar por esse PIX
+      const inputFichas = prompt(`PIX de R$ ${parseFloat(amount).toFixed(2)} APROVADO!\n\nO jogador solicitou: "${type}".\nQuantas FICHAS DO MAGO você deseja injetar na conta dele agora? (Digite 0 para aprovar sem injetar)`);
+      if (inputFichas === null) return; // Cancelou o prompt
+      
+      const fichas = parseInt(inputFichas);
+      if (isNaN(fichas) || fichas < 0) {
+        showToast("Operação cancelada. Quantidade de fichas inválida.", "error");
+        return;
+      }
+
+      const t = Date.now();
+      try {
+        // 1. Marca transação como aprovada
+        const { error: errTx } = await sbClient.from('transactions')
+          .update({ status: 'approved', updated_at: new Date() })
+          .eq('id', transacaoId);
+        
+        if (errTx) throw errTx;
+
+        // 2. Se houver fichas, injeta na conta do cidadão
+        if (fichas > 0) {
+          const { data: u } = await sbClient.from('profiles').select('fichas_desafio').eq('id', userId).single();
+          const novasFichas = (u?.fichas_desafio || 0) + fichas;
+          await sbClient.from('profiles').update({ fichas_desafio: novasFichas }).eq('id', userId);
+        }
+
+        this.adicionarLog('Supabase', 'APPROVE PIX & INJECT', 'SUCCESS', Date.now() - t, `R$ ${amount} Aprovado. +${fichas} Fichas.`);
+        await this._registrarAuditoria('APPROVE_PIX', 'transactions', transacaoId, { amount, type, injected_fichas: fichas });
+        
+        showToast(fichas > 0 ? `PIX Aprovado e ${fichas} fichas transferidas com sucesso!` : "PIX Aprovado! Nenhuma ficha injetada.", "success");
+        this.carregarTesouraria(); // Recarrega a fila
+      } catch (err) {
+        showToast("Falha catastrófica ao aprovar PIX: " + err.message, "error");
+      }
+    },
+
+    async rejeitarTransacao(transacaoId) {
+      if (!confirm("Tem certeza que deseja RECUSAR e arquivar este PIX? O jogador não receberá as fichas.")) return;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('transactions')
+          .update({ status: 'rejected', updated_at: new Date() })
+          .eq('id', transacaoId);
+        
+        if (error) throw error;
+        
+        this.adicionarLog('Supabase', 'REJECT PIX', 'SUCCESS', Date.now() - t, 'PIX Movido para Rejeitados');
+        await this._registrarAuditoria('REJECT_PIX', 'transactions', transacaoId, {});
+        
+        showToast("PIX Rejeitado e arquivado.", "error");
+        this.carregarTesouraria();
+      } catch (err) {
+        showToast("Erro ao rejeitar PIX: " + err.message, "error");
+      }
+    },
+
+    // ============ FIM: TESOURARIA & PIX ============
 
     // ============ DESAFIOS DO GM ============
 
