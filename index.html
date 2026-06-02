@@ -92,16 +92,40 @@
       border-radius: 16px;
     }
 
-    /* Suporte Premium para iPhone Notch / Safe Area (PWA Standalone) */
-    #screen-app {
-      padding-top: calc(8px + env(safe-area-inset-top)) !important;
-    }
+    /* ====== Suporte Premium para iPhone Notch / Safe Area (PWA Standalone) ====== */
     
+    /* Tela principal: padding-top respeitando o notch/dynamic island */
+    #screen-app {
+      padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    }
+
+    /* Tela de Login: garantir que não corte atrás do notch */
+    #screen-login {
+      padding-top: env(safe-area-inset-top) !important;
+    }
+
+    /* Barra de navegação inferior: respeitar home indicator do iPhone */
+    #bottom-nav,
+    #gm-bottom-nav {
+      padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important;
+    }
+
+    /* Modais fullscreen: padding-top no cabeçalho para não cortar atrás do notch */
     #modal-regras-pontuacao > div:first-child,
     #modal-perguntas-bonus > div:first-child,
     #modal-responder-bonus > div:first-child,
     #modal-historico-pontos > div:first-child {
       padding-top: calc(16px + env(safe-area-inset-top)) !important;
+    }
+    
+    /* Modal Tesouraria: overlay com safe-area */
+    #modal-tesouraria {
+      padding-top: env(safe-area-inset-top) !important;
+    }
+
+    /* Pull-to-refresh: descer abaixo do notch */
+    #pull-to-refresh {
+      top: env(safe-area-inset-top) !important;
     }
   </style>
 </head>
