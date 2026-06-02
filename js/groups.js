@@ -1950,7 +1950,7 @@ function resgatarPremio(nomePote, valor) {
   // No grupo "Amistosos da Copa", a cobrança vai direto pro WhatsApp do GM
   let urlBase;
   if (grupoAtual && grupoAtual.name === 'Amistosos da Copa') {
-    urlBase = 'https://api.whatsapp.com/send?phone=5596991767788&text=' + encodeURIComponent(texto);
+    urlBase = 'https://api.whatsapp.com/send?phone=96991767788&text=' + encodeURIComponent(texto);
   } else {
     urlBase = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
   }
