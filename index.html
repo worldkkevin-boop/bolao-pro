@@ -91,6 +91,18 @@
       object-fit: cover;
       border-radius: 16px;
     }
+
+    /* Suporte Premium para iPhone Notch / Safe Area (PWA Standalone) */
+    #screen-app {
+      padding-top: calc(8px + env(safe-area-inset-top)) !important;
+    }
+    
+    #modal-regras-pontuacao > div:first-child,
+    #modal-perguntas-bonus > div:first-child,
+    #modal-responder-bonus > div:first-child,
+    #modal-historico-pontos > div:first-child {
+      padding-top: calc(16px + env(safe-area-inset-top)) !important;
+    }
   </style>
 </head>
 <body>
