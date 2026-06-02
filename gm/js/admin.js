@@ -777,12 +777,28 @@ function adminApp() {
       try {
         const { data, error } = await sbClient
           .from('transactions')
-          .select('*, profiles(full_name, email)')
+          .select('*')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        this.transacoesTesouraria = data || [];
-        this.adicionarLog('Supabase', 'SELECT transactions', 'SUCCESS', Date.now() - t, `${this.transacoesTesouraria.length} registros de PIX carregados`);
+        
+        let transacoes = data || [];
+        if (transacoes.length > 0) {
+          const userIds = [...new Set(transacoes.map(tx => tx.user_id))];
+          const { data: perfis } = await sbClient.from('profiles').select('id, full_name, email').in('id', userIds);
+          
+          const perfilMap = {};
+          if (perfis) {
+            perfis.forEach(p => perfilMap[p.id] = p);
+          }
+          
+          transacoes.forEach(tx => {
+            tx.profiles = perfilMap[tx.user_id] || { full_name: 'Jogador Desconhecido', email: 'Sem email' };
+          });
+        }
+
+        this.transacoesTesouraria = transacoes;
+        this.adicionarLog('Supabase', 'SELECT transactions (Manual Join)', 'SUCCESS', Date.now() - t, `${this.transacoesTesouraria.length} registros de PIX carregados`);
       } catch (err) {
         showToast("Erro ao carregar os cofres da Tesouraria: " + err.message, "error");
         this.adicionarLog('Supabase', 'SELECT transactions', 'ERROR', Date.now() - t, err.message);
