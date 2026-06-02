@@ -1445,12 +1445,21 @@ function mostrarFormularioNovoPote() {
   const div = document.getElementById('tesouraria-novo-pote-area');
   if(!div) return;
   div.classList.remove('hidden');
+  
+  const isAutoPix = grupoAtual && grupoAtual.name === 'Amistosos da Copa';
+  const pixField = isAutoPix ? 
+    `<input type="hidden" id="novo-pote-pix" value="AUTOMATICO">
+     <div class="text-[10px] text-zinc-400 bg-brand-green/10 border border-brand-green/20 p-2.5 rounded-lg font-bold mb-1">
+       ⚡ <span class="text-brand-green font-black">PIX AUTOMÁTICO ATIVADO!</span> Os pagamentos deste pote serão processados automaticamente via Mercado Pago para este grupo.
+     </div>` :
+    `<input type="text" id="novo-pote-pix" placeholder="Sua Chave PIX" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">`;
+
   div.innerHTML = `
     <p class="text-xs text-white font-bold mb-3 border-b border-white/10 pb-2">Lançar Nova Disputa</p>
     <div class="space-y-3">
       <input type="text" id="novo-pote-nome" placeholder="Nome (Ex: Prêmio do Brasileirão)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
       <input type="number" id="novo-pote-valor" placeholder="Valor da Entrada (R$)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
-      <input type="text" id="novo-pote-pix" placeholder="Sua Chave PIX" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+      ${pixField}
       
       <!-- NOVA OPÇÃO: MARCAR COMO GERAL -->
       <div class="flex items-center gap-2 mt-2 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
@@ -1780,12 +1789,17 @@ async function carregarPoteBanner() {
       const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
       const valorAcumulado = qtdPagantes * parseFloat(poteGeral.valor_entrada);
       const meuStatus = partsPote.find(p => p.user_id === usuarioAtual.id);
+      const usarMercadoPago = (grupoAtual && grupoAtual.name === 'Amistosos da Copa') || (poteGeral.chave_pix_gm === 'AUTOMATICO' || poteGeral.chave_pix_gm === 'MERCADOPAGO');
 
       let botaoGeral = '';
       if (!meuStatus) {
-         botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
+         botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${poteGeral.chave_pix_gm}')" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
       } else if (meuStatus.status_pagamento === 'pendente') {
-         botaoGeral = `<button onclick="pagarPotePix('${meuStatus.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
+         if (usarMercadoPago) {
+            botaoGeral = `<button onclick="pagarPotePix('${meuStatus.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
+         } else {
+            botaoGeral = `<button onclick="verChavePix('${poteGeral.chave_pix_gm}', ${poteGeral.valor_entrada})" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
+         }
       } else {
          botaoGeral = `<div class="bg-brand-green/20 text-brand-green border border-brand-green/50 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase whitespace-nowrap">✅ Confirmado</div>`;
       }
@@ -1813,12 +1827,17 @@ async function carregarPoteBanner() {
         const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
         const valorAcumulado = qtdPagantes * parseFloat(pote.valor_entrada);
         const meuStatus = partsPote.find(p => p.user_id === usuarioAtual.id);
+        const usarMercadoPago = (grupoAtual && grupoAtual.name === 'Amistosos da Copa') || (pote.chave_pix_gm === 'AUTOMATICO' || pote.chave_pix_gm === 'MERCADOPAGO');
 
         let botaoHTML = '';
         if (!meuStatus) {
-          botaoHTML = `<button onclick="entrarNoPote('${pote.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
+          botaoHTML = `<button onclick="entrarNoPote('${pote.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}', ${usarMercadoPago}, '${pote.chave_pix_gm}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
         } else if (meuStatus.status_pagamento === 'pendente') {
-          botaoHTML = `<button onclick="pagarPotePix('${meuStatus.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
+          if (usarMercadoPago) {
+            botaoHTML = `<button onclick="pagarPotePix('${meuStatus.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
+          } else {
+            botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
+          }
         } else {
           botaoHTML = `<div class="w-full bg-brand-green/10 text-brand-green border border-brand-green/30 font-black py-2.5 rounded-xl text-[10px] uppercase text-center">✅ Confirmado</div>`;
         }
@@ -1846,7 +1865,7 @@ async function carregarPoteBanner() {
   }
 }
 
-async function entrarNoPote(poteId, valor, nomePote) {
+async function entrarNoPote(poteId, valor, nomePote, usarMercadoPago = false, chavePixGm = '') {
   showToast("Separando sua vaga...", "success");
  
   // Insere o participante como 'pendente' e seleciona o ID gerado
@@ -1864,8 +1883,21 @@ async function entrarNoPote(poteId, valor, nomePote) {
   // Recarrega o banner para trocar o botão para Pendente
   await carregarPoteBanner();
   
-  // Inicia o fluxo de pagamento PIX dinâmico do Mercado Pago
-  pagarPotePix(data.id, valor, nomePote);
+  if (usarMercadoPago) {
+    // Inicia o fluxo de pagamento PIX dinâmico do Mercado Pago
+    pagarPotePix(data.id, valor, nomePote);
+  } else {
+    // Abre o PIX manual original
+    verChavePix(chavePixGm, valor);
+  }
+}
+
+function verChavePix(chavePix, valor) {
+  alert(`Envie o PIX de R$ ${parseFloat(valor).toFixed(2)} para a chave:\n\n${chavePix}\n\nAperte OK para copiar a chave e envie o comprovante para o Administrador!`);
+  
+  // Copia pro teclado do celular
+  navigator.clipboard.writeText(chavePix);
+  showToast("Chave PIX copiada! Envie o comprovante ao GM.", "success");
 }
  
 async function pagarPotePix(participanteId, valor, nomePote) {
