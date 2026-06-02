@@ -1267,14 +1267,26 @@ function adminApp() {
           eventos.forEach(evt => {
             if (evt.type === 'Goal' && (cleanEventType === 'Goal' || cleanEventType === 'Assist')) {
               players.forEach(p => {
-                if (cleanEventType === 'Goal' && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                if (cleanEventType === 'Goal') {
+                  if (this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                  if (this.nomesCoincidem(evt.team?.name, p)) jogadoresVencedores.push(p);
+                }
                 if (cleanEventType === 'Assist' && this.nomesCoincidem(evt.assist?.name, p)) jogadoresVencedores.push(p);
               });
             } else if (evt.type === 'Card' && cleanEventType.startsWith('Card')) {
               players.forEach(p => {
-                if (cleanEventType === 'CardYellow' && evt.detail?.toLowerCase().includes('yellow') && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
-                if (cleanEventType === 'CardRed' && evt.detail?.toLowerCase().includes('red') && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
-                if (cleanEventType === 'Card' && this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                if (cleanEventType === 'CardYellow' && evt.detail?.toLowerCase().includes('yellow')) {
+                  if (this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                  if (this.nomesCoincidem(evt.team?.name, p)) jogadoresVencedores.push(p);
+                }
+                if (cleanEventType === 'CardRed' && evt.detail?.toLowerCase().includes('red')) {
+                  if (this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                  if (this.nomesCoincidem(evt.team?.name, p)) jogadoresVencedores.push(p);
+                }
+                if (cleanEventType === 'Card') {
+                  if (this.nomesCoincidem(evt.player?.name, p)) jogadoresVencedores.push(p);
+                  if (this.nomesCoincidem(evt.team?.name, p)) jogadoresVencedores.push(p);
+                }
               });
             }
           });
