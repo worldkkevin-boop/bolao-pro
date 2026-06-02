@@ -1245,44 +1245,64 @@
             </div>
           </div>
 
-          <!-- Templates Rápidos -->
+          <!-- CONSTRUTOR DE PROPS (Desafios Quantitativos) -->
           <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 shadow-lg">
             <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
-              <span class="text-amber-400">📌</span> Módulo de Criação Rápida
+              <span class="text-amber-400">📊</span> Construtor de Props (Desafio)
             </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <button 
-                @click="novoDesafio.event_type = 'Goal'; novoDesafio.points = 5; novoDesafio.hasPenalty = false" 
-                :class="novoDesafio.event_type === 'Goal' && !novoDesafio.hasPenalty ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 shadow-lg shadow-amber-500/5' : 'border-zinc-800 text-zinc-500 bg-zinc-950 hover:border-zinc-700 hover:text-zinc-300'" 
-                class="border rounded-xl p-3 text-center transition-all active:scale-95"
-              >
-                <span class="text-xl block mb-1">⚽</span>
-                <span class="text-[10px] font-black uppercase tracking-wider">Quem marca Gol</span>
-              </button>
-              <button 
-                @click="novoDesafio.event_type = 'Goal_penalty'; novoDesafio.points = 8; novoDesafio.hasPenalty = true" 
-                :class="novoDesafio.event_type === 'Goal_penalty' ? 'border-red-500/50 bg-red-500/10 text-red-300 shadow-lg shadow-red-500/5' : 'border-zinc-800 text-zinc-500 bg-zinc-950 hover:border-zinc-700 hover:text-zinc-300'" 
-                class="border rounded-xl p-3 text-center transition-all active:scale-95"
-              >
-                <span class="text-xl block mb-1">⚽⚠️</span>
-                <span class="text-[10px] font-black uppercase tracking-wider">Gol (com pen.)</span>
-              </button>
-              <button 
-                @click="novoDesafio.event_type = 'Card'; novoDesafio.points = 3; novoDesafio.hasPenalty = false" 
-                :class="novoDesafio.event_type === 'Card' && !novoDesafio.hasPenalty ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-lg shadow-yellow-500/5' : 'border-zinc-800 text-zinc-500 bg-zinc-950 hover:border-zinc-700 hover:text-zinc-300'" 
-                class="border rounded-xl p-3 text-center transition-all active:scale-95"
-              >
-                <span class="text-xl block mb-1">🟨</span>
-                <span class="text-[10px] font-black uppercase tracking-wider">Cartão Amarelo</span>
-              </button>
-              <button 
-                @click="novoDesafio.event_type = 'Card_penalty'; novoDesafio.points = 6; novoDesafio.hasPenalty = true" 
-                :class="novoDesafio.event_type === 'Card_penalty' ? 'border-orange-500/50 bg-orange-500/10 text-orange-300 shadow-lg shadow-orange-500/5' : 'border-zinc-800 text-zinc-500 bg-zinc-950 hover:border-zinc-700 hover:text-zinc-300'" 
-                class="border rounded-xl p-3 text-center transition-all active:scale-95"
-              >
-                <span class="text-xl block mb-1">🟨⚠️</span>
-                <span class="text-[10px] font-black uppercase tracking-wider">Cartão (com pen.)</span>
-              </button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Categoria / Mercado -->
+              <div>
+                <label class="text-[10px] uppercase text-zinc-500 font-bold block mb-1.5">1. Escolha o Mercado</label>
+                <select x-model="novoDesafio.market_type" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-purple-500 outline-none">
+                  <option value="">Selecione a estatística...</option>
+                  <optgroup label="Estatísticas da Partida">
+                    <option value="total_gols">Total de Gols</option>
+                    <option value="btts">Ambas Marcam (BTTS)</option>
+                    <option value="escanteios">Total de Escanteios</option>
+                    <option value="cartoes">Total de Cartões</option>
+                    <option value="1t_gols">Total de Gols (1º Tempo)</option>
+                    <option value="1t_escanteios">Escanteios (1º Tempo)</option>
+                  </optgroup>
+                  <optgroup label="Estatísticas de Jogador">
+                    <option value="chutes_gol">Chutes no Gol (Jogador)</option>
+                    <option value="chutes">Chutes Totais (Jogador)</option>
+                    <option value="assists">Assistências (Jogador)</option>
+                    <option value="marcador">Marcador de Gol (Qualquer Momento)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <!-- Linha (Prop Line) -->
+              <div>
+                <label class="text-[10px] uppercase text-zinc-500 font-bold block mb-1.5">2. Linha (Ex: 2.5, 0.5)</label>
+                <input type="number" step="0.5" x-model="novoDesafio.prop_line" placeholder="Ex: 8.5" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-700 focus:border-purple-500 outline-none">
+              </div>
+            </div>
+
+            <!-- Jogador Alvo (Mostrar apenas se mercado for de jogador) -->
+            <div x-show="['chutes_gol', 'chutes', 'assists', 'marcador'].includes(novoDesafio.market_type)" class="mt-4" x-cloak>
+              <label class="text-[10px] uppercase text-amber-500 font-bold block mb-1.5">Nome do Jogador Alvo</label>
+              <input type="text" x-model="novoDesafio.target_player_name" placeholder="Ex: Vinicius Junior" class="w-full bg-amber-950/20 border border-amber-500/30 rounded-xl px-4 py-3 text-xs text-white placeholder-amber-900 focus:border-amber-500 outline-none">
+              <p class="text-[9px] text-zinc-500 mt-1">Dica: Use o nome mais conhecido ou cheque a documentação da API-Football depois.</p>
+            </div>
+
+            <!-- Preços e Prêmios -->
+            <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-zinc-800/50">
+              <div>
+                <label class="text-[10px] uppercase text-zinc-500 font-bold block mb-1.5">Custo (Fichas)</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-amber-500 text-lg">🪙</span>
+                  <input type="number" x-model="novoDesafio.custo_fichas" min="1" placeholder="Ex: 1" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-amber-400 font-black focus:border-amber-500 outline-none">
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] uppercase text-emerald-500 font-bold block mb-1.5">Prêmio em PONTOS</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-emerald-500 text-lg">🏆</span>
+                  <input type="number" x-model="novoDesafio.premio_pontos" min="1" placeholder="Ex: 15" class="w-full bg-emerald-950/20 border border-emerald-500/30 rounded-xl px-4 py-3 text-xs text-emerald-400 font-black focus:border-emerald-500 outline-none">
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1961,7 +1981,7 @@
       <p class="text-[10px] text-zinc-500 mb-5">Qual opção foi a <strong class="text-amber-400">vencedora</strong>? Os jogadores corretos receberão <span class="text-amber-400 font-black" x-text="'+' + (desafioParaFinalizar?.pontos || 0) + ' pts'"></span> automaticamente.</p>
 
       <div class="space-y-2">
-        <template x-for="player in (desafioParaFinalizar?.players || [])" :key="player">
+        <template x-for="player in (desafioParaFinalizar?.options || [])" :key="player">
           <button
             @click="confirmarVencedorGM(player)"
             :disabled="desafioFinalizando"

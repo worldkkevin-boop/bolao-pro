@@ -92,7 +92,7 @@ function adminApp() {
     desafiosListaGM: [],
     desafiosLoading: false,
     desafiosAbaFiltro: 'active',
-    novoDesafio: { fixture_id: '', match_name: '', event_type: 'Goal', points: 5, custo_fichas: 5, players: [], status: 'active', hasPenalty: false },
+    novoDesafio: { fixture_id: '', match_name: '', market_type: '', prop_line: 0.5, target_player_name: '', premio_pontos: 15, custo_fichas: 1, event_type: 'Prop', points: 15, status: 'active', hasPenalty: false },
     novoJogadorInput: '',
     desafioLancando: false,
     buscaFixture: '',
@@ -1122,8 +1122,8 @@ function adminApp() {
 
     async lancarDesafioGM() {
       if (this.desafioLancando) return;
-      if (!this.novoDesafio.fixture_id || this.novoDesafio.players.length < 2) {
-        showToast('Selecione uma partida e adicione pelo menos 2 jogadores.', 'error');
+      if (!this.novoDesafio.fixture_id || !this.novoDesafio.market_type) {
+        showToast('Selecione uma partida e um mercado primeiro.', 'error');
         return;
       }
 
@@ -1134,10 +1134,13 @@ function adminApp() {
         const payload = {
           fixture_id: Number(this.novoDesafio.fixture_id),
           match_name: this.novoDesafio.match_name,
-          event_type: this.novoDesafio.event_type,
-          points: this.novoDesafio.points,
-          custo_fichas: this.novoDesafio.custo_fichas || 0,
-          players: this.novoDesafio.players,
+          event_type: 'Prop', // Legacy field fallback
+          market_type: this.novoDesafio.market_type,
+          prop_line: parseFloat(this.novoDesafio.prop_line) || null,
+          target_player_name: this.novoDesafio.target_player_name || null,
+          premio_pontos: parseInt(this.novoDesafio.premio_pontos) || 10,
+          points: parseInt(this.novoDesafio.premio_pontos) || 10, // Legacy fallback
+          custo_fichas: parseInt(this.novoDesafio.custo_fichas) || 1,
           status: 'active'
         };
 
@@ -1148,7 +1151,7 @@ function adminApp() {
         if (error) throw error;
 
         const duration = Date.now() - startTime;
-        this.adicionarLog('Supabase', 'INSERT desafios', 'SUCCESS', duration, `Desafio "${payload.match_name}" lançado`);
+        this.adicionarLog('Supabase', 'INSERT desafios', 'SUCCESS', duration, `Desafio Prop "${payload.market_type}" lançado`);
 
         showToast("Aposta tirada da cartola! Desafio lançado.", "mago");
 
@@ -1165,11 +1168,23 @@ function adminApp() {
     },
 
     selecionarVencedorUI(desafio) {
-      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: false };
+      let options = ['over', 'under'];
+      if (desafio.market_type === 'btts' || desafio.market_type === 'marcador') {
+        options = ['yes', 'no'];
+      } else if (desafio.players && desafio.players.length > 0) {
+        options = desafio.players;
+      }
+      this.desafioParaFinalizar = { id: desafio.id, options: options, pontos: desafio.points || desafio.premio_pontos, fixture_id: desafio.fixture_id, isEdit: false };
     },
 
     editarVencedorUI(desafio) {
-      this.desafioParaFinalizar = { id: desafio.id, players: desafio.players || [], pontos: desafio.points, fixture_id: desafio.fixture_id, isEdit: true };
+      let options = ['over', 'under'];
+      if (desafio.market_type === 'btts' || desafio.market_type === 'marcador') {
+        options = ['yes', 'no'];
+      } else if (desafio.players && desafio.players.length > 0) {
+        options = desafio.players;
+      }
+      this.desafioParaFinalizar = { id: desafio.id, options: options, pontos: desafio.points || desafio.premio_pontos, fixture_id: desafio.fixture_id, isEdit: true };
     },
 
     nomesCoincidem(nome1, nome2) {
