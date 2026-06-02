@@ -1945,11 +1945,12 @@ function resgatarPremio(nomePote, valor) {
   if (!chavePix) return;
 
   // Monta a mensagem persuasiva
-  const texto = `Fala Mago! 🪄 Fui o campeão da disputa *${nomePote}*!\n\n💰 Meu prêmio: *R$ ${valor.toFixed(2)}*\n🔑 Minha Chave PIX é: *${chavePix}*\n\nAguardando o pix cair na conta pra comemorar! 🍻`;
-  
+  let texto = `Fala Mago! 🪄 Fui o campeão da disputa *${nomePote}*!\n\n💰 Meu prêmio: *R$ ${valor.toFixed(2)}*\n🔑 Minha Chave PIX é: *${chavePix}*\n\nAguardando o pix cair na conta pra comemorar! 🍻`;
+
   // No grupo "Amistosos da Copa", a cobrança vai direto pro WhatsApp do GM
   let urlBase;
   if (grupoAtual && grupoAtual.name === 'Amistosos da Copa') {
+    texto += `\n\n👉 https://wa.me/qr/FW3L6WKKFCFHG1`;
     urlBase = 'https://api.whatsapp.com/send?phone=96991767788&text=' + encodeURIComponent(texto);
   } else {
     urlBase = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
