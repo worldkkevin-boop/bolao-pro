@@ -160,6 +160,20 @@ serve(async (req) => {
       }
       console.log(`✅ Fichas do usuário ${targetId} atualizadas: ${prof?.fichas_desafio || 0} → ${novoSaldo}`)
 
+    // ── POTE DE DISPUTA (BOLÃO) ──────────────────────────────────────────────
+    } else if (paymentType === 'pote') {
+      const { error } = await adminClient
+        .from('potes_participantes')
+        .update({ status_pagamento: 'pago' })
+        .eq('id', targetId)
+      if (error) {
+        console.error("Erro ao atualizar participante do pote:", error)
+        return new Response(JSON.stringify({ error: 'Falha ao atualizar participante do pote', details: error }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log(`✅ Participante do pote ${targetId} atualizado para 'pago'`)
+
     } else {
       console.warn(`paymentType desconhecido: ${paymentType}`)
     }

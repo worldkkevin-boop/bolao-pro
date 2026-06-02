@@ -2590,7 +2590,7 @@ function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
   }, 10 * 60 * 1000);
 
   // Polling adaptado por tipo de produto
-  paymentPollInterval = setInterval(async () => {
+   paymentPollInterval = setInterval(async () => {
     try {
       if (produto.tipo === 'grupo') {
         const { data: grp } = await sbClient.from('groups').select('max_participants').eq('id', targetId).single();
@@ -2601,6 +2601,9 @@ function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
       } else if (produto.tipo === 'fichas') {
         const { data: prof } = await sbClient.from('profiles').select('fichas_desafio').eq('id', targetId).maybeSingle();
         if (prof && (prof.fichas_desafio || 0) > fichasAntes) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes); }
+      } else if (produto.tipo === 'pote') {
+        const { data: part } = await sbClient.from('potes_participantes').select('status_pagamento').eq('id', targetId).single();
+        if (part && part.status_pagamento === 'pago') { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, 0); }
       }
     } catch (err) { console.error('Polling error:', err); }
   }, 4000);
@@ -2618,6 +2621,8 @@ function _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes) {
   } else if (produto.tipo === 'fichas' && usuarioAtual) {
     usuarioAtual.fichas = fichasAntes + produto.limite;
     atualizarDisplayFichas();
+  } else if (produto.tipo === 'pote') {
+    if (typeof carregarPoteBanner === 'function') carregarPoteBanner();
   }
 
   const card = overlay.firstElementChild;

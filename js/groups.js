@@ -1783,9 +1783,9 @@ async function carregarPoteBanner() {
 
       let botaoGeral = '';
       if (!meuStatus) {
-         botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', '${poteGeral.chave_pix_gm}', ${poteGeral.valor_entrada})" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
+         botaoGeral = `<button onclick="entrarNoPote('${poteGeral.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 whitespace-nowrap">Entrar (R$ ${poteGeral.valor_entrada.toFixed(2)})</button>`;
       } else if (meuStatus.status_pagamento === 'pendente') {
-         botaoGeral = `<button onclick="verChavePix('${poteGeral.chave_pix_gm}', ${poteGeral.valor_entrada})" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
+         botaoGeral = `<button onclick="pagarPotePix('${meuStatus.id}', ${poteGeral.valor_entrada}, '${poteGeral.nome.replace(/'/g, "\\'")}')" class="bg-orange-600/20 text-orange-500 border border-orange-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase active:scale-95 whitespace-nowrap">⏳ Pendente</button>`;
       } else {
          botaoGeral = `<div class="bg-brand-green/20 text-brand-green border border-brand-green/50 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase whitespace-nowrap">✅ Confirmado</div>`;
       }
@@ -1816,9 +1816,9 @@ async function carregarPoteBanner() {
 
         let botaoHTML = '';
         if (!meuStatus) {
-          botaoHTML = `<button onclick="entrarNoPote('${pote.id}', '${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
+          botaoHTML = `<button onclick="entrarNoPote('${pote.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-2.5 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95">🔥 Entrar (R$ ${pote.valor_entrada.toFixed(2)})</button>`;
         } else if (meuStatus.status_pagamento === 'pendente') {
-          botaoHTML = `<button onclick="verChavePix('${pote.chave_pix_gm}', ${pote.valor_entrada})" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
+          botaoHTML = `<button onclick="pagarPotePix('${meuStatus.id}', ${pote.valor_entrada}, '${pote.nome.replace(/'/g, "\\'")}')" class="w-full bg-orange-600/20 text-orange-500 border border-orange-500 font-black py-2.5 rounded-xl text-[10px] uppercase active:scale-95">⏳ Pendente</button>`;
         } else {
           botaoHTML = `<div class="w-full bg-brand-green/10 text-brand-green border border-brand-green/30 font-black py-2.5 rounded-xl text-[10px] uppercase text-center">✅ Confirmado</div>`;
         }
@@ -1846,32 +1846,61 @@ async function carregarPoteBanner() {
   }
 }
 
-async function entrarNoPote(poteId, chavePixGm, valor) {
+async function entrarNoPote(poteId, valor, nomePote) {
   showToast("Separando sua vaga...", "success");
-
-  // Insere o cara no banco como 'pendente'
-  const { error } = await sbClient.from('potes_participantes').insert([{
+ 
+  // Insere o participante como 'pendente' e seleciona o ID gerado
+  const { data, error } = await sbClient.from('potes_participantes').insert([{
     pote_id: poteId,
     user_id: usuarioAtual.id,
     status_pagamento: 'pendente'
-  }]);
-
+  }]).select('id').single();
+ 
   if (error) {
     showToast("Erro ao entrar. Tente de novo.", "error");
     return;
   }
-
-  // Já recarrega o banner para trocar o botão e abre a chave pra ele pagar
+ 
+  // Recarrega o banner para trocar o botão para Pendente
   await carregarPoteBanner();
-  verChavePix(chavePixGm, valor);
-}
-
-function verChavePix(chavePix, valor) {
-  alert(`Envie o PIX de R$ ${parseFloat(valor).toFixed(2)} para a chave:\n\n${chavePix}\n\nAperte OK para copiar a chave e envie o comprovante para o Administrador!`);
   
-  // Copia pro teclado do celular
-  navigator.clipboard.writeText(chavePix);
-  showToast("Chave PIX copiada! Envie o comprovante ao GM.", "success");
+  // Inicia o fluxo de pagamento PIX dinâmico do Mercado Pago
+  pagarPotePix(data.id, valor, nomePote);
+}
+ 
+async function pagarPotePix(participanteId, valor, nomePote) {
+  const produto = {
+    tipo: 'pote',
+    label: nomePote,
+    subLabel: 'Entrada de Pote Automática',
+    valorFmt: parseFloat(valor).toFixed(2),
+    icon: '🏆',
+    successMsg: `Sua entrada no pote "${nomePote}" foi confirmada!`
+  };
+
+  showToast(`Gerando PIX de R$ ${produto.valorFmt}...`, 'success');
+
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) { showToast('Sessão expirada. Faça login novamente.', 'error'); return; }
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-pix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ paymentType: 'pote', targetId: participanteId, amount: valor, description: `Entrada Pote: ${nomePote}` }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || 'Erro ao gerar pagamento.', 'error');
+      return;
+    }
+
+    _mostrarOverlayPIX(data, produto, participanteId, 0);
+  } catch (err) {
+    console.error('pagarPotePix error:', err);
+    showToast('Erro de conexão ao gerar pagamento.', 'error');
+  }
 }
 
 // ==================== INTEGRAÇÃO WHATSAPP ====================

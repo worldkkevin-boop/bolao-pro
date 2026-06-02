@@ -50,6 +50,34 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}))
 
+    // ── Nova rota: Entradas de Pote (Mercado Pago Automático) ──────────────────
+    if (body.paymentType === 'pote') {
+      const poteParticipanteId = body.targetId
+      const amount = body.amount
+      const description = body.description || 'Entrada de Pote — Bolão Pro'
+      
+      if (!poteParticipanteId || !amount) {
+        return new Response(JSON.stringify({ error: 'targetId e amount são obrigatórios' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Validação: Garante que o participante pertence a este usuário
+      const { data: part, error: partError } = await userClient
+        .from('potes_participantes')
+        .select('id, user_id')
+        .eq('id', poteParticipanteId)
+        .single()
+
+      if (partError || !part || part.user_id !== user.id) {
+        return new Response(JSON.stringify({ error: 'Inscrição no pote inválida ou de outro usuário' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      return await gerarPix(user, amount, description, `pote|${poteParticipanteId}|0`)
+    }
+
     // ── Nova rota: productId + targetId ──────────────────────────────────────
     if (body.productId) {
       const produto = CATALOG[body.productId]
