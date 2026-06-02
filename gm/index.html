@@ -982,11 +982,11 @@
                       <span class="text-[9px] text-zinc-500 font-mono" x-text="new Date(p.created_at).toLocaleTimeString('pt-BR')"></span>
                     </div>
                     <div class="text-[10px] text-zinc-400 font-medium">
-                      Apostou no jogo <span class="text-white font-bold" x-text="p.fixture_id"></span> do grupo <span class="text-indigo-400 font-mono font-bold" x-text="p.groups?.name || 'Desconhecido'"></span>
+                      Apostou no jogo <span class="text-white font-bold" x-text="p.match_id"></span> do grupo <span class="text-indigo-400 font-mono font-bold" x-text="p.groups?.name || 'Desconhecido'"></span>
                     </div>
                     <div class="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg py-1.5 px-3 flex items-center justify-between">
                       <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Aposta</span>
-                      <span class="text-sm font-black text-white font-mono" x-text="`${p.home_score} x ${p.away_score}`"></span>
+                      <span class="text-sm font-black text-white font-mono" x-text="`${p.score_home} x ${p.score_away}`"></span>
                     </div>
                   </div>
                 </template>

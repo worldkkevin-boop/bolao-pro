@@ -864,7 +864,7 @@ function adminApp() {
         // 1. Puxa os últimos 50 palpites (Radar de usuários)
         const { data: palpites, error: errP } = await sbClient
           .from('guesses')
-          .select('id, user_id, fixture_id, group_id, home_score, away_score, created_at, profiles(full_name, avatar_url), groups(name)')
+          .select('id, user_id, match_id, group_id, score_home, score_away, created_at, profiles(full_name, avatar_url), groups(name)')
           .order('created_at', { ascending: false })
           .limit(50);
         
