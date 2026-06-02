@@ -416,7 +416,7 @@ function adminApp() {
 
     async carregarMembrosGrupo(grupoId) {
       this.grupoMembrosLoading = true;
-      this.grupoMembros = [];
+      this.grupoSelecionadoMembros = [];
 
       try {
         const { data: membros, error } = await sbClient
@@ -438,12 +438,11 @@ function adminApp() {
 
         membros.forEach(m => {
           const p = perfisMap[m.user_id];
-          m._nome = p ? p.full_name : 'Sem nome';
-          m._email = p ? p.email : '';
-          m._avatar = p ? p.avatar_url : null;
+          // Formata exatamente como o novo HTML espera: membro.profiles.xxx
+          m.profiles = p ? p : { full_name: 'Sem nome', email: '', avatar_url: null };
         });
 
-        this.grupoMembros = membros;
+        this.grupoSelecionadoMembros = membros;
       } catch (err) {
         console.error('Erro ao carregar membros:', err);
       } finally {
@@ -639,6 +638,118 @@ function adminApp() {
     },
 
     // ============ FIM: DOSSIÊ DE JOGADORES ============
+
+    // ============================================================
+    // PROJETO GOD MODE: CONTROLE DA MATRIZ (Grupos)
+    // ============================================================
+
+    async salvarNomeGrupo(grupoId, novoNome) {
+      if (!novoNome || novoNome.trim() === '') {
+        showToast("O nome não pode ficar vazio.", "error");
+        return;
+      }
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('groups').update({ name: novoNome.trim() }).eq('id', grupoId);
+        if (error) throw error;
+        
+        this.grupoSelecionado.name = novoNome.trim();
+        this.adicionarLog('Supabase', 'UPDATE groups (name)', 'SUCCESS', Date.now() - t, `Nome alterado para: ${novoNome}`);
+        await this._registrarAuditoria('RENAME_GROUP', 'groups', grupoId, { new_name: novoNome });
+        showToast("Nome do grupo atualizado com sucesso!", "success");
+      } catch (err) {
+        showToast("Erro ao renomear: " + err.message, "error");
+      }
+    },
+
+    async atualizarLimiteGrupoManual(grupoId, novoLimiteStr) {
+      const limite = parseInt(novoLimiteStr);
+      if (isNaN(limite) || limite < 1) return;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('groups').update({ max_participants: limite }).eq('id', grupoId);
+        if (error) throw error;
+        
+        this.grupoSelecionado.max_participants = limite;
+        this.adicionarLog('Supabase', 'UPDATE groups (max_participants)', 'SUCCESS', Date.now() - t, `Novo limite: ${limite}`);
+        await this._registrarAuditoria('CHANGE_GROUP_LIMIT', 'groups', grupoId, { new_limit: limite });
+        showToast(`Vagas do grupo expandidas para ${limite}!`, "success");
+      } catch (err) {
+        showToast("Erro ao alterar limite: " + err.message, "error");
+      }
+    },
+
+    async toggleZebraDinamica(grupoId, ativar) {
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('groups').update({ regra_zebra_dinamica: ativar }).eq('id', grupoId);
+        if (error) throw error;
+        
+        this.grupoSelecionado.regra_zebra_dinamica = ativar;
+        this.adicionarLog('Supabase', 'UPDATE groups (zebra)', 'SUCCESS', Date.now() - t, `Zebra ${ativar ? 'ATIVADA' : 'DESATIVADA'}`);
+        await this._registrarAuditoria('TOGGLE_ZEBRA', 'groups', grupoId, { active: ativar });
+        showToast(`Zebra Dinâmica ${ativar ? 'ativada' : 'desativada'}!`, "success");
+      } catch (err) {
+        showToast("Erro ao alterar zebra: " + err.message, "error");
+      }
+    },
+
+    async transferirDono(grupoId, novoDonoId, donoNome) {
+      if (!confirm(`⚠️ Você está prestes a transferir a coroa (Acesso de Dono) do grupo "${this.grupoSelecionado.name}" para o jogador ${donoNome}. O dono antigo perderá seus poderes. Confirma?`)) return;
+      const t = Date.now();
+      try {
+        // 1. Muda o dono na tabela groups
+        const { error: err1 } = await sbClient.from('groups').update({ owner_id: novoDonoId }).eq('id', grupoId);
+        if (err1) throw err1;
+        
+        // 2. Tira o papel de 'owner' do dono antigo
+        await sbClient.from('group_members').update({ role: 'member' }).eq('group_id', grupoId).eq('role', 'owner');
+        
+        // 3. Dá o papel de 'owner' para o novo dono
+        await sbClient.from('group_members').update({ role: 'owner' }).eq('group_id', grupoId).eq('user_id', novoDonoId);
+
+        // Atualiza a interface
+        this.grupoSelecionado.owner_id = novoDonoId;
+        this.grupoSelecionado._donoNome = donoNome;
+        this.grupoSelecionadoMembros.forEach(m => {
+          m.role = m.user_id === novoDonoId ? 'admin' : 'member';
+        });
+
+        this.adicionarLog('Supabase', 'UPDATE groups/members (transfer owner)', 'SUCCESS', Date.now() - t, `Dono transferido para: ${donoNome}`);
+        await this._registrarAuditoria('TRANSFER_GROUP_OWNER', 'groups', grupoId, { new_owner_id: novoDonoId });
+        showToast(`A coroa foi transferida para ${donoNome}!`, "success");
+      } catch (err) {
+        showToast("Erro catastrófico ao transferir dono: " + err.message, "error");
+      }
+    },
+
+    async deletarGrupoNuclear(grupoId, grupoNome) {
+      const confirmText = `DELETAR-${grupoNome.substring(0, 4).toUpperCase()}`;
+      const digito = prompt(`⚠️ ATENÇÃO! EXTERMÍNIO NUCLEAR.\nIsso vai apagar DEFINITIVAMENTE o grupo "${grupoNome}", e arrancar todos os jogadores dele.\n\nPara prosseguir, digite exatamente: ${confirmText}`);
+      
+      if (digito !== confirmText) {
+        showToast("Código nuclear incorreto. Abortando operação.", "error");
+        return;
+      }
+
+      const t = Date.now();
+      try {
+        const { error } = await sbClient.from('groups').delete().eq('id', grupoId);
+        if (error) throw error;
+        
+        // Remove da UI
+        this.gruposLista = this.gruposLista.filter(g => g.id !== grupoId);
+        this.abaAtiva = 'grupos'; // Volta pra tela de grupos
+        
+        this.adicionarLog('Supabase', 'DELETE groups', 'SUCCESS', Date.now() - t, `Grupo ${grupoNome} aniquilado`);
+        await this._registrarAuditoria('NUCLEAR_DELETE_GROUP', 'groups', grupoId, { group_name: grupoNome });
+        showToast(`💥 Grupo ${grupoNome} exterminado da face da terra!`, "success");
+      } catch (err) {
+        showToast("Erro ao tentar aniquilar grupo: " + err.message, "error");
+      }
+    },
+
+    // ============ FIM: CONTROLE DA MATRIZ ============
 
     // ============ DESAFIOS DO GM ============
 
