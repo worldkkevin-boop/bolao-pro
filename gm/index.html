@@ -205,7 +205,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-transparent relative z-10">
       <!-- Top header -->
       <header class="h-16 border-b border-zinc-800/50 px-8 flex items-center justify-between bg-black/20 backdrop-blur-xl">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria & Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : 'Painel'))))))"></h1>
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria e Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : 'Painel'))))))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
         </div>
@@ -833,13 +833,13 @@
           </div>
         </div>
 
-        <!-- =================== DEPARTAMENTO 3: TESOURARIA & PIX =================== -->
+        <!-- =================== DEPARTAMENTO 3: TESOURARIA E PIX =================== -->
         <div x-show="abaAtiva === 'tesouraria'" class="space-y-6" x-cloak>
           
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <h2 class="text-xl font-black text-emerald-400 tracking-tight flex items-center gap-2">
-                <span>💸</span> Tesouraria & PIX
+                <span>💸</span> Tesouraria e PIX
               </h2>
               <p class="text-[11px] text-emerald-500/70 font-bold uppercase tracking-wider mt-1">
                 Controle de fluxo de caixa, aprovação de fichas e histórico financeiro
@@ -930,6 +930,105 @@
                     </div>
                   </template>
                 </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+          </div>
+        </div>
+
+        <!-- =================== DEPARTAMENTO 4: AUDITORIA (O Big Brother) =================== -->
+        <div x-show="abaAtiva === 'auditoria'" class="space-y-6 h-full flex flex-col" x-cloak>
+          
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 flex-shrink-0">
+            <div>
+              <h2 class="text-xl font-black text-purple-400 tracking-tight flex items-center gap-2">
+                <span>👁️</span> Auditoria (O Big Brother)
+              </h2>
+              <p class="text-[11px] text-zinc-500 font-bold uppercase tracking-wider mt-1">
+                Monitoramento global e em tempo real do ecossistema.
+              </p>
+            </div>
+            <button @click="carregarAuditoriaGlobal()" class="bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 border border-purple-500/30 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+              🔄 Varrer Rede
+            </button>
+          </div>
+
+          <!-- Loading -->
+          <div x-show="auditoriaLoading" class="py-12 flex flex-col items-center justify-center gap-2">
+            <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-[10px] uppercase font-bold text-purple-500 tracking-widest animate-pulse">Sincronizando câmeras...</span>
+          </div>
+
+          <!-- Split View -->
+          <div x-show="!auditoriaLoading" class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px]">
+            
+            <!-- ESQUERDA: Feed de Palpites (Visão dos Usuários) -->
+            <div class="flex flex-col h-full glass-panel border border-indigo-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.05)]">
+              <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-400 mb-4 flex items-center justify-between">
+                <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Radar de Palpites</span>
+              </h3>
+              
+              <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                <template x-if="feedPalpites.length === 0">
+                  <div class="py-8 text-center text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Nenhum palpite detectado nas últimas horas.</div>
+                </template>
+                <template x-for="p in feedPalpites" :key="p.id">
+                  <div class="bg-black/40 border border-indigo-500/10 rounded-xl p-3 hover:border-indigo-500/30 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                      <div class="flex items-center gap-2">
+                        <img :src="p.profiles?.avatar_url || 'https://ui-avatars.com/api/?name=U&background=random'" class="w-6 h-6 rounded-full border border-zinc-700">
+                        <span class="font-bold text-white text-xs" x-text="p.profiles?.full_name || 'Usuário Anônimo'"></span>
+                      </div>
+                      <span class="text-[9px] text-zinc-500 font-mono" x-text="new Date(p.created_at).toLocaleTimeString('pt-BR')"></span>
+                    </div>
+                    <div class="text-[10px] text-zinc-400 font-medium">
+                      Apostou no jogo <span class="text-white font-bold" x-text="p.fixture_id"></span> do grupo <span class="text-indigo-400 font-mono font-bold" x-text="p.groups?.name || 'Desconhecido'"></span>
+                    </div>
+                    <div class="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg py-1.5 px-3 flex items-center justify-between">
+                      <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Aposta</span>
+                      <span class="text-sm font-black text-white font-mono" x-text="`${p.home_score} x ${p.away_score}`"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- DIREITA: Logs de Segurança do GM (Audit_logs) -->
+            <div class="flex flex-col h-full glass-panel border border-red-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(239,68,68,0.05)]">
+              <h3 class="text-sm font-bold uppercase tracking-wider text-red-400 mb-4 flex items-center justify-between">
+                <span class="flex items-center gap-2"><span>🛡️</span> Terminal de Segurança (GM Logs)</span>
+              </h3>
+
+              <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                <template x-if="feedAuditoria.length === 0">
+                  <div class="py-8 text-center text-zinc-600 font-bold uppercase text-[10px] tracking-widest">O registro de ações do sistema está limpo.</div>
+                </template>
+                <template x-for="log in feedAuditoria" :key="log.id">
+                  <div class="bg-black/40 border border-zinc-800/60 rounded-xl p-3 border-l-2" 
+                       :class="log.action.includes('BAN') || log.action.includes('DELETE') || log.action.includes('REJECT') ? 'border-l-red-500' : 'border-l-emerald-500'">
+                    
+                    <div class="flex justify-between items-start">
+                      <span class="text-[10px] font-black uppercase tracking-widest" 
+                            :class="log.action.includes('BAN') || log.action.includes('DELETE') || log.action.includes('REJECT') ? 'text-red-400' : 'text-emerald-400'" 
+                            x-text="log.action"></span>
+                      <span class="text-[9px] text-zinc-500 font-mono" x-text="new Date(log.created_at).toLocaleString('pt-BR')"></span>
+                    </div>
+                    
+                    <div class="mt-1 text-[11px] text-white">
+                      Admin: <span class="font-bold text-zinc-300" x-text="log.profiles?.full_name || 'GM Oculto'"></span>
+                    </div>
+                    
+                    <div class="mt-1 text-[10px] text-zinc-400 flex items-center gap-2">
+                      <span class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 uppercase font-bold" x-text="log.target_type"></span>
+                      <span class="font-mono text-[9px] truncate" x-text="`Alvo ID: ${log.target_id?.substring(0, 8)}...`"></span>
+                    </div>
+
+                    <div class="mt-2 bg-black/60 p-2 rounded text-[9px] text-zinc-500 font-mono break-all whitespace-pre-wrap" x-text="JSON.stringify(log.details, null, 2)"></div>
+                  </div>
+                </template>
               </div>
             </div>
 

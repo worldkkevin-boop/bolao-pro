@@ -72,6 +72,11 @@ function adminApp() {
       return this.transacoesTesouraria.filter(t => t.status !== 'pending').sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
     },
 
+    // Auditoria (Big Brother)
+    auditoriaLoading: false,
+    feedPalpites: [],
+    feedAuditoria: [],
+
     // Usuários
     usuariosLista: [],
     usuariosLoading: false,
@@ -846,6 +851,58 @@ function adminApp() {
     },
 
     // ============ FIM: TESOURARIA & PIX ============
+
+    // ============================================================
+    // PROJETO GOD MODE: AUDITORIA (Big Brother)
+    // ============================================================
+
+    async carregarAuditoriaGlobal() {
+      if (this.auditoriaLoading) return;
+      this.auditoriaLoading = true;
+      const t = Date.now();
+      try {
+        // 1. Puxa os últimos 50 palpites (Radar de usuários)
+        const { data: palpites, error: errP } = await sbClient
+          .from('guesses')
+          .select('id, user_id, fixture_id, group_id, home_score, away_score, created_at, profiles(full_name, avatar_url), groups(name)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (errP) {
+          console.warn("Aviso ao puxar palpites:", errP.message);
+          // Fallback caso a relação profiles/groups falhe
+          const { data: fallbackPalpites } = await sbClient.from('guesses').select('*').order('created_at', { ascending: false }).limit(50);
+          this.feedPalpites = fallbackPalpites || [];
+        } else {
+          this.feedPalpites = palpites || [];
+        }
+
+        // 2. Puxa os últimos 50 logs de auditoria do GM
+        const { data: logs, error: errL } = await sbClient
+          .from('audit_logs')
+          .select('*, profiles!audit_logs_admin_id_fkey(full_name)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (errL) {
+          console.warn("Aviso ao puxar audit_logs:", errL.message);
+          const { data: fallbackLogs } = await sbClient.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
+          this.feedAuditoria = fallbackLogs || [];
+        } else {
+          // Normaliza o fallback do join
+          const normalLogs = logs ? logs.map(l => ({...l, profiles: l.profiles || { full_name: 'GM Oculto' }})) : [];
+          this.feedAuditoria = normalLogs;
+        }
+
+        this.adicionarLog('Supabase', 'SELECT Auditoria', 'SUCCESS', Date.now() - t, 'Sincronização do Big Brother concluída');
+      } catch (err) {
+        showToast("Erro ao sincronizar as câmeras da Auditoria: " + err.message, "error");
+      } finally {
+        this.auditoriaLoading = false;
+      }
+    },
+
+    // ============ FIM: AUDITORIA ============
 
     // ============ DESAFIOS DO GM ============
 
