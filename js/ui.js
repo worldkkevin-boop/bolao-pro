@@ -78,6 +78,11 @@ function fecharModal(id) {
 }
 
 function switchView(targetViewId) {
+  if (targetViewId === 'view-desafios' && typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.desafios_enabled === false) {
+    if (typeof showToast === 'function') showToast("Os desafios estão desativados neste grupo pelo Administrador.", "info");
+    targetViewId = 'view-grupo-home';
+  }
+
   if (targetViewId === 'view-inicio') {
     localStorage.removeItem('last_active_group');
     localStorage.removeItem('last_active_view');
@@ -3232,9 +3237,49 @@ function toggleAjustesGerais() {
     if (container.classList.contains('hidden')) {
       container.classList.remove('hidden');
       seta.innerText = '▼';
+      
+      const chkDesafios = document.getElementById('chk-desafios-enabled');
+      if (chkDesafios && typeof grupoAtual !== 'undefined' && grupoAtual) {
+        chkDesafios.checked = (grupoAtual.desafios_enabled !== false);
+      }
     } else {
       container.classList.add('hidden');
       seta.innerText = '›';
+    }
+  }
+}
+
+async function alterarStatusDesafios() {
+  if (typeof grupoAtual === 'undefined' || !grupoAtual || !sbClient) return;
+  const chk = document.getElementById('chk-desafios-enabled');
+  if (!chk) return;
+  
+  const isEnabled = chk.checked;
+  try {
+    const { error } = await sbClient
+      .from('groups')
+      .update({ desafios_enabled: isEnabled })
+      .eq('id', grupoAtual.id);
+      
+    if (error) throw error;
+    
+    grupoAtual.desafios_enabled = isEnabled;
+    localStorage.setItem('last_active_group', JSON.stringify(grupoAtual));
+    
+    const navBtn = document.getElementById('nav-view-desafios');
+    if (navBtn) {
+      if (isEnabled) navBtn.classList.remove('hidden');
+      else navBtn.classList.add('hidden');
+    }
+    
+    if (typeof showToast === 'function') {
+      showToast(`Desafios do Mago ${isEnabled ? 'ativados' : 'desativados'} para o grupo!`, "success");
+    }
+  } catch (err) {
+    console.error("Erro ao alterar status de desafios:", err);
+    chk.checked = !isEnabled; // Reverte visualmente
+    if (typeof showToast === 'function') {
+      showToast("Erro ao alterar o status. Verifique sua conexão.", "error");
     }
   }
 }

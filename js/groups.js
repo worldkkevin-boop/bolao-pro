@@ -121,6 +121,16 @@ async function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueI
     };
   }
 
+  // Oculta ou exibe o botão da aba de desafios no rodapé baseado na configuração do grupo
+  const navBtnDesafios = document.getElementById('nav-view-desafios');
+  if (navBtnDesafios) {
+    if (grupoAtual.desafios_enabled === false) {
+      navBtnDesafios.classList.add('hidden');
+    } else {
+      navBtnDesafios.classList.remove('hidden');
+    }
+  }
+
   const finalView = targetView || 'view-grupo-home';
   if (typeof switchView === 'function') switchView(finalView);
 
@@ -576,6 +586,13 @@ async function buscarDesafioAtivoHome() {
   const container = document.getElementById('container-desafios-ativos-gm');
   if (!container || !sbClient || !grupoAtual || !usuarioAtual) {
     if (container) container.classList.add('hidden');
+    return;
+  }
+
+  // Se a aba de Desafios estiver desativada pelo Admin do Grupo, oculta o banner sumariamente
+  if (grupoAtual.desafios_enabled === false) {
+    container.innerHTML = '';
+    container.classList.add('hidden');
     return;
   }
 
