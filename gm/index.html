@@ -1575,6 +1575,16 @@
                   <span x-show="buscaFixtureLoading" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 </button>
               </div>
+
+              <!-- Histórico de Buscas Rápidas -->
+              <template x-if="historicoBuscaFixtures.length > 0">
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest flex items-center">Recentes:</span>
+                  <template x-for="termo in historicoBuscaFixtures" :key="termo">
+                    <button @click="usarBuscaHistorico(termo)" x-text="termo" class="text-[9px] font-black text-purple-400/80 bg-purple-500/5 border border-purple-500/10 px-2 py-0.5 rounded-lg hover:bg-purple-500/20 transition-all uppercase tracking-wide"></button>
+                  </template>
+                </div>
+              </template>
             </div>
 
             <!-- Lista rápida de resultados da busca -->
@@ -2044,6 +2054,16 @@
                     <span x-show="telaoBuscaLoading">Buscando...</span>
                   </button>
                 </div>
+
+                <!-- Histórico de Buscas Rápidas (Telão) -->
+                <template x-if="telaoHistoricoBusca.length > 0">
+                  <div class="flex flex-wrap gap-2 mt-2">
+                    <span class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest flex items-center mr-1">Recentes:</span>
+                    <template x-for="termo in telaoHistoricoBusca" :key="termo">
+                      <button @click="usarHistoricoTelao(termo)" x-text="termo" class="text-[9px] font-black text-pink-400/80 bg-pink-500/5 border border-pink-500/10 px-2 py-0.5 rounded-lg hover:bg-pink-500/20 transition-all uppercase tracking-wide"></button>
+                    </template>
+                  </div>
+                </template>
                 <div x-show="telaoResultadosBusca.length > 0" class="mt-3 space-y-2 max-h-56 overflow-y-auto border border-zinc-800/40 rounded-xl p-2 bg-zinc-950/30">
                   <template x-for="jogo in telaoResultadosBusca" :key="jogo.fixture.id">
                     <button @click="selecionarJogoTelao(jogo)" class="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-pink-500/10 border border-transparent hover:border-pink-500/20 transition-all text-left">

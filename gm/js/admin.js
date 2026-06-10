@@ -67,6 +67,7 @@ function adminApp() {
     telaoBuscaJogo: '',
     telaoBuscaLoading: false,
     telaoResultadosBusca: [],
+    telaoHistoricoBusca: [], // Adicionado: histórico para o telão
     telaoFixture: null,              // { id, homeName, homeLogo, awayName, awayLogo, date }
 
     // Grupos
@@ -122,6 +123,9 @@ function adminApp() {
       try {
         const h = localStorage.getItem('gm_busca_history');
         if (h) this.historicoBuscaFixtures = JSON.parse(h);
+        
+        const ht = localStorage.getItem('gm_telao_history');
+        if (ht) this.telaoHistoricoBusca = JSON.parse(ht);
       } catch(e) {}
 
       this.carregarDadosIniciais();
@@ -1839,6 +1843,15 @@ function adminApp() {
         showToast('Digite o nome de um time para buscar.', 'error');
         return;
       }
+
+      // Salvar no histórico
+      const termo = this.telaoBuscaJogo.trim();
+      if (termo) {
+        let h = [termo, ...this.telaoHistoricoBusca.filter(t => t.toLowerCase() !== termo.toLowerCase())];
+        this.telaoHistoricoBusca = h.slice(0, 5);
+        localStorage.setItem('gm_telao_history', JSON.stringify(this.telaoHistoricoBusca));
+      }
+
       this.telaoBuscaLoading = true;
       this.telaoResultadosBusca = [];
       const t = Date.now();
@@ -1904,6 +1917,11 @@ function adminApp() {
       this.telaoPlacar = { casa: '', fora: '' };
       this.carregarTelao();
       showToast(`Jogo definido: ${this.telaoFixture.homeName} x ${this.telaoFixture.awayName}`, 'mago');
+    },
+
+    usarHistoricoTelao(termo) {
+      this.telaoBuscaJogo = termo;
+      this.buscarJogoTelao();
     },
 
     limparJogoTelao() {
