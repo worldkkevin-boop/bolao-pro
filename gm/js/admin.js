@@ -120,20 +120,6 @@ function adminApp() {
     resultadoBuscaFixtures: [],
     historicoBuscaFixtures: [], // Adicionado: lista de buscas recentes
 
-    init() {
-      // Carregar histórico do localStorage
-      try {
-        const h = localStorage.getItem('gm_busca_history');
-        if (h) this.historicoBuscaFixtures = JSON.parse(h);
-        
-        const ht = localStorage.getItem('gm_telao_history');
-        if (ht) this.telaoHistoricoBusca = JSON.parse(ht);
-      } catch(e) {}
-
-      this.carregarDadosIniciais();
-      // ... rest of init
-    },
-
     async buscarFixtures() {
       if (this.buscaFixture.length < 3) return;
       
@@ -200,6 +186,17 @@ function adminApp() {
         return;
       }
 
+      // Restaura históricos do localStorage
+      try {
+        const h = localStorage.getItem('gm_busca_history');
+        if (h) this.historicoBuscaFixtures = JSON.parse(h);
+        
+        const ht = localStorage.getItem('gm_telao_history');
+        if (ht) this.telaoHistoricoBusca = JSON.parse(ht);
+      } catch(e) {
+        console.warn("Erro ao restaurar histórico:", e);
+      }
+
       // Restaura logs do sessionStorage se existirem
       const savedLogs = sessionStorage.getItem('gm_api_logs');
       if (savedLogs) {
@@ -231,6 +228,8 @@ function adminApp() {
       // Se já estiver desbloqueado, puxa os dados iniciais
       if (this.acessoAutorizado && this.pinDesbloqueado) {
         this.carregarDadosPainel();
+        // Sincroniza o estado do Telão se estiver na aba
+        this.carregarTelao();
       }
 
       this.loading = false;
@@ -1976,6 +1975,26 @@ function adminApp() {
     usarHistoricoTelao(termo) {
       this.telaoBuscaJogo = termo;
       this.buscarJogoTelao();
+    },
+
+    async removerLeadTelao(id, nome) {
+      if (!confirm(`⚠️ Deseja remover o participante "${nome}" deste evento?\n\nEsta ação é irreversível.`)) return;
+      
+      const t = Date.now();
+      try {
+        const { error } = await sbClient
+          .from('leads_evento_telao')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        
+        showToast(`Participante ${nome} removido.`, 'info');
+        this.adicionarLog('Supabase', 'DELETE leads_evento_telao', 'SUCCESS', Date.now() - t, `Removido: ${nome}`);
+        this.carregarTelao(); // recarrega a lista
+      } catch (err) {
+        showToast("Erro ao remover participante: " + err.message, "error");
+      }
     },
 
     limparJogoTelao() {
