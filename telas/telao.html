@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Bolão Pro | Palpite do Telão 🏟️</title>
+  <meta name="theme-color" content="#09090b">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="../midia/favicon.png">
+
+  <!-- ⚠️ MÓDULO PROMOCIONAL ISOLADO — não compartilha nada com o app do bolão (index.html / js/*) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        fontFamily: { sans: ['Inter', 'sans-serif'] },
+        colors: {
+          'app-bg': '#09090b', 'card-bg': '#18181b', 'card-hover': '#242427',
+          'brand-green': '#10b981', 'brand-green-dark': '#047857',
+          'text-muted': '#a1a1aa', 'gold': '#fbbf24'
+        }
+      } }
+    }
+  </script>
+  <style>
+    html { height: -webkit-fill-available; }
+    body {
+      min-height: 100vh; min-height: -webkit-fill-available;
+      background-color: #09090b; color: white; margin: 0;
+      -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif;
+    }
+    .bg-glow { position: absolute; width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(16,185,129,0.18) 0%, rgba(9,9,11,0) 70%);
+      border-radius: 50%; top: -120px; left: -100px; z-index: 0; }
+    .bg-glow-2 { position: absolute; width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(251,191,36,0.10) 0%, rgba(9,9,11,0) 70%);
+      border-radius: 50%; bottom: -160px; right: -150px; z-index: 0; }
+    .fade-up { animation: fadeUp .6s cubic-bezier(.16,1,.3,1) forwards; opacity: 0; transform: translateY(16px); }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .step { display: none; }
+    .step.active { display: block; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .btn-circle:active { transform: scale(.90); }
+    .safe-top { padding-top: env(safe-area-inset-top); }
+    .safe-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  </style>
+</head>
+<body class="overflow-x-hidden">
+
+  <div class="bg-glow"></div>
+  <div class="bg-glow-2"></div>
+
+  <main class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 safe-top safe-bottom">
+    <div class="w-full max-w-sm mx-auto">
+
+      <!-- Marca -->
+      <div class="flex flex-col items-center mb-6 fade-up">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#18181b] to-[#09090b] border border-white/10 shadow-[0_0_30px_rgba(16,185,129,0.25)] flex items-center justify-center mb-3">
+          <svg width="34" height="34" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4l3 3"/>
+          </svg>
+        </div>
+        <span class="text-[11px] font-black uppercase tracking-[0.2em] text-text-muted">Bolão Pro · Ao Vivo</span>
+      </div>
+
+      <!-- ════════ STEP 0: BOAS-VINDAS ════════ -->
+      <section id="step-welcome" class="step active fade-up">
+        <h1 class="text-3xl font-black tracking-tight text-center leading-tight mb-3">
+          Dê seu palpite e <span class="text-brand-green">concorra a um prêmio!</span> 🎁
+        </h1>
+        <p id="welcome-sub" class="text-[14px] text-text-muted text-center mb-8 px-2">
+          Acerte o placar e participe do sorteio ao vivo aqui no telão. Leva menos de 30 segundos.
+        </p>
+        <button onclick="irPara('step-nome')" class="w-full bg-brand-green text-black font-black text-[15px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">
+          Quero participar ⚽
+        </button>
+        <p class="text-[10px] text-zinc-600 text-center mt-4">Promoção do evento · seus dados são usados só para o sorteio.</p>
+      </section>
+
+      <!-- ════════ STEP 1: NOME ════════ -->
+      <section id="step-nome" class="step">
+        <button onclick="irPara('step-welcome')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
+        </button>
+        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 1 de 3</p>
+        <h2 class="text-2xl font-black mb-1">Qual é o seu nome?</h2>
+        <p class="text-[13px] text-text-muted mb-6">É como vamos te chamar se você ganhar. 😉</p>
+        <input id="in-nome" type="text" autocomplete="name" placeholder="Seu nome"
+          class="w-full bg-card-bg text-white text-lg font-bold rounded-2xl border border-white/10 focus:border-brand-green outline-none px-5 py-4 mb-2 transition-colors placeholder-zinc-600">
+        <p id="err-nome" class="hidden text-red-400 text-[12px] font-bold mb-2 px-1">Digite seu nome para continuar.</p>
+        <button onclick="validarNome()" class="w-full mt-3 bg-brand-green text-black font-black text-[15px] py-4 rounded-2xl active:scale-95 transition-all uppercase tracking-wide">Continuar</button>
+      </section>
+
+      <!-- ════════ STEP 2: WHATSAPP ════════ -->
+      <section id="step-whats" class="step">
+        <button onclick="irPara('step-nome')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
+        </button>
+        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 2 de 3</p>
+        <h2 class="text-2xl font-black mb-1">Seu WhatsApp</h2>
+        <p class="text-[13px] text-text-muted mb-6">Usamos só para avisar se você for o sortudo. 📲</p>
+        <input id="in-whats" type="tel" inputmode="tel" autocomplete="tel" placeholder="(96) 9 9999-9999"
+          class="w-full bg-card-bg text-white text-lg font-bold rounded-2xl border border-white/10 focus:border-brand-green outline-none px-5 py-4 mb-2 transition-colors placeholder-zinc-600">
+        <p id="err-whats" class="hidden text-red-400 text-[12px] font-bold mb-2 px-1">Digite um número de WhatsApp válido (com DDD).</p>
+        <button onclick="validarWhats()" class="w-full mt-3 bg-brand-green text-black font-black text-[15px] py-4 rounded-2xl active:scale-95 transition-all uppercase tracking-wide">Continuar</button>
+      </section>
+
+      <!-- ════════ STEP 3: PALPITE ════════ -->
+      <section id="step-palpite" class="step">
+        <button onclick="irPara('step-whats')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
+        </button>
+        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 3 de 3</p>
+        <h2 class="text-2xl font-black mb-1">Seu palpite no jogo</h2>
+        <p class="text-[13px] text-text-muted mb-6">Quanto vai ser o placar final? ⚽</p>
+
+        <div class="bg-card-bg p-5 rounded-3xl border border-white/5 mb-4">
+          <div class="flex justify-between items-center gap-2">
+            <!-- Casa -->
+            <div class="flex flex-col items-center w-2/5">
+              <img id="logo-casa" class="w-10 h-10 object-contain mb-2 hidden" alt="">
+              <span id="time-casa" class="text-[14px] font-black text-center mb-3">Brasil</span>
+              <div class="flex items-center gap-2">
+                <button onclick="mudarGol('casa',-1)" class="btn-circle w-9 h-9 rounded-full bg-[#2a2a35] flex items-center justify-center text-xl font-bold transition-all">−</button>
+                <span id="gol-casa" class="text-3xl font-black w-7 text-center">0</span>
+                <button onclick="mudarGol('casa',1)" class="btn-circle w-9 h-9 rounded-full bg-[#2a2a35] flex items-center justify-center text-xl font-bold transition-all">+</button>
+              </div>
+            </div>
+            <span class="text-text-muted font-black text-sm">×</span>
+            <!-- Fora -->
+            <div class="flex flex-col items-center w-2/5">
+              <img id="logo-fora" class="w-10 h-10 object-contain mb-2 hidden" alt="">
+              <span id="time-fora" class="text-[14px] font-black text-center mb-3">Argentina</span>
+              <div class="flex items-center gap-2">
+                <button onclick="mudarGol('fora',-1)" class="btn-circle w-9 h-9 rounded-full bg-[#2a2a35] flex items-center justify-center text-xl font-bold transition-all">−</button>
+                <span id="gol-fora" class="text-3xl font-black w-7 text-center">0</span>
+                <button onclick="mudarGol('fora',1)" class="btn-circle w-9 h-9 rounded-full bg-[#2a2a35] flex items-center justify-center text-xl font-bold transition-all">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p id="err-palpite" class="hidden text-red-400 text-[12px] font-bold mb-2 px-1 text-center">Não foi possível salvar. Tente novamente.</p>
+        <button id="btn-enviar" onclick="enviarLead()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-[15px] py-4 rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all uppercase tracking-wide">
+          Enviar palpite e concorrer 🎁
+        </button>
+      </section>
+
+      <!-- ════════ STEP 4: SUCESSO + NÚMERO DA SORTE ════════ -->
+      <section id="step-sucesso" class="step text-center">
+        <div class="w-16 h-16 rounded-full bg-brand-green/15 text-brand-green mx-auto flex items-center justify-center mb-5 fade-up">
+          <svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h2 class="text-2xl font-black mb-2 fade-up">Palpite confirmado! 🎉</h2>
+        <p class="text-[14px] text-text-muted mb-6 fade-up">Boa sorte, <span id="sucesso-nome" class="text-white font-bold">amigo</span>! Guarde seu número:</p>
+
+        <div class="bg-card-bg border border-gold/30 rounded-3xl p-6 mb-6 shadow-[0_0_25px_rgba(251,191,36,0.10)] fade-up">
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gold mb-2">Seu Número da Sorte</p>
+          <p id="numero-sorte" class="text-5xl font-black text-gold tracking-widest">0000</p>
+          <p class="text-[11px] text-zinc-500 mt-3">Fique de olho no telão — o sorteio é ao vivo!</p>
+        </div>
+
+        <button onclick="entrarNaSala()" class="block w-full bg-brand-green text-black font-black text-[15px] py-4 rounded-2xl active:scale-95 transition-all uppercase tracking-wide fade-up">
+          Entrar e acompanhar ao vivo 🎬
+        </button>
+        <p class="text-[11px] text-zinc-500 mt-3 fade-up">Entre no app, acompanhe o placar rolando e veja todo mundo que palpitou junto com você.</p>
+        <a href="/" class="inline-block text-[11px] text-zinc-600 mt-4 underline fade-up">Só quero conhecer o Bolão completo</a>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+  // ====================================================================
+  //  MÓDULO PROMOCIONAL "TELÃO" — 100% ISOLADO DO BOLÃO
+  //  Config Supabase própria (mesma instância, mas independente do js/config.js)
+  // ====================================================================
+  const SUPABASE_URL      = 'https://hkiqozqqcymbhfobydoq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhraXFvenFxY3ltYmhmb2J5ZG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4ODk0NzYsImV4cCI6MjA5NTQ2NTQ3Nn0.fx31IcsivW-YjYy6Of7c_gbKq90yvE40Tqrt-jCydso';
+
+  // Cliente próprio, com storageKey exclusivo para NÃO colidir com a sessão do app principal.
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, storageKey: 'sb-telao-evento' }
+  });
+
+  // ---- Configuração do evento ----
+  // O jogo é definido pelo GM no painel e vem na URL do QR Code: telao.html?fixture=<id>
+  // (API-Football, a mesma usada no bolão). Sem fixture, cai no padrão abaixo.
+  const EVENTOS = {
+    telao_brasil: { titulo: 'o jogo do Brasil', casa: 'Brasil', fora: 'Adversário' },
+  };
+
+  const API_HOST = 'v3.football.api-sports.io';
+  const API_KEY  = '47ca2bb05eb5931347aca04964818eb5';
+
+  const params     = new URLSearchParams(location.search);
+  const fixtureId  = params.get('fixture');
+  let   eventoSlug = params.get('evento') || 'telao_brasil';
+  let   eventoCfg  = EVENTOS[eventoSlug] || EVENTOS.telao_brasil;
+
+  const placar = { casa: 0, fora: 0 };
+  let enviando = false;
+  let jaParticipou = false;   // este aparelho já palpitou neste evento?
+
+  // Busca o jogo real na API (se houver fixture na URL) e personaliza a tela
+  async function carregarJogoDoEvento() {
+    if (fixtureId) {
+      try {
+        const resp = await fetch(`https://${API_HOST}/fixtures?id=${fixtureId}`, {
+          headers: { 'x-rapidapi-host': API_HOST, 'x-rapidapi-key': API_KEY }
+        });
+        const json = await resp.json();
+        const j = json.response && json.response[0];
+        if (j) {
+          eventoSlug = 'fixture_' + fixtureId;   // separa os leads por jogo
+          eventoCfg = {
+            titulo:   `${j.teams.home.name} x ${j.teams.away.name}`,
+            casa:     j.teams.home.name,
+            fora:     j.teams.away.name,
+            casaLogo: j.teams.home.logo,
+            foraLogo: j.teams.away.logo
+          };
+        }
+      } catch (e) {
+        console.warn('[telao] não consegui carregar o jogo da API, usando padrão:', e);
+      }
+    }
+    aplicarEvento();
+  }
+
+  function aplicarEvento() {
+    document.getElementById('time-casa').textContent = eventoCfg.casa;
+    document.getElementById('time-fora').textContent = eventoCfg.fora;
+    document.getElementById('welcome-sub').textContent =
+      `Acerte o placar de ${eventoCfg.titulo} e participe do sorteio ao vivo aqui no telão. Leva menos de 30 segundos.`;
+    // Escudos (quando vierem da API)
+    if (eventoCfg.casaLogo) { const el = document.getElementById('logo-casa'); el.src = eventoCfg.casaLogo; el.classList.remove('hidden'); }
+    if (eventoCfg.foraLogo) { const el = document.getElementById('logo-fora'); el.src = eventoCfg.foraLogo; el.classList.remove('hidden'); }
+    verificarJaParticipou();
+  }
+
+  // Limite: 1 palpite por aparelho. Se já palpitou neste evento, mostra o número salvo.
+  function verificarJaParticipou() {
+    let lead = null;
+    try { lead = JSON.parse(localStorage.getItem('evento_telao_lead_' + eventoSlug)); } catch (_) {}
+    if (!lead || !lead.numero) return;
+    jaParticipou = true;
+    document.getElementById('sucesso-nome').textContent = (lead.nome || 'amigo').split(' ')[0];
+    document.getElementById('numero-sorte').textContent = lead.numero;
+    // Reconfigura a tela de boas-vindas para o estado "já participou"
+    const h1 = document.querySelector('#step-welcome h1');
+    if (h1) h1.innerHTML = 'Você já está <span class="text-brand-green">participando!</span> ✅';
+    document.getElementById('welcome-sub').textContent =
+      'Este aparelho já fez um palpite. Cada pessoa participa uma vez — veja seu número e acompanhe ao vivo.';
+    const btn = document.querySelector('#step-welcome button');
+    if (btn) { btn.textContent = 'Ver meu número e entrar ao vivo 🎬'; btn.setAttribute('onclick', "irPara('step-sucesso')"); }
+  }
+
+  carregarJogoDoEvento();
+
+  // ---- Navegação entre passos ----
+  function irPara(id) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    el.classList.add('active');
+    // re-dispara animação dos elementos fade-up do passo
+    el.querySelectorAll('.fade-up').forEach(n => { n.style.animation = 'none'; n.offsetHeight; n.style.animation = ''; });
+    window.scrollTo(0, 0);
+  }
+
+  // ---- Passo 1: nome ----
+  function validarNome() {
+    const v = document.getElementById('in-nome').value.trim();
+    const err = document.getElementById('err-nome');
+    if (v.length < 2) { err.classList.remove('hidden'); return; }
+    err.classList.add('hidden');
+    irPara('step-whats');
+  }
+
+  // ---- Passo 2: whatsapp ----
+  function validarWhats() {
+    const v = document.getElementById('in-whats').value.trim();
+    const err = document.getElementById('err-whats');
+    const digitos = v.replace(/\D/g, '');
+    if (digitos.length < 10) { err.classList.remove('hidden'); return; } // DDD + número
+    err.classList.add('hidden');
+    irPara('step-palpite');
+  }
+
+  // ---- Passo 3: palpite (steppers) ----
+  function mudarGol(lado, delta) {
+    placar[lado] = Math.max(0, Math.min(20, placar[lado] + delta));
+    document.getElementById('gol-' + lado).textContent = placar[lado];
+  }
+
+  function gerarNumeroSorte() {
+    // 4 dígitos, fácil de ler/anunciar no telão
+    return String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  // ---- Envio: grava na tabela ISOLADA leads_evento_telao ----
+  async function enviarLead() {
+    if (enviando) return;
+    // Trava de aparelho: já palpitou? vai direto pro número salvo.
+    if (jaParticipou) { irPara('step-sucesso'); return; }
+    enviando = true;
+
+    const btn = document.getElementById('btn-enviar');
+    const err = document.getElementById('err-palpite');
+    err.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    const nome     = document.getElementById('in-nome').value.trim();
+    const whatsapp = document.getElementById('in-whats').value.replace(/\D/g, ''); // só dígitos (dedupe confiável)
+    const palpite  = `${eventoCfg.casa} ${placar.casa} x ${placar.fora} ${eventoCfg.fora}`;
+    const numero   = gerarNumeroSorte();
+
+    try {
+      const { error } = await sb.from('leads_evento_telao').insert({
+        evento:       eventoSlug,
+        nome,
+        whatsapp,
+        palpite,
+        numero_sorte: numero,
+        user_agent:   navigator.userAgent
+      });
+      if (error) throw error;
+
+      // Guarda o "passaporte" do participante NESTE aparelho (mesma origem do app
+      // principal → o localStorage é compartilhado, então a sala do evento lê isto).
+      try {
+        localStorage.setItem('evento_telao_pending', eventoSlug);
+        localStorage.setItem('evento_telao_lead_' + eventoSlug, JSON.stringify({
+          numero, nome, palpite,
+          fixtureId: fixtureId || null,
+          titulo:    eventoCfg.titulo,
+          casa:      eventoCfg.casa,
+          fora:      eventoCfg.fora,
+          casaLogo:  eventoCfg.casaLogo || null,
+          foraLogo:  eventoCfg.foraLogo || null
+        }));
+      } catch (_) { /* localStorage indisponível: segue sem persistir */ }
+
+      // Sucesso
+      document.getElementById('sucesso-nome').textContent = nome.split(' ')[0] || 'amigo';
+      document.getElementById('numero-sorte').textContent = numero;
+      irPara('step-sucesso');
+    } catch (e) {
+      console.error('[telao] falha ao salvar lead:', e);
+      // 23505 = violação de índice único (esse WhatsApp já participou deste evento)
+      const dup = e && (e.code === '23505' || /duplicate key|already exists/i.test(e.message || ''));
+      err.textContent = dup
+        ? 'Esse WhatsApp já palpitou neste evento. 🙂 Vale um por pessoa!'
+        : 'Não foi possível salvar. Tente novamente.';
+      err.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Enviar palpite e concorrer 🎁';
+    } finally {
+      enviando = false;
+    }
+  }
+
+  // Vai pro app principal entrar na "sala do evento" (login Google acontece lá).
+  // O flag fica no localStorage pois o OAuth do Google descarta a query string.
+  function entrarNaSala() {
+    try { localStorage.setItem('evento_telao_pending', eventoSlug); } catch (_) {}
+    window.location.href = location.origin + '/';
+  }
+
+  // Enter avança nos campos de texto
+  document.getElementById('in-nome').addEventListener('keydown', e => { if (e.key === 'Enter') validarNome(); });
+  document.getElementById('in-whats').addEventListener('keydown', e => { if (e.key === 'Enter') validarWhats(); });
+  </script>
+</body>
+</html>

@@ -53,6 +53,18 @@ function adminApp() {
     pinErro: false,
     abaAtiva: 'dashboard',
 
+    // ===== MÓDULO ISOLADO: EVENTO TELÃO (lê só leads_evento_telao) =====
+    telaoLoading: false,
+    telaoLeads: [],
+    telaoEvento: 'telao_brasil',     // vira 'fixture_<id>' quando um jogo é escolhido
+    telaoPlacar: { casa: '', fora: '' },
+    telaoVencedor: null,
+    // Seletor de jogo (puxa da API-Football, mesma do bolão)
+    telaoBuscaJogo: '',
+    telaoBuscaLoading: false,
+    telaoResultadosBusca: [],
+    telaoFixture: null,              // { id, homeName, homeLogo, awayName, awayLogo, date }
+
     // Grupos
     gruposLista: [],
     gruposLoading: false,
@@ -1664,6 +1676,135 @@ function adminApp() {
       data.forEach(g => { if (g.score_home > g.score_away) home++; else if (g.score_home < g.score_away) away++; else draw++; });
       const total = data.length;
       return { total, homePct: (home/total)*100, drawPct: (draw/total)*100, awayPct: (away/total)*100, raw: { home, draw, away } };
+    },
+
+    // ============================================================
+    // MÓDULO ISOLADO: EVENTO TELÃO — leads_evento_telao
+    // (nenhuma destas funções toca em profiles/groups/guesses)
+    // ============================================================
+    async carregarTelao() {
+      this.telaoLoading = true;
+      const t = Date.now();
+      try {
+        const { data, error } = await sbClient
+          .from('leads_evento_telao')
+          .select('id, nome, whatsapp, palpite, numero_sorte, evento, criado_em')
+          .eq('evento', this.telaoEvento)
+          .order('criado_em', { ascending: false });
+        if (error) throw error;
+        this.telaoLeads = data || [];
+        this.adicionarLog('Supabase', 'SELECT leads_evento_telao', 'SUCCESS', Date.now() - t, `${this.telaoLeads.length} leads`);
+      } catch (err) {
+        this.adicionarLog('Supabase', 'SELECT leads_evento_telao', 'ERROR', Date.now() - t, err.message);
+        showToast('Erro ao carregar leads do telão: ' + err.message, 'error');
+      } finally {
+        this.telaoLoading = false;
+      }
+    },
+
+    // Filtra quem cravou exatamente o placar digitado pelo GM
+    telaoAcertadores() {
+      const c = this.telaoPlacar.casa, f = this.telaoPlacar.fora;
+      if (c === '' || c === null || f === '' || f === null) return [];
+      return this.telaoLeads.filter(lead => {
+        const m = String(lead.palpite || '').match(/(\d+)\s*x\s*(\d+)/i);
+        if (!m) return false;
+        return parseInt(m[1], 10) === parseInt(c, 10) && parseInt(m[2], 10) === parseInt(f, 10);
+      });
+    },
+
+    // Sorteio geral: escolhe 1 participante aleatório entre todos do evento
+    realizarSorteioTelao() {
+      if (!this.telaoLeads.length) {
+        showToast('Nenhum participante para sortear ainda.', 'error');
+        return;
+      }
+      const i = Math.floor(Math.random() * this.telaoLeads.length);
+      this.telaoVencedor = this.telaoLeads[i];
+      showToast('🎉 Bilhete premiado sorteado!', 'mago');
+    },
+
+    limparSorteioTelao() {
+      this.telaoVencedor = null;
+    },
+
+    // ----- Seletor de jogo do evento (API-Football) -----
+    async buscarJogoTelao() {
+      if (!this.telaoBuscaJogo || this.telaoBuscaJogo.trim().length < 2) {
+        showToast('Digite o nome de um time para buscar.', 'error');
+        return;
+      }
+      this.telaoBuscaLoading = true;
+      this.telaoResultadosBusca = [];
+      const t = Date.now();
+      try {
+        // Mesmas ligas usadas no bolão: Copa do Mundo (1), Brasileirão (71), Libertadores (13), Nordeste (325), Amistosos (10)
+        const ligas = [1, 71, 13, 325, 10];
+        const hoje = new Date();
+        const from = hoje.toISOString().split('T')[0];
+        const ate  = new Date(hoje.getTime() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+        let jogos = [];
+        for (const liga of ligas) {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026&from=${from}&to=${ate}`, {
+            headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+          });
+          const json = await resp.json();
+          if (json.response) jogos = jogos.concat(json.response);
+        }
+        const q = this.telaoBuscaJogo.toLowerCase();
+        this.telaoResultadosBusca = jogos
+          .filter(j => j.teams.home.name.toLowerCase().includes(q) || j.teams.away.name.toLowerCase().includes(q))
+          .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+        this.adicionarLog('API-Football', `GET /fixtures telão "${this.telaoBuscaJogo}"`, 'SUCCESS', Date.now() - t, `${this.telaoResultadosBusca.length} jogos`);
+        if (!this.telaoResultadosBusca.length) showToast('Nenhum jogo encontrado nos próximos 30 dias.', 'info');
+      } catch (err) {
+        this.adicionarLog('API-Football', 'GET /fixtures telão', 'ERROR', Date.now() - t, err.message);
+        showToast('Erro ao buscar jogos: ' + err.message, 'error');
+      } finally {
+        this.telaoBuscaLoading = false;
+      }
+    },
+
+    selecionarJogoTelao(jogo) {
+      this.telaoFixture = {
+        id:       jogo.fixture.id,
+        homeName: jogo.teams.home.name,
+        homeLogo: jogo.teams.home.logo,
+        awayName: jogo.teams.away.name,
+        awayLogo: jogo.teams.away.logo,
+        date:     jogo.fixture.date
+      };
+      this.telaoEvento = 'fixture_' + jogo.fixture.id;
+      this.telaoResultadosBusca = [];
+      this.telaoBuscaJogo = '';
+      this.telaoVencedor = null;
+      this.telaoPlacar = { casa: '', fora: '' };
+      this.carregarTelao();
+      showToast(`Jogo definido: ${this.telaoFixture.homeName} x ${this.telaoFixture.awayName}`, 'mago');
+    },
+
+    limparJogoTelao() {
+      this.telaoFixture = null;
+      this.telaoEvento = 'telao_brasil';
+      this.telaoVencedor = null;
+      this.telaoPlacar = { casa: '', fora: '' };
+      this.carregarTelao();
+    },
+
+    // Link público que vai no QR Code (atrelado ao jogo escolhido)
+    telaoLinkPublico() {
+      const base = location.origin + '/telas/telao.html';
+      return this.telaoFixture ? `${base}?fixture=${this.telaoFixture.id}` : base;
+    },
+
+    telaoQrUrl() {
+      return 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(this.telaoLinkPublico());
+    },
+
+    copiarLinkTelao() {
+      navigator.clipboard.writeText(this.telaoLinkPublico())
+        .then(() => showToast('Link do telão copiado! 📋', 'success'))
+        .catch(() => showToast('Não consegui copiar — copie manualmente.', 'error'));
     }
   };
 }

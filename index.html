@@ -1820,13 +1820,75 @@
 
   </div>
 
-  <script src="js/config.js?v=30"></script>
-  <script src="js/auth.js?v=30"></script>
-  <script src="js/api.js?v=30"></script>
-  <script src="js/groups.js?v=30"></script>
-  <script src="js/ui.js?v=30"></script>
-  <script src="js/gm.js?v=30"></script>
-  <script src="js/aovivo.js?v=30"></script>
+  <!-- ════════════════ SALA DO EVENTO TELÃO (overlay isolado) ════════════════ -->
+  <!-- Controlado 100% por js/evento.js. Não interfere nas views do bolão. -->
+  <div id="view-evento" class="hidden fixed inset-0 z-[12000] bg-app-bg overflow-y-auto">
+    <div class="max-w-md mx-auto px-4 pb-12" style="padding-top: calc(16px + env(safe-area-inset-top));">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-5 mt-1">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2.5 w-2.5">
+            <span id="evento-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+          </span>
+          <h1 class="text-lg font-black tracking-tight">Sala do Evento</h1>
+        </div>
+        <button onclick="sairDaSalaEvento()" class="text-text-muted hover:text-white text-[12px] font-bold flex items-center gap-1.5 bg-card-bg border border-white/5 px-3 py-1.5 rounded-xl active:scale-95 transition-all">
+          Sair
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Seu número da sorte -->
+      <div id="evento-meu-numero-card" class="hidden bg-card-bg border border-gold/30 rounded-2xl p-4 mb-4 flex items-center justify-between shadow-[0_0_20px_rgba(251,191,36,0.08)]">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase tracking-widest text-gold mb-1">Seu número da sorte</p>
+          <p class="text-[11px] text-text-muted truncate" id="evento-meu-palpite">—</p>
+        </div>
+        <span id="evento-meu-numero" class="text-3xl font-black text-gold tracking-widest flex-shrink-0 ml-3">0000</span>
+      </div>
+
+      <!-- Placar ao vivo -->
+      <div id="evento-placar-card" class="hidden bg-gradient-to-r from-brand-green/15 to-transparent border border-brand-green/25 rounded-2xl p-5 mb-5">
+        <div class="flex items-center justify-between mb-4">
+          <span id="evento-status" class="text-[10px] font-black uppercase tracking-widest text-brand-green">—</span>
+          <span id="evento-minuto" class="text-[10px] font-bold text-text-muted"></span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-col items-center gap-2 w-2/5">
+            <img id="evento-home-logo" class="w-12 h-12 object-contain" alt="">
+            <span id="evento-home-nome" class="text-[12px] font-bold text-center leading-tight">Casa</span>
+          </div>
+          <span id="evento-placar" class="text-3xl font-black flex-shrink-0">0 - 0</span>
+          <div class="flex flex-col items-center gap-2 w-2/5">
+            <img id="evento-away-logo" class="w-12 h-12 object-contain" alt="">
+            <span id="evento-away-nome" class="text-[12px] font-bold text-center leading-tight">Fora</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de participantes -->
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest">Quem palpitou (<span id="evento-total">0</span>)</h2>
+        <button onclick="recarregarParticipantesEvento()" class="text-brand-green text-[11px] font-bold active:scale-95 transition-all">Atualizar</button>
+      </div>
+      <p id="evento-legenda-acerto" class="hidden text-[10px] text-text-muted mb-3">🟢 = quem está cravando o placar agora</p>
+      <div id="evento-lista-participantes" class="space-y-2">
+        <p class="text-text-muted text-[13px] text-center py-8">Carregando participantes...</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/config.js?v=31"></script>
+  <script src="js/auth.js?v=31"></script>
+  <script src="js/api.js?v=31"></script>
+  <script src="js/groups.js?v=31"></script>
+  <script src="js/ui.js?v=31"></script>
+  <script src="js/gm.js?v=31"></script>
+  <script src="js/aovivo.js?v=31"></script>
+  <script src="js/evento.js?v=31"></script>
 
   <!-- Registro do Service Worker -->
   <script>

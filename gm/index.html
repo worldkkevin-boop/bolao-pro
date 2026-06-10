@@ -181,6 +181,11 @@
             <span class="text-lg">◉</span> Oráculo Quant
           </button>
 
+          <!-- MÓDULO ISOLADO: EVENTO TELÃO (captação promocional) -->
+          <button @click="abaAtiva = 'telao'; carregarTelao()" :class="abaAtiva === 'telao' ? 'bg-pink-600/20 text-pink-300 font-bold border border-pink-500/20 shadow-lg shadow-pink-900/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
+            <span class="text-lg">🏟️</span> Evento Telão
+          </button>
+
           <div class="h-px bg-zinc-800 my-3"></div>
           <a href="index.html" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left text-zinc-500 hover:text-white hover:bg-zinc-800/50">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
@@ -205,7 +210,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-transparent relative z-10">
       <!-- Top header -->
       <header class="h-16 border-b border-zinc-800/50 px-8 flex items-center justify-between bg-black/20 backdrop-blur-xl">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria e Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : 'Painel'))))))"></h1>
+        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria e Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : (abaAtiva === 'telao' ? '🏟️ Evento Telão (Leads & Sorteio)' : 'Painel')))))))"></h1>
         <div class="flex items-center gap-4">
           <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
         </div>
@@ -1960,6 +1965,209 @@
           </div>
         </div>
 
+        <!-- ════════════════ ABA: EVENTO TELÃO (MÓDULO ISOLADO) ════════════════ -->
+        <!-- Consome SOMENTE a tabela nova leads_evento_telao. Não toca no bolão. -->
+        <div x-show="abaAtiva === 'telao'" class="space-y-6" x-cloak>
+
+          <!-- Header + contador + atualizar -->
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-black text-white">🏟️ Captação do Telão</h2>
+              <p class="text-[10px] text-zinc-500 font-medium">Leads capturados no evento ao vivo · sorteio e conferência de acertos.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="bg-pink-500/10 border border-pink-500/20 rounded-xl px-4 py-2.5 text-center">
+                <span class="block text-[9px] uppercase font-bold text-pink-300/70 tracking-wider">Cadastrados</span>
+                <span class="block text-xl font-black text-pink-300 leading-none" x-text="telaoLeads.length">0</span>
+              </div>
+              <button @click="carregarTelao()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                🔄 Atualizar
+              </button>
+            </div>
+          </div>
+
+          <!-- CONFIGURAR JOGO DO EVENTO (puxa da API-Football) -->
+          <div class="glass-panel rounded-3xl p-6 border border-pink-500/15">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400 border border-pink-500/30 text-sm">📡</div>
+              <div>
+                <h3 class="font-bold text-white tracking-wider">Jogo do Evento</h3>
+                <p class="text-[10px] text-zinc-500">Escolha a partida (ex: estreia do Brasil). O QR Code e os leads ficam atrelados a ela.</p>
+              </div>
+            </div>
+
+            <!-- Jogo já selecionado: mostra confronto + QR + link -->
+            <template x-if="telaoFixture">
+              <div class="bg-black/40 border border-pink-500/20 rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                  <div class="flex items-center gap-3">
+                    <img :src="telaoFixture.homeLogo" class="w-9 h-9 object-contain" alt="">
+                    <span class="font-black text-white text-sm" x-text="telaoFixture.homeName"></span>
+                    <span class="text-zinc-600 font-black">×</span>
+                    <span class="font-black text-white text-sm" x-text="telaoFixture.awayName"></span>
+                    <img :src="telaoFixture.awayLogo" class="w-9 h-9 object-contain" alt="">
+                  </div>
+                  <button @click="limparJogoTelao()" class="text-[10px] text-zinc-500 hover:text-white font-bold uppercase tracking-wider">trocar jogo</button>
+                </div>
+                <p class="text-[10px] text-zinc-500 mt-2" x-text="'Início: ' + new Date(telaoFixture.date).toLocaleString('pt-BR')"></p>
+
+                <div class="flex items-center gap-4 mt-4 pt-4 border-t border-zinc-800/60">
+                  <img :src="telaoQrUrl()" class="w-24 h-24 rounded-xl bg-white p-1 flex-shrink-0" alt="QR Code do evento">
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">Link do QR Code (aponte a câmera do telão)</p>
+                    <p class="text-xs font-mono text-pink-300 break-all" x-text="telaoLinkPublico()"></p>
+                    <button @click="copiarLinkTelao()" class="mt-2 bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 border border-pink-500/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95">📋 Copiar link</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Nenhum jogo definido ainda: busca na API -->
+            <template x-if="!telaoFixture">
+              <div>
+                <div class="flex items-center gap-3">
+                  <input type="text" x-model="telaoBuscaJogo" @keydown.enter="buscarJogoTelao()" placeholder="Buscar time (ex: Brasil)..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:border-pink-500 outline-none transition-colors">
+                  <button @click="buscarJogoTelao()" :disabled="telaoBuscaLoading" class="bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 border border-pink-500/30 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40">
+                    <span x-show="!telaoBuscaLoading">🔍 Buscar</span>
+                    <span x-show="telaoBuscaLoading">Buscando...</span>
+                  </button>
+                </div>
+                <div x-show="telaoResultadosBusca.length > 0" class="mt-3 space-y-2 max-h-56 overflow-y-auto border border-zinc-800/40 rounded-xl p-2 bg-zinc-950/30">
+                  <template x-for="jogo in telaoResultadosBusca" :key="jogo.fixture.id">
+                    <button @click="selecionarJogoTelao(jogo)" class="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-pink-500/10 border border-transparent hover:border-pink-500/20 transition-all text-left">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <img :src="jogo.teams.home.logo" class="w-6 h-6 object-contain flex-shrink-0" alt="">
+                        <span class="text-xs font-bold text-white truncate" x-text="jogo.teams.home.name + ' × ' + jogo.teams.away.name"></span>
+                        <img :src="jogo.teams.away.logo" class="w-6 h-6 object-contain flex-shrink-0" alt="">
+                      </div>
+                      <span class="text-[9px] text-zinc-500 font-mono flex-shrink-0" x-text="new Date(jogo.fixture.date).toLocaleDateString('pt-BR')"></span>
+                    </button>
+                  </template>
+                </div>
+                <p class="text-[10px] text-amber-400/80 mt-3">⚠️ Defina o jogo para gerar o QR Code e separar os leads desta partida.</p>
+              </div>
+            </template>
+          </div>
+
+          <!-- GRID: Sorteio + Filtro de Acertadores -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- CARD: Sorteio Geral -->
+            <div class="glass-panel rounded-3xl p-6 border border-pink-500/20 shadow-[0_0_30px_rgba(236,72,153,0.08)] flex flex-col">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400 border border-pink-500/30 text-sm">🎰</div>
+                <h3 class="font-bold text-white tracking-wider">Sorteio do Brinde</h3>
+              </div>
+
+              <!-- Bilhete do vencedor -->
+              <template x-if="telaoVencedor">
+                <div class="bg-gradient-to-br from-amber-500/15 to-pink-500/10 border-2 border-amber-400/40 rounded-3xl p-6 text-center mb-4 shadow-[0_0_40px_rgba(251,191,36,0.15)] relative overflow-hidden">
+                  <div class="absolute -right-10 -top-10 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                  <p class="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300 mb-2 relative z-10">🏆 Bilhete Premiado</p>
+                  <p class="text-6xl font-black text-amber-300 tracking-widest relative z-10" x-text="telaoVencedor.numero_sorte">0000</p>
+                  <p class="text-2xl font-black text-white mt-3 relative z-10" x-text="telaoVencedor.nome">Vencedor</p>
+                  <p class="text-sm font-mono text-amber-200/90 mt-1 relative z-10" x-text="telaoVencedor.whatsapp">—</p>
+                  <p class="text-[11px] text-zinc-400 mt-2 relative z-10" x-text="'Palpite: ' + telaoVencedor.palpite"></p>
+                </div>
+              </template>
+              <template x-if="!telaoVencedor">
+                <div class="flex-1 flex items-center justify-center text-center text-zinc-600 text-xs font-medium py-8 border border-dashed border-zinc-800 rounded-2xl mb-4">
+                  Clique abaixo para sortear um ganhador entre os <strong class="text-zinc-400" x-text="telaoLeads.length"></strong>&nbsp;participantes.
+                </div>
+              </template>
+
+              <div class="flex gap-3 mt-auto">
+                <button @click="realizarSorteioTelao()" :disabled="!telaoLeads.length" class="flex-1 bg-gradient-to-r from-pink-600 to-amber-500 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+                  🎲 Realizar Sorteio Geral
+                </button>
+                <button x-show="telaoVencedor" @click="limparSorteioTelao()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            <!-- CARD: Filtro de Acertadores do Placar -->
+            <div class="glass-panel rounded-3xl p-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.08)] flex flex-col">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30 text-sm">🎯</div>
+                <h3 class="font-bold text-white tracking-wider">Quem Acertou o Placar</h3>
+              </div>
+
+              <p class="text-[11px] text-zinc-500 mb-3">Digite o placar final do jogo para filtrar os acertadores em cheio.</p>
+              <div class="flex items-center justify-center gap-3 mb-4">
+                <input type="number" min="0" x-model="telaoPlacar.casa" placeholder="0" class="w-16 bg-black/40 border border-zinc-800 rounded-xl text-center text-2xl font-black text-white py-2 focus:border-emerald-500 outline-none">
+                <span class="text-zinc-500 font-black text-lg">×</span>
+                <input type="number" min="0" x-model="telaoPlacar.fora" placeholder="0" class="w-16 bg-black/40 border border-zinc-800 rounded-xl text-center text-2xl font-black text-white py-2 focus:border-emerald-500 outline-none">
+                <button x-show="telaoPlacar.casa !== '' || telaoPlacar.fora !== ''" @click="telaoPlacar.casa=''; telaoPlacar.fora=''" class="ml-2 text-[10px] text-zinc-500 hover:text-white font-bold uppercase">limpar</button>
+              </div>
+
+              <div class="bg-black/30 border border-zinc-800/60 rounded-2xl p-4 flex-1 overflow-y-auto max-h-[220px]">
+                <template x-if="telaoPlacar.casa === '' || telaoPlacar.fora === ''">
+                  <p class="text-center text-zinc-600 text-xs py-8">Aguardando placar...</p>
+                </template>
+                <template x-if="telaoPlacar.casa !== '' && telaoPlacar.fora !== '' && telaoAcertadores().length === 0">
+                  <p class="text-center text-zinc-500 text-xs py-8 font-bold">😬 Ninguém cravou esse placar.</p>
+                </template>
+                <template x-for="a in telaoAcertadores()" :key="a.id">
+                  <div class="flex items-center justify-between py-2 border-b border-zinc-800/40 last:border-0">
+                    <div class="min-w-0">
+                      <span class="font-bold text-white text-sm block truncate" x-text="a.nome"></span>
+                      <span class="text-[11px] font-mono text-zinc-500" x-text="a.whatsapp"></span>
+                    </div>
+                    <span class="text-[10px] font-black text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg tracking-wider flex-shrink-0" x-text="'Nº ' + a.numero_sorte"></span>
+                  </div>
+                </template>
+              </div>
+              <p x-show="telaoPlacar.casa !== '' && telaoPlacar.fora !== ''" class="text-[10px] text-emerald-400 font-bold mt-3 text-center">
+                <span x-text="telaoAcertadores().length"></span> acertador(es) em cheio 🎯
+              </p>
+            </div>
+
+          </div>
+
+          <!-- TABELA: Todos os participantes -->
+          <div class="glass-panel rounded-3xl p-6 shadow-2xl">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-5">Todos os Participantes do Evento</h3>
+
+            <div x-show="telaoLoading" class="py-12 flex flex-col items-center justify-center gap-2">
+              <div class="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+              <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Carregando leads...</span>
+            </div>
+
+            <div x-show="!telaoLoading" class="overflow-x-auto border border-zinc-800/60 rounded-2xl bg-black/40">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-zinc-800/60 text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                    <th class="py-3 px-4">Nome</th>
+                    <th class="py-3 px-4">WhatsApp</th>
+                    <th class="py-3 px-4">Palpite (Placar)</th>
+                    <th class="py-3 px-4 text-center">Nº da Sorte</th>
+                    <th class="py-3 px-4 text-right">Quando</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-if="telaoLeads.length === 0">
+                    <tr><td colspan="5" class="py-12 text-center text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Nenhum lead capturado ainda.</td></tr>
+                  </template>
+                  <template x-for="lead in telaoLeads" :key="lead.id">
+                    <tr class="border-b border-zinc-800/30 hover:bg-white/[0.02] transition-colors">
+                      <td class="py-3 px-4 font-bold text-white" x-text="lead.nome"></td>
+                      <td class="py-3 px-4 font-mono text-zinc-400 text-[11px]" x-text="lead.whatsapp"></td>
+                      <td class="py-3 px-4 text-zinc-300" x-text="lead.palpite"></td>
+                      <td class="py-3 px-4 text-center">
+                        <span class="font-black text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 tracking-wider" x-text="lead.numero_sorte"></span>
+                      </td>
+                      <td class="py-3 px-4 text-right text-zinc-600 text-[10px]" x-text="new Date(lead.criado_em).toLocaleString('pt-BR')"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+        <!-- ════════════════ FIM ABA EVENTO TELÃO ════════════════ -->
+
       </div>
         </div>
       </div>
@@ -2001,7 +2209,7 @@
   </div>
 
   <!-- Carrega as credenciais globais e o script do admin -->
-  <script src="/js/config.js?v=16"></script>
-  <script src="/gm/js/admin.js?v=16"></script>
+  <script src="/js/config.js?v=18"></script>
+  <script src="/gm/js/admin.js?v=18"></script>
 </body>
 </html>

@@ -77,7 +77,13 @@ function entrarNoApp(usuario) {
   const savedGroup = localStorage.getItem('last_active_group');
   const savedView = localStorage.getItem('last_active_view') || 'view-grupo-home';
 
-  if (savedGroup && !localStorage.getItem('pending_invite_code')) {
+  // Módulo isolado: se entrou pelo link do Evento Telão, abre a Sala do Evento
+  // (e ignora a restauração normal de grupo). Independente do bolão padrão.
+  const eventoPendente = (typeof obterEventoPendente === 'function') ? obterEventoPendente() : null;
+
+  if (eventoPendente && typeof abrirSalaEvento === 'function') {
+    abrirSalaEvento(eventoPendente);
+  } else if (savedGroup && !localStorage.getItem('pending_invite_code')) {
     try {
       const g = JSON.parse(savedGroup);
       if (typeof entrarNoGrupo === 'function') {
