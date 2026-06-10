@@ -247,14 +247,8 @@ async function verificarSorteioEvento() {
 
     // Se é um sorteio novo (ID diferente do último visto)
     if (sorteio.id !== _eventoLastSorteioId) {
-      // Se for a primeira vez que entra na sala, apenas registra o ID mas não "anuncia"
-      // para não mostrar um sorteio antigo como novo.
-      const primeiraVez = (_eventoLastSorteioId === null);
       _eventoLastSorteioId = sorteio.id;
-
-      if (!primeiraVez) {
-        exibirVencedorEvento(sorteio);
-      }
+      exibirVencedorEvento(sorteio);
     }
   } catch (e) {
     console.warn('[evento] erro ao checar sorteio:', e);
@@ -275,16 +269,19 @@ function exibirVencedorEvento(sorteio) {
   const modal = document.getElementById('evento-vencedor-modal');
   const avisoGanhador = document.getElementById('evento-vencedor-aviso-ganhador');
 
+  // Classes base do modal para manter o layout
+  const baseClasses = 'relative bg-card-bg rounded-3xl p-8 w-full max-w-[320px] flex flex-col items-center ';
+
   if (souEu) {
     titulo.textContent = '🎉 VOCÊ GANHOU! 🎉';
     titulo.className = 'text-2xl font-black text-gold mb-2 text-center animate-bounce';
-    modal.className = 'relative bg-card-bg border-4 border-gold rounded-3xl p-8 w-full max-w-[320px] shadow-[0_0_50px_rgba(251,191,36,0.4)]';
+    modal.className = baseClasses + 'border-4 border-gold shadow-[0_0_50px_rgba(251,191,36,0.4)]';
     msg.textContent = 'Parabéns! Vá até o Mago para retirar seu prêmio!';
     if (avisoGanhador) avisoGanhador.classList.remove('hidden');
   } else {
     titulo.textContent = 'Temos um ganhador!';
     titulo.className = 'text-xl font-black text-white mb-2 text-center';
-    modal.className = 'relative bg-card-bg border border-white/10 rounded-3xl p-8 w-full max-w-[320px] shadow-2xl';
+    modal.className = baseClasses + 'border border-white/10 shadow-2xl';
     msg.textContent = 'Fique atento, o próximo pode ser você!';
     if (avisoGanhador) avisoGanhador.classList.add('hidden');
   }
