@@ -59,6 +59,10 @@ function adminApp() {
     telaoEvento: 'telao_brasil',     // vira 'fixture_<id>' quando um jogo é escolhido
     telaoPlacar: { casa: '', fora: '' },
     telaoVencedor: null,
+    // Modo Telão (apresentação em tela cheia do sorteio)
+    telaoApresentacao: false,
+    telaoSorteando: false,
+    telaoRolando: '0000',
     // Seletor de jogo (puxa da API-Football, mesma do bolão)
     telaoBuscaJogo: '',
     telaoBuscaLoading: false,
@@ -1726,6 +1730,41 @@ function adminApp() {
 
     limparSorteioTelao() {
       this.telaoVencedor = null;
+    },
+
+    // ----- Modo Telão: sorteio em tela cheia para projeção -----
+    abrirModoTelao() {
+      if (!this.telaoLeads.length) { showToast('Carregue/atualize os participantes antes.', 'error'); return; }
+      this.telaoVencedor = null;
+      this.telaoSorteando = false;
+      this.telaoApresentacao = true;
+      // Tenta tela cheia de verdade (a partir do clique do usuário)
+      try { const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); } catch (_) {}
+    },
+
+    fecharModoTelao() {
+      this.telaoApresentacao = false;
+      this.telaoSorteando = false;
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) {}
+    },
+
+    // Sorteia com um "rolar" de números pra criar suspense, depois revela
+    sortearNoTelao() {
+      if (!this.telaoLeads.length) { showToast('Nenhum participante pra sortear.', 'error'); return; }
+      this.telaoVencedor = null;
+      this.telaoSorteando = true;
+      let ticks = 0;
+      const total = 32;
+      const timer = setInterval(() => {
+        this.telaoRolando = String(Math.floor(1000 + Math.random() * 9000));
+        if (++ticks >= total) {
+          clearInterval(timer);
+          const i = Math.floor(Math.random() * this.telaoLeads.length);
+          this.telaoVencedor = this.telaoLeads[i];
+          this.telaoSorteando = false;
+          showToast('🎉 Temos um ganhador!', 'mago');
+        }
+      }, 70);
     },
 
     // ----- Seletor de jogo do evento (API-Football) -----

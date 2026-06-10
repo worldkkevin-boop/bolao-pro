@@ -2078,9 +2078,14 @@
                 </div>
               </template>
 
+              <!-- Botão destaque: abre o sorteio em tela cheia pra projetar no telão -->
+              <button @click="abrirModoTelao()" :disabled="!telaoLeads.length" class="w-full mb-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                📺 Modo Telão (tela cheia)
+              </button>
+
               <div class="flex gap-3 mt-auto">
                 <button @click="realizarSorteioTelao()" :disabled="!telaoLeads.length" class="flex-1 bg-gradient-to-r from-pink-600 to-amber-500 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
-                  🎲 Realizar Sorteio Geral
+                  🎲 Sortear (aqui no painel)
                 </button>
                 <button x-show="telaoVencedor" @click="limparSorteioTelao()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
                   Limpar
@@ -2175,6 +2180,56 @@
 
   </div>
 
+  <!-- ════════════ MODO TELÃO: SORTEIO EM TELA CHEIA (projeção) ════════════ -->
+  <div x-show="telaoApresentacao" x-cloak
+       class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center p-10 text-center overflow-hidden">
+    <!-- glows decorativos -->
+    <div class="absolute top-[-200px] left-[-150px] w-[500px] h-[500px] rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(236,72,153,0.18) 0%, rgba(5,5,5,0) 70%);"></div>
+    <div class="absolute bottom-[-200px] right-[-150px] w-[600px] h-[600px] rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(168,85,247,0.14) 0%, rgba(5,5,5,0) 70%);"></div>
+
+    <!-- Sair do modo telão -->
+    <button @click="fecharModoTelao()" class="absolute top-6 right-6 z-10 text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-widest border border-zinc-700/60 rounded-xl px-4 py-2 transition-all active:scale-95">
+      ✕ Sair do modo telão
+    </button>
+
+    <!-- Marca -->
+    <div class="relative z-0 mb-10">
+      <p class="text-pink-400 uppercase tracking-[0.4em] font-black text-sm mb-3">Bolão Pro · Evento</p>
+      <h1 class="text-5xl md:text-6xl font-black text-white">🎰 Sorteio ao Vivo</h1>
+    </div>
+
+    <!-- Estado 1: antes de sortear -->
+    <template x-if="!telaoVencedor && !telaoSorteando">
+      <div class="relative z-0">
+        <p class="text-zinc-400 text-lg mb-10"><span class="text-white font-black text-2xl" x-text="telaoLeads.length"></span> participantes concorrendo</p>
+        <button @click="sortearNoTelao()" class="bg-gradient-to-r from-pink-600 to-amber-500 hover:opacity-90 text-white font-black text-2xl px-16 py-6 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-[0_0_50px_rgba(236,72,153,0.35)]">
+          🎲 Sortear agora
+        </button>
+      </div>
+    </template>
+
+    <!-- Estado 2: rolando (suspense) -->
+    <template x-if="telaoSorteando">
+      <div class="relative z-0">
+        <p class="uppercase tracking-[0.3em] text-zinc-500 font-black mb-6 animate-pulse">Sorteando...</p>
+        <p class="text-[8rem] md:text-[11rem] leading-none font-black text-amber-300 tabular-nums" x-text="telaoRolando">0000</p>
+      </div>
+    </template>
+
+    <!-- Estado 3: ganhador -->
+    <template x-if="telaoVencedor">
+      <div class="relative z-0 flex flex-col items-center">
+        <p class="text-amber-300 uppercase tracking-[0.4em] font-black text-lg mb-4">🏆 Bilhete Premiado</p>
+        <p class="text-[9rem] md:text-[13rem] leading-none font-black text-amber-300 tabular-nums drop-shadow-[0_0_40px_rgba(251,191,36,0.4)]" x-text="telaoVencedor.numero_sorte">0000</p>
+        <p class="text-5xl md:text-7xl font-black text-white mt-8" x-text="telaoVencedor.nome">Ganhador</p>
+        <p class="text-zinc-500 text-sm mt-6 max-w-md">Confere o número no seu celular pra provar que é você! 📱</p>
+        <button @click="sortearNoTelao()" class="mt-10 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-bold text-sm px-8 py-3 rounded-xl uppercase tracking-widest transition-all active:scale-95">
+          🎲 Sortear outro
+        </button>
+      </div>
+    </template>
+  </div>
+
   <!-- Modal: Resolver Desafio — Selecionar Vencedor -->
   <div x-show="desafioParaFinalizar" x-cloak
        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-6"
@@ -2209,7 +2264,7 @@
   </div>
 
   <!-- Carrega as credenciais globais e o script do admin -->
-  <script src="/js/config.js?v=19"></script>
-  <script src="/gm/js/admin.js?v=19"></script>
+  <script src="/js/config.js?v=20"></script>
+  <script src="/gm/js/admin.js?v=20"></script>
 </body>
 </html>
