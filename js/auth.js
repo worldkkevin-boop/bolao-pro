@@ -80,6 +80,7 @@ function entrarNoApp(usuario) {
   // Módulo isolado: se entrou pelo link do Evento Telão, abre a Sala do Evento
   // (e ignora a restauração normal de grupo). Independente do bolão padrão.
   const eventoPendente = (typeof obterEventoPendente === 'function') ? obterEventoPendente() : null;
+  if (typeof mostrarBotaoVoltarEvento === 'function') mostrarBotaoVoltarEvento();
 
   if (eventoPendente && typeof abrirSalaEvento === 'function') {
     abrirSalaEvento(eventoPendente);

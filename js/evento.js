@@ -37,6 +37,9 @@ function _eventoParsePalpite(texto) {
 // ---- Abre a sala (chamada após o login, pelo entrarNoApp) ----
 function abrirSalaEvento(slug) {
   _eventoSlugAtual = slug;
+  // Ponteiro persistente do "último evento" (não some ao sair) — alimenta o
+  // botão "Voltar ao Evento" na home.
+  try { localStorage.setItem('evento_telao_ultimo', slug); } catch (_) {}
 
   const lead = _eventoLeadLocal(slug);
 
@@ -94,6 +97,35 @@ function sairDaSalaEvento() {
   // Volta para a Home normal do bolão
   if (typeof switchView === 'function') switchView('view-inicio');
   if (typeof carregarGrupos === 'function') carregarGrupos();
+
+  // Mostra o atalho de voltar pro evento na home
+  mostrarBotaoVoltarEvento();
+}
+
+// Reabre a sala do evento a partir do botão na home
+function voltarAoEvento() {
+  let slug = null;
+  try { slug = localStorage.getItem('evento_telao_ultimo'); } catch (_) {}
+  if (slug) abrirSalaEvento(slug);
+}
+
+// Mostra/esconde o banner "Voltar ao Evento" na home conforme o aparelho
+// já participou de algum evento.
+function mostrarBotaoVoltarEvento() {
+  const banner = document.getElementById('evento-voltar-banner');
+  if (!banner) return;
+  let slug = null, lead = null;
+  try {
+    slug = localStorage.getItem('evento_telao_ultimo');
+    if (slug) lead = JSON.parse(localStorage.getItem('evento_telao_lead_' + slug));
+  } catch (_) {}
+  if (slug && lead) {
+    const txt = document.getElementById('evento-voltar-texto');
+    if (txt) txt.textContent = lead.titulo ? `Você está participando: ${lead.titulo}` : 'Você está participando do evento.';
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
 }
 
 function _eventoSetTimes(casa, fora, casaLogo, foraLogo) {

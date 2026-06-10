@@ -334,6 +334,7 @@
       // principal → o localStorage é compartilhado, então a sala do evento lê isto).
       try {
         localStorage.setItem('evento_telao_pending', eventoSlug);
+        localStorage.setItem('evento_telao_ultimo', eventoSlug);
         localStorage.setItem('evento_telao_lead_' + eventoSlug, JSON.stringify({
           numero, nome, palpite,
           fixtureId: fixtureId || null,
