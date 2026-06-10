@@ -273,17 +273,20 @@ function exibirVencedorEvento(sorteio) {
   const numero = document.getElementById('evento-vencedor-numero');
   const msg = document.getElementById('evento-vencedor-msg');
   const modal = document.getElementById('evento-vencedor-modal');
+  const avisoGanhador = document.getElementById('evento-vencedor-aviso-ganhador');
 
   if (souEu) {
     titulo.textContent = '🎉 VOCÊ GANHOU! 🎉';
     titulo.className = 'text-2xl font-black text-gold mb-2 text-center animate-bounce';
     modal.className = 'relative bg-card-bg border-4 border-gold rounded-3xl p-8 w-full max-w-[320px] shadow-[0_0_50px_rgba(251,191,36,0.4)]';
     msg.textContent = 'Parabéns! Vá até o Mago para retirar seu prêmio!';
+    if (avisoGanhador) avisoGanhador.classList.remove('hidden');
   } else {
     titulo.textContent = 'Temos um ganhador!';
     titulo.className = 'text-xl font-black text-white mb-2 text-center';
     modal.className = 'relative bg-card-bg border border-white/10 rounded-3xl p-8 w-full max-w-[320px] shadow-2xl';
     msg.textContent = 'Fique atento, o próximo pode ser você!';
+    if (avisoGanhador) avisoGanhador.classList.add('hidden');
   }
 
   nome.textContent = sorteio.nome;
