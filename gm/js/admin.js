@@ -97,6 +97,7 @@ function adminApp() {
     usuariosLista: [],
     usuariosLoading: false,
     usuariosFiltro: '',
+    usuarioSelecionado: null,
 
     // Migração de Jogadores
     migracaoLoading: false,
@@ -108,7 +109,7 @@ function adminApp() {
     desafiosListaGM: [],
     desafiosLoading: false,
     desafiosAbaFiltro: 'active',
-    novoDesafio: { fixture_id: '', match_name: '', market_type: '', prop_line: 0.5, target_player_name: '', premio_pontos: 15, custo_fichas: 1, event_type: 'Prop', points: 15, status: 'active', hasPenalty: false },
+    novoDesafio: { fixture_id: '', match_name: '', market_type: '', prop_line: 0.5, target_player_name: '', premio_pontos: 15, custo_fichas: 1, event_type: 'Prop', points: 15, status: 'active', hasPenalty: false, players: [] },
     novoJogadorInput: '',
     desafioLancando: false,
     buscaFixture: '',
