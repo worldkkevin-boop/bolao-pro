@@ -251,6 +251,15 @@
   <!-- ===================== APP PRINCIPAL ===================== -->
   <div id="screen-app" class="hidden pt-1 px-4 max-w-md mx-auto pb-28">
 
+    <!-- Banner: Voltar ao Evento ao Vivo (módulo telão — aparece em todas as views p/ quem participou) -->
+    <div id="evento-voltar-banner" class="hidden bg-gradient-to-r from-brand-green/15 to-transparent border border-brand-green/30 rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer hover:border-brand-green/50 transition-all" onclick="voltarAoEvento()">
+      <span class="text-xl flex-shrink-0">🏟️</span>
+      <div class="flex-1 min-w-0 text-[13px] leading-relaxed">
+        <span class="font-bold text-white block mb-0.5">Evento ao vivo</span>
+        <span id="evento-voltar-texto" class="text-text-muted">Você está participando do evento.</span> <span class="underline font-bold text-brand-green">Voltar ao vivo →</span>
+      </div>
+    </div>
+
     <div id="view-inicio" class="fade-in block">
 
       <!-- Profile strip -->
@@ -263,15 +272,6 @@
           </div>
         </div>
         <button onclick="deslogar()" class="text-red-400 text-[13px] font-bold hover:text-red-300 transition-colors flex-shrink-0 ml-3">Sair</button>
-      </div>
-
-      <!-- Banner: Voltar ao Evento ao Vivo (módulo telão — só aparece p/ quem participou) -->
-      <div id="evento-voltar-banner" class="hidden bg-gradient-to-r from-brand-green/15 to-transparent border border-brand-green/30 rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer hover:border-brand-green/50 transition-all" onclick="voltarAoEvento()">
-        <span class="text-xl flex-shrink-0">🏟️</span>
-        <div class="flex-1 min-w-0 text-[13px] leading-relaxed">
-          <span class="font-bold text-white block mb-0.5">Evento ao vivo</span>
-          <span id="evento-voltar-texto" class="text-text-muted">Você está participando do evento.</span> <span class="underline font-bold text-brand-green">Voltar ao vivo →</span>
-        </div>
       </div>
 
       <!-- Push Notification Banner -->

@@ -671,6 +671,29 @@ function adminApp() {
       }
     },
 
+    async deletarUsuarioNuclear(id, nome) {
+      if (!confirm(`🚨 ALERTA NUCLEAR! 🚨\n\nVocê tem certeza que deseja EXTERMINAR a conta de "${nome}"?\n\nIsso removerá o perfil, todos os palpites, fichas e participações em grupos permanentemente.`)) return;
+      
+      const pin = prompt(`Para confirmar a destruição, digite o PIN de segurança:`);
+      if (pin !== "8187") return alert("PIN incorreto. Operação abortada.");
+
+      try {
+        const { error } = await sbClient
+          .from('profiles')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        showToast(`Usuário ${nome} foi removido da existência.`, 'success');
+        this.abaAtiva = 'usuarios';
+        this.carregarUsuarios();
+      } catch (err) {
+        console.error("Erro ao deletar usuário:", err);
+        showToast("Falha ao exterminar usuário: " + err.message, "error");
+      }
+    },
+
     async expulsarCirurgico(usuarioId, grupoId, grupoName) {
       if (!confirm(`⚠️ Expulsar o jogador do grupo "${grupoName}"? Ele perderá acesso ao bolão desse grupo.`)) return;
       const t = Date.now();
