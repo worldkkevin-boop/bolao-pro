@@ -1751,9 +1751,27 @@ function adminApp() {
           const json = await resp.json();
           if (json.response) jogos = jogos.concat(json.response);
         }
-        const q = this.telaoBuscaJogo.toLowerCase();
+        // A API devolve nomes em inglês (ex: "Brazil"). Normaliza acento e
+        // traduz PT->EN as seleções pra busca em português funcionar.
+        const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        const ALIAS = {
+          'brasil':'brazil','alemanha':'germany','espanha':'spain','inglaterra':'england',
+          'franca':'france','italia':'italy','holanda':'netherlands','paises baixos':'netherlands',
+          'belgica':'belgium','croacia':'croatia','suica':'switzerland','coreia do sul':'south korea',
+          'coreia':'korea','japao':'japan','estados unidos':'united states','eua':'united states',
+          'arabia saudita':'saudi arabia','africa do sul':'south africa','marrocos':'morocco',
+          'camaroes':'cameroon','equador':'ecuador','uruguai':'uruguay','polonia':'poland',
+          'dinamarca':'denmark','servia':'serbia','tunisia':'tunisia','gana':'ghana','catar':'qatar',
+          'ira':'iran','turquia':'turkey','escocia':'scotland','gales':'wales','noruega':'norway',
+          'argelia':'algeria','egito':'egypt','nova zelandia':'new zealand'
+        };
+        const qn = norm(this.telaoBuscaJogo);
+        const qa = ALIAS[qn] || qn;
         this.telaoResultadosBusca = jogos
-          .filter(j => j.teams.home.name.toLowerCase().includes(q) || j.teams.away.name.toLowerCase().includes(q))
+          .filter(j => {
+            const h = norm(j.teams.home.name), a = norm(j.teams.away.name);
+            return h.includes(qn) || a.includes(qn) || h.includes(qa) || a.includes(qa);
+          })
           .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
         this.adicionarLog('API-Football', `GET /fixtures telão "${this.telaoBuscaJogo}"`, 'SUCCESS', Date.now() - t, `${this.telaoResultadosBusca.length} jogos`);
         if (!this.telaoResultadosBusca.length) showToast('Nenhum jogo encontrado nos próximos 30 dias.', 'info');
