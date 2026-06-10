@@ -252,11 +252,6 @@ function switchView(targetViewId) {
       carregarParticipantesGrupo();
     }
   }
-
-  // Sincroniza o botão de voltar ao evento se houver lead pendente
-  if (typeof mostrarBotaoVoltarEvento === 'function') {
-    mostrarBotaoVoltarEvento();
-  }
 }
 
 function formatarData(dateStr) {
