@@ -22,6 +22,73 @@ function obterEventoPendente() {
   catch (_) { return null; }
 }
 
+let _eventoGlobalPollTimer = null;
+let _slugEventoAtivoEncontrado = null;
+
+// Checa se existe algum evento iniciado pelo GM no Supabase
+async function checarEventoAtivoGlobal() {
+  if (typeof sbClient === 'undefined' || !sbClient) return;
+
+  try {
+    // Busca na tabela de sorteio pelo marcador especial de 'CONFIG_ATIVO_'
+    const { data, error } = await sbClient
+      .from('evento_sorteio_telao')
+      .select('evento, nome')
+      .like('evento', 'CONFIG_ATIVO_%')
+      .order('criado_em', { ascending: false })
+      .limit(1);
+
+    const container = document.getElementById('container-eventos-ativos');
+    const nomeEl = document.getElementById('menu-evento-nome');
+
+    if (!error && data && data.length > 0) {
+      const configSlug = data[0].evento;
+      const realSlug = configSlug.replace('CONFIG_ATIVO_', '');
+      _slugEventoAtivoEncontrado = realSlug;
+
+      if (nomeEl) {
+        // Tenta pegar o nome do jogo salvo ou usa um padrão
+        nomeEl.textContent = 'Evento Telão Ao Vivo';
+        // Se houver lead salvo para esse slug, podemos mostrar o placar ou times
+        const lead = _eventoLeadLocal(realSlug);
+        if (lead && lead.casa) nomeEl.textContent = `${lead.casa} × ${lead.fora}`;
+      }
+
+      if (container) {
+        container.classList.remove('hidden');
+        container.classList.add('fade-in');
+      }
+    } else {
+      if (container) container.classList.add('hidden');
+      _slugEventoAtivoEncontrado = null;
+    }
+  } catch (e) {
+    console.warn('[evento] erro ao checar eventos globais:', e);
+  }
+}
+
+// Chamada pelo botão do menu principal
+function abrirSalaEventoDesdeMenu() {
+  if (_slugEventoAtivoEncontrado) {
+    abrirSalaEvento(_slugEventoAtivoEncontrado);
+  } else {
+    alert('O evento não está mais ativo ou foi finalizado pelo Mago.');
+  }
+}
+
+// Inicia o monitoramento global (roda sempre que o app inicia)
+function iniciarMonitoramentoEventos() {
+  checarEventoAtivoGlobal();
+  if (_eventoGlobalPollTimer) clearInterval(_eventoGlobalPollTimer);
+  _eventoGlobalPollTimer = setInterval(checarEventoAtivoGlobal, 10000); // Checa a cada 10s
+}
+
+// Adiciona ao carregamento inicial do sistema (auth.js ou ui.js costumam chamar)
+document.addEventListener('DOMContentLoaded', () => {
+  // Atraso curto para o Supabase carregar
+  setTimeout(iniciarMonitoramentoEventos, 1500);
+});
+
 function _eventoLeadLocal(slug) {
   try {
     const raw = localStorage.getItem('evento_telao_lead_' + slug);

@@ -2027,7 +2027,7 @@
             <!-- Jogo já selecionado: mostra confronto + QR + link -->
             <template x-if="telaoFixture">
               <div class="bg-black/40 border border-pink-500/20 rounded-2xl p-4">
-                <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
                   <div class="flex items-center gap-3">
                     <img :src="telaoFixture.homeLogo" class="w-9 h-9 object-contain" alt="">
                     <span class="font-black text-white text-sm" x-text="telaoFixture.homeName"></span>
@@ -2037,6 +2037,21 @@
                   </div>
                   <button @click="limparJogoTelao()" class="text-[10px] text-zinc-500 hover:text-white font-bold uppercase tracking-wider">trocar jogo</button>
                 </div>
+
+                <!-- Botão Master para Iniciar/Finalizar para todos -->
+                <div class="mb-4 pt-4 border-t border-zinc-800/60">
+                   <button 
+                     @click="alternarStatusEvento()" 
+                     :disabled="iniciandoEvento"
+                     class="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                     :class="eventoAtivo ? 'bg-red-500/10 border border-red-500/40 text-red-500 hover:bg-red-500/20' : 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'"
+                   >
+                     <span x-show="!eventoAtivo">🚀 Iniciar Evento p/ Participantes</span>
+                     <span x-show="eventoAtivo">🛑 Finalizar Evento p/ Todos</span>
+                   </button>
+                   <p class="text-[9px] text-zinc-500 text-center mt-2 font-bold uppercase tracking-widest" x-text="eventoAtivo ? 'O evento está aparecendo no menu dos jogadores' : 'O evento está oculto para os jogadores'"></p>
+                </div>
+
                 <p class="text-[10px] text-zinc-500 mt-2" x-text="'Início: ' + new Date(telaoFixture.date).toLocaleString('pt-BR')"></p>
 
                 <div class="flex items-center gap-4 mt-4 pt-4 border-t border-zinc-800/60">

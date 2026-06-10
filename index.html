@@ -311,6 +311,30 @@
         </button>
       </div>
 
+      <!-- Seção: Eventos Ao Vivo (Aparece apenas quando o GM inicia) -->
+      <div id="container-eventos-ativos" class="hidden mb-8">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          Evento rolando agora
+        </h2>
+        
+        <button onclick="abrirSalaEventoDesdeMenu()" class="w-full bg-gradient-to-br from-[#18181b] to-black border border-pink-500/30 rounded-3xl p-5 flex items-center gap-4 hover:border-pink-500/60 transition-all active:scale-[0.98] text-left relative overflow-hidden group shadow-xl">
+          <div class="absolute -right-10 -top-10 w-32 h-32 bg-pink-500/5 rounded-full blur-2xl group-hover:bg-pink-500/10 transition-all"></div>
+          
+          <div class="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center text-2xl flex-shrink-0 border border-pink-500/20">🏟️</div>
+          
+          <div class="flex-1 min-w-0">
+            <h3 class="font-black text-[15px] text-white uppercase tracking-tight" id="menu-evento-nome">Carregando evento...</h3>
+            <p class="text-[11px] text-pink-400 font-bold mt-0.5">Clique para entrar na sala ao vivo →</p>
+          </div>
+          
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" class="text-pink-500 flex-shrink-0"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
       <!-- Lista de grupos -->
       <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Meus grupos</h2>
       <div id="lista-grupos">

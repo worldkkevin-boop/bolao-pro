@@ -69,6 +69,8 @@ function adminApp() {
     telaoResultadosBusca: [],
     telaoHistoricoBusca: [], // Adicionado: histórico para o telão
     telaoFixture: null,              // { id, homeName, homeLogo, awayName, awayLogo, date }
+    eventoAtivo: false,              // Indica se o evento está iniciado para os players
+    iniciandoEvento: false,
 
     // Grupos
     gruposLista: [],
@@ -1772,11 +1774,40 @@ function adminApp() {
         if (error) throw error;
         this.telaoLeads = data || [];
         this.adicionarLog('Supabase', 'SELECT leads_evento_telao', 'SUCCESS', Date.now() - t, `${this.telaoLeads.length} leads`);
+
+        // Checa se o evento está marcado como ATIVO no banco (marcador especial)
+        const { data: activeCheck } = await sbClient.from('evento_sorteio_telao').select('id').eq('evento', 'CONFIG_ATIVO_' + this.telaoEvento).limit(1);
+        this.eventoAtivo = (activeCheck && activeCheck.length > 0);
+
       } catch (err) {
         this.adicionarLog('Supabase', 'SELECT leads_evento_telao', 'ERROR', Date.now() - t, err.message);
         showToast('Erro ao carregar leads do telão: ' + err.message, 'error');
       } finally {
         this.telaoLoading = false;
+      }
+    },
+
+    async alternarStatusEvento() {
+      if (!this.telaoEvento) return;
+      this.iniciandoEvento = true;
+      try {
+        if (this.eventoAtivo) {
+          await sbClient.from('evento_sorteio_telao').delete().eq('evento', 'CONFIG_ATIVO_' + this.telaoEvento);
+          this.eventoAtivo = false;
+          showToast('Evento finalizado para os participantes.', 'info');
+        } else {
+          await sbClient.from('evento_sorteio_telao').insert({
+            evento: 'CONFIG_ATIVO_' + this.telaoEvento,
+            numero_sorte: 'STATUS',
+            nome: 'ATIVO'
+          });
+          this.eventoAtivo = true;
+          showToast('Evento INICIADO! Botão liberado para os participantes.', 'success');
+        }
+      } catch (e) {
+        showToast('Erro ao alternar status do evento.', 'error');
+      } finally {
+        this.iniciandoEvento = false;
       }
     },
 
