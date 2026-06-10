@@ -1725,7 +1725,25 @@ function adminApp() {
       }
       const i = Math.floor(Math.random() * this.telaoLeads.length);
       this.telaoVencedor = this.telaoLeads[i];
+      this._salvarSorteioTelao(this.telaoVencedor);
       showToast('🎉 Bilhete premiado sorteado!', 'mago');
+    },
+
+    // Grava o ganhador pra o celular dele acender "VOCÊ GANHOU"
+    async _salvarSorteioTelao(vencedor) {
+      if (!vencedor || !sbClient) return;
+      try {
+        const { error } = await sbClient.from('evento_sorteio_telao').insert({
+          evento: this.telaoEvento,
+          numero_sorte: vencedor.numero_sorte,
+          nome: vencedor.nome
+        });
+        if (error) throw error;
+        this.adicionarLog('Supabase', 'INSERT evento_sorteio_telao', 'SUCCESS', 0, `Ganhador: ${vencedor.nome}`);
+      } catch (e) {
+        this.adicionarLog('Supabase', 'INSERT evento_sorteio_telao', 'ERROR', 0, e.message);
+        showToast('Sorteio feito, mas falhou avisar os celulares: ' + e.message, 'error');
+      }
     },
 
     limparSorteioTelao() {
@@ -1762,6 +1780,7 @@ function adminApp() {
           const i = Math.floor(Math.random() * this.telaoLeads.length);
           this.telaoVencedor = this.telaoLeads[i];
           this.telaoSorteando = false;
+          this._salvarSorteioTelao(this.telaoVencedor);
           showToast('🎉 Temos um ganhador!', 'mago');
         }
       }, 70);

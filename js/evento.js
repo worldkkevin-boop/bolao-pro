@@ -11,6 +11,8 @@ const EVENTO_API_KEY  = '47ca2bb05eb5931347aca04964818eb5';
 let _eventoSlugAtual   = null;
 let _eventoFixtureId   = null;
 let _eventoPollTimer   = null;
+let _eventoSorteioTimer = null;
+let _eventoLastSorteioId = null;
 let _eventoPlacarVivo  = null;   // { home, away } do jogo agora
 let _eventoParticipantes = [];
 
@@ -82,10 +84,16 @@ function abrirSalaEvento(slug) {
   }
 
   carregarParticipantesEvento();
+
+  // Inicia polling do sorteio (mais frequente: a cada 5s)
+  if (_eventoSorteioTimer) clearInterval(_eventoSorteioTimer);
+  _eventoSorteioTimer = setInterval(verificarSorteioEvento, 5000);
+  verificarSorteioEvento(); // primeira checada imediata
 }
 
 function sairDaSalaEvento() {
   if (_eventoPollTimer) { clearInterval(_eventoPollTimer); _eventoPollTimer = null; }
+  if (_eventoSorteioTimer) { clearInterval(_eventoSorteioTimer); _eventoSorteioTimer = null; }
   try { localStorage.removeItem('evento_telao_pending'); } catch (_) {}
 
   const overlay = document.getElementById('view-evento');
@@ -214,6 +222,84 @@ async function carregarParticipantesEvento() {
 function recarregarParticipantesEvento() {
   carregarParticipantesEvento();
   if (_eventoFixtureId) atualizarPlacarEvento();
+}
+
+// ---- Sorteio (Raffle) ----
+async function verificarSorteioEvento() {
+  if (!_eventoSlugAtual || typeof sbClient === 'undefined' || !sbClient) return;
+
+  try {
+    const { data, error } = await sbClient
+      .from('evento_sorteio_telao')
+      .select('id, numero_sorte, nome')
+      .eq('evento', _eventoSlugAtual)
+      .order('criado_em', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return;
+
+    const sorteio = data[0];
+
+    // Se é um sorteio novo (ID diferente do último visto)
+    if (sorteio.id !== _eventoLastSorteioId) {
+      // Se for a primeira vez que entra na sala, apenas registra o ID mas não "anuncia"
+      // para não mostrar um sorteio antigo como novo.
+      const primeiraVez = (_eventoLastSorteioId === null);
+      _eventoLastSorteioId = sorteio.id;
+
+      if (!primeiraVez) {
+        exibirVencedorEvento(sorteio);
+      }
+    }
+  } catch (e) {
+    console.warn('[evento] erro ao checar sorteio:', e);
+  }
+}
+
+function exibirVencedorEvento(sorteio) {
+  const overlay = document.getElementById('evento-vencedor-overlay');
+  if (!overlay) return;
+
+  const lead = _eventoLeadLocal(_eventoSlugAtual);
+  const souEu = lead && String(lead.numero) === String(sorteio.numero_sorte);
+
+  const titulo = document.getElementById('evento-vencedor-titulo');
+  const nome = document.getElementById('evento-vencedor-nome');
+  const numero = document.getElementById('evento-vencedor-numero');
+  const msg = document.getElementById('evento-vencedor-msg');
+  const modal = document.getElementById('evento-vencedor-modal');
+
+  if (souEu) {
+    titulo.textContent = '🎉 VOCÊ GANHOU! 🎉';
+    titulo.className = 'text-2xl font-black text-gold mb-2 text-center animate-bounce';
+    modal.className = 'relative bg-card-bg border-4 border-gold rounded-3xl p-8 w-full max-w-[320px] shadow-[0_0_50px_rgba(251,191,36,0.4)]';
+    msg.textContent = 'Parabéns! Vá até o Mago para retirar seu prêmio!';
+  } else {
+    titulo.textContent = 'Temos um ganhador!';
+    titulo.className = 'text-xl font-black text-white mb-2 text-center';
+    modal.className = 'relative bg-card-bg border border-white/10 rounded-3xl p-8 w-full max-w-[320px] shadow-2xl';
+    msg.textContent = 'Fique atento, o próximo pode ser você!';
+  }
+
+  nome.textContent = sorteio.nome;
+  numero.textContent = 'Nº ' + sorteio.numero_sorte;
+
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+
+  // Confetes se ganhou
+  if (souEu && typeof confetti === 'function') {
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#ffffff', '#10b981'] });
+  }
+}
+
+function fecharVencedorEvento() {
+  const overlay = document.getElementById('evento-vencedor-overlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+    overlay.classList.remove('flex');
+  }
 }
 
 function _eventoRenderParticipantes() {

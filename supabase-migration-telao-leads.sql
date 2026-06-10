@@ -84,3 +84,38 @@ WHERE a.evento = b.evento
 -- 6b. Agora sim, cria o índice único anti-abuso.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_lead_evento_whatsapp
   ON leads_evento_telao (evento, whatsapp);
+
+-- ======================================================================
+-- 7. SORTEIO: registra o ganhador p/ o celular dele acender "VOCÊ GANHOU"
+-- ======================================================================
+-- Quando o GM sorteia, o ganhador é gravado aqui. A sala do evento fica
+-- checando: se o número sorteado == o número do aparelho, acende "VOCÊ GANHOU".
+-- Guarda só número + nome (nada sensível; sem WhatsApp).
+CREATE TABLE IF NOT EXISTS evento_sorteio_telao (
+  id            uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  evento        text          NOT NULL,
+  numero_sorte  text          NOT NULL,
+  nome          text          NOT NULL,
+  criado_em     timestamptz   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sorteio_telao_evento
+  ON evento_sorteio_telao (evento, criado_em DESC);
+
+ALTER TABLE evento_sorteio_telao ENABLE ROW LEVEL SECURITY;
+
+-- Todos podem LER o ganhador (pro celular acender). Só número + nome.
+DROP POLICY IF EXISTS "sorteio_select_publico" ON evento_sorteio_telao;
+CREATE POLICY "sorteio_select_publico"
+  ON evento_sorteio_telao
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- Só o GM pode registrar um sorteio.
+DROP POLICY IF EXISTS "sorteio_insert_gm" ON evento_sorteio_telao;
+CREATE POLICY "sorteio_insert_gm"
+  ON evento_sorteio_telao
+  FOR INSERT
+  TO authenticated
+  WITH CHECK ( (auth.jwt() ->> 'email') = 'worldkkevin@gmail.com' );
