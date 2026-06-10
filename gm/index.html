@@ -1321,6 +1321,16 @@
               </button>
             </div>
 
+            <!-- Histórico de Buscas Rápidas -->
+            <template x-if="historicoBuscaFixtures.length > 0">
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest flex items-center mr-1">Recentes:</span>
+                <template x-for="termo in historicoBuscaFixtures" :key="termo">
+                  <button @click="usarBuscaHistorico(termo)" x-text="termo" class="text-[9px] font-black text-purple-400/80 bg-purple-500/5 border border-purple-500/10 px-2 py-0.5 rounded-lg hover:bg-purple-500/20 transition-all uppercase tracking-wide"></button>
+                </template>
+              </div>
+            </template>
+
             <!-- Resultados da busca de fixtures -->
             <div x-show="resultadoBuscaFixtures.length > 0" class="space-y-2 max-h-56 overflow-y-auto border border-zinc-800/40 rounded-xl p-2.5 bg-zinc-950/30">
               <template x-for="jogo in resultadoBuscaFixtures" :key="jogo.fixture.id">

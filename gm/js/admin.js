@@ -115,6 +115,38 @@ function adminApp() {
     buscaFixture: '',
     buscaFixtureLoading: false,
     resultadoBuscaFixtures: [],
+    historicoBuscaFixtures: [], // Adicionado: lista de buscas recentes
+
+    init() {
+      // Carregar histórico do localStorage
+      try {
+        const h = localStorage.getItem('gm_busca_history');
+        if (h) this.historicoBuscaFixtures = JSON.parse(h);
+      } catch(e) {}
+
+      this.carregarDadosIniciais();
+      // ... rest of init
+    },
+
+    async buscarFixtures() {
+      if (this.buscaFixture.length < 3) return;
+      
+      // Salvar no histórico
+      const termo = this.buscaFixture.trim();
+      if (termo) {
+        let h = [termo, ...this.historicoBuscaFixtures.filter(t => t.toLowerCase() !== termo.toLowerCase())];
+        this.historicoBuscaFixtures = h.slice(0, 5); // Mantém as 5 últimas
+        localStorage.setItem('gm_busca_history', JSON.stringify(this.historicoBuscaFixtures));
+      }
+
+      this.buscaFixtureLoading = true;
+      // ... rest of search logic
+    },
+
+    usarBuscaHistorico(termo) {
+      this.buscaFixture = termo;
+      this.buscarFixtures();
+    },
 
     // Oráculo (aba dedicada)
     oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
@@ -1049,6 +1081,15 @@ function adminApp() {
 
     async buscarPartidas() {
       if (!this.buscaFixture || this.buscaFixtureLoading) return;
+
+      // Salvar no histórico
+      const termo = this.buscaFixture.trim();
+      if (termo) {
+        let h = [termo, ...this.historicoBuscaFixtures.filter(t => t.toLowerCase() !== termo.toLowerCase())];
+        this.historicoBuscaFixtures = h.slice(0, 5); // Mantém as 5 últimas
+        localStorage.setItem('gm_busca_history', JSON.stringify(this.historicoBuscaFixtures));
+      }
+
       this.buscaFixtureLoading = true;
       this.resultadoBuscaFixtures = [];
 
@@ -1088,6 +1129,11 @@ function adminApp() {
       } finally {
         this.buscaFixtureLoading = false;
       }
+    },
+
+    usarBuscaHistorico(termo) {
+      this.buscaFixture = termo;
+      this.buscarPartidas();
     },
 
     selecionarPartida(jogo) {
