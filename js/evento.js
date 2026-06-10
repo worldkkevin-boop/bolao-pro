@@ -237,9 +237,13 @@ async function verificarSorteioEvento() {
       .limit(1);
 
     if (error) throw error;
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      console.log('[evento] Nenhum sorteio encontrado para:', _eventoSlugAtual);
+      return;
+    }
 
     const sorteio = data[0];
+    console.log('[evento] Último sorteio detectado:', sorteio.numero_sorte, sorteio.nome);
 
     // Se é um sorteio novo (ID diferente do último visto)
     if (sorteio.id !== _eventoLastSorteioId) {
