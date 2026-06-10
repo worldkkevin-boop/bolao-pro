@@ -70,6 +70,17 @@ GRANT SELECT ON evento_telao_publico TO anon, authenticated;
 -- Impede que a mesma pessoa pegue vários "números da sorte" se cadastrando
 -- de novo (mesmo trocando de aparelho ou usando aba anônima). O WhatsApp é
 -- gravado só com dígitos (ver telao.html), então a comparação é confiável.
--- OBS: se já houver linhas duplicadas de teste, limpe-as antes de rodar isto.
+
+-- 6a. Limpa duplicados pré-existentes (de testes), mantendo o 1º cadastro
+--     de cada (evento, whatsapp). Sem isto o índice único abaixo não pode
+--     ser criado. É idempotente: depois de limpo, vira no-op.
+DELETE FROM leads_evento_telao a
+USING leads_evento_telao b
+WHERE a.evento = b.evento
+  AND a.whatsapp = b.whatsapp
+  AND (a.criado_em > b.criado_em
+       OR (a.criado_em = b.criado_em AND a.id > b.id));
+
+-- 6b. Agora sim, cria o índice único anti-abuso.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_lead_evento_whatsapp
   ON leads_evento_telao (evento, whatsapp);
