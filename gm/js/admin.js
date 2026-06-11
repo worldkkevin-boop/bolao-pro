@@ -1908,8 +1908,16 @@ function adminApp() {
       }
     },
 
-    limparSorteioTelao() {
+    async limparSorteioTelao() {
       this.telaoVencedor = null;
+      // Apaga os registros de ganhador deste evento p/ os celulares pararem de exibir
+      try {
+        const { error } = await sbClient.from('evento_sorteio_telao').delete().eq('evento', this.telaoEvento);
+        if (error) throw error;
+        showToast('Sorteio limpo. O anúncio some dos celulares.', 'info');
+      } catch (e) {
+        showToast('Não consegui limpar o sorteio (rode a migração de DELETE).', 'error');
+      }
     },
 
     // ----- Modo Telão: sorteio em tela cheia para projeção -----

@@ -13,6 +13,7 @@ let _eventoFixtureId   = null;
 let _eventoPollTimer   = null;
 let _eventoSorteioTimer = null;
 let _eventoLastSorteioId = null;
+let _eventoSorteioBaselineFeito = false; // ao entrar, marca o ganhador atual como "já visto"
 let _eventoPlacarVivo  = null;   // { home, away } do jogo agora
 let _eventoParticipantes = [];
 
@@ -163,6 +164,8 @@ async function abrirSalaEvento(slug) {
 
   _eventoSlugAtual = slug;
   _eventoEstavaAtivo = true;   // confirmado ativo agora (p/ detectar finalização depois)
+  _eventoSorteioBaselineFeito = false; // não mostra ganhador antigo ao entrar
+  _eventoLastSorteioId = null;
   // Ponteiro persistente do "último evento" (não some ao sair) — alimenta o
   // botão "Voltar ao Evento" na home.
   try { localStorage.setItem('evento_telao_ultimo', slug); } catch (_) {}
@@ -371,16 +374,18 @@ async function verificarSorteioEvento() {
       .limit(1);
 
     if (error) throw error;
-    if (!data || data.length === 0) {
-      console.log('[evento] Nenhum sorteio encontrado para:', _eventoSlugAtual);
+
+    const sorteio = (data && data.length) ? data[0] : null;
+
+    // Ao ENTRAR na sala, marca o ganhador atual como "já visto" (não pop-a
+    // ganhadores de sorteios antigos). Só mostra os sorteados DEPOIS da entrada.
+    if (!_eventoSorteioBaselineFeito) {
+      _eventoSorteioBaselineFeito = true;
+      _eventoLastSorteioId = sorteio ? sorteio.id : null;
       return;
     }
 
-    const sorteio = data[0];
-    console.log('[evento] Último sorteio detectado:', sorteio.numero_sorte, sorteio.nome);
-
-    // Se é um sorteio novo (ID diferente do último visto)
-    if (sorteio.id !== _eventoLastSorteioId) {
+    if (sorteio && sorteio.id !== _eventoLastSorteioId) {
       _eventoLastSorteioId = sorteio.id;
       exibirVencedorEvento(sorteio);
     }
