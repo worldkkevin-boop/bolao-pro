@@ -130,6 +130,42 @@ function _eventoMeuLead() {
   return _eventoLeadLocal(_eventoSlugAtual) || _eventoLeadQualquer();
 }
 
+let _eventoMeuPalpiteCache = null; // texto do palpite do usuário (p/ destacar na distribuição)
+
+// Reivindica o palpite deste aparelho p/ a conta logada (seta o email).
+// Idempotente: o filtro .is('email', null) faz no-op se já tiver dono.
+async function _eventoReivindicarLead() {
+  try {
+    const lead = _eventoLeadQualquer();
+    if (!lead || !lead.id) return;
+    const { data: { user } } = await sbClient.auth.getUser();
+    if (!user || !user.email) return;
+    await sbClient.from('leads_evento_telao')
+      .update({ email: user.email }).eq('id', lead.id).is('email', null);
+  } catch (_) {}
+}
+
+// Busca o palpite do usuário pelo EMAIL (funciona em qualquer aparelho da conta)
+async function _eventoCarregarMeuPalpitePorEmail(slug) {
+  try {
+    const { data: { user } } = await sbClient.auth.getUser();
+    if (!user || !user.email) return null;
+    const { data } = await sbClient.from('leads_evento_telao')
+      .select('numero_sorte, palpite').eq('evento', slug).eq('email', user.email).limit(1);
+    if (data && data.length) return { numero: data[0].numero_sorte, palpite: data[0].palpite };
+  } catch (_) {}
+  return null;
+}
+
+function _eventoMostrarCardPalpite(numero, palpite) {
+  if (!numero) return;
+  document.getElementById('evento-meu-numero').textContent = numero;
+  document.getElementById('evento-meu-palpite').textContent = palpite || '';
+  document.getElementById('evento-meu-numero-card').classList.remove('hidden');
+  _eventoMeuPalpiteCache = palpite || null;
+  if (typeof _eventoRenderParticipantes === 'function') _eventoRenderParticipantes();
+}
+
 // Extrai o placar (casa, fora) de um texto tipo "Brasil 2 x 0 Argentina"
 function _eventoParsePalpite(texto) {
   const m = String(texto || '').match(/(\d+)\s*x\s*(\d+)/i);
@@ -189,12 +225,18 @@ async function abrirSalaEvento(slug) {
   const overlay = document.getElementById('view-evento');
   if (overlay) overlay.classList.remove('hidden');
 
-  // Card "Seu palpite" (usa o palpite deste aparelho, com fallback)
+  // Vincula o palpite deste aparelho à conta logada (pra carregar em outros aparelhos)
+  _eventoReivindicarLead();
+
+  // Card "Seu palpite": tenta pelo aparelho; se não tiver, busca pela conta (email)
   const meuLead = lead || _eventoLeadQualquer();
+  _eventoMeuPalpiteCache = (meuLead && meuLead.palpite) || null;
   if (meuLead && meuLead.numero) {
-    document.getElementById('evento-meu-numero').textContent = meuLead.numero;
-    document.getElementById('evento-meu-palpite').textContent = meuLead.palpite || '';
-    document.getElementById('evento-meu-numero-card').classList.remove('hidden');
+    _eventoMostrarCardPalpite(meuLead.numero, meuLead.palpite);
+  } else {
+    _eventoCarregarMeuPalpitePorEmail(slug).then(r => {
+      if (r) _eventoMostrarCardPalpite(r.numero, r.palpite);
+    });
   }
 
   // Nomes/escudos provisórios a partir do lead (até a API responder)
@@ -475,7 +517,7 @@ function _eventoRenderParticipantes() {
   }
 
   const { arr } = _eventoDistribuicao(_eventoParticipantes);
-  const meuPp = _eventoParsePalpite((_eventoMeuLead() || {}).palpite);
+  const meuPp = _eventoParsePalpite(_eventoMeuPalpiteCache || (_eventoMeuLead() || {}).palpite);
 
   cont.innerHTML = arr.map(d => {
     const cravando = _eventoPlacarVivo && d.casa === _eventoPlacarVivo.home && d.fora === _eventoPlacarVivo.away;

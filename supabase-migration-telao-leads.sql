@@ -139,3 +139,29 @@ CREATE POLICY "sorteio_delete_gm"
   FOR DELETE
   TO authenticated
   USING ( (auth.jwt() ->> 'email') = 'worldkkevin@gmail.com' );
+
+-- ======================================================================
+-- 9. VÍNCULO POR EMAIL: o palpite carrega em qualquer aparelho da conta
+-- ======================================================================
+-- O cadastro pelo QR é anônimo (sem login). Quando a pessoa loga no app, ela
+-- "reivindica" o próprio palpite (seta o email). Aí consegue ver o palpite de
+-- qualquer aparelho onde logar com a mesma conta Google.
+ALTER TABLE leads_evento_telao ADD COLUMN IF NOT EXISTS email text;
+CREATE INDEX IF NOT EXISTS idx_leads_telao_email ON leads_evento_telao (email);
+
+-- O dono (logado) pode LER os próprios palpites pelo email do token.
+DROP POLICY IF EXISTS "telao_lead_select_dono" ON leads_evento_telao;
+CREATE POLICY "telao_lead_select_dono"
+  ON leads_evento_telao
+  FOR SELECT
+  TO authenticated
+  USING ( email = (auth.jwt() ->> 'email') );
+
+-- Reivindicar: o logado pode setar o PRÓPRIO email num palpite sem dono.
+DROP POLICY IF EXISTS "telao_lead_claim" ON leads_evento_telao;
+CREATE POLICY "telao_lead_claim"
+  ON leads_evento_telao
+  FOR UPDATE
+  TO authenticated
+  USING ( email IS NULL OR email = (auth.jwt() ->> 'email') )
+  WITH CHECK ( email = (auth.jwt() ->> 'email') );
