@@ -13,6 +13,7 @@ let _eventoFixtureId   = null;
 let _eventoPollTimer   = null;
 let _eventoSorteioTimer = null;
 let _eventoLastSorteioId = null;
+let _eventoUltimoSorteio = null; // último ganhador exibido (p/ re-avaliar quando o número chegar pelo email)
 let _eventoPlacarVivo  = null;   // { home, away } do jogo agora
 let _eventoParticipantes = [];
 
@@ -165,6 +166,12 @@ function _eventoMostrarCardPalpite(numero, palpite) {
   _eventoMeuPalpiteCache = palpite || null;
   _eventoMeuNumeroCache = numero || null;
   if (typeof _eventoRenderParticipantes === 'function') _eventoRenderParticipantes();
+
+  // Se o anúncio do ganhador já está na tela e agora descobrimos que o número
+  // é o SEU (chegou pelo email), re-exibe como "VOCÊ GANHOU".
+  if (_eventoUltimoSorteio && String(_eventoUltimoSorteio.numero_sorte) === String(numero)) {
+    exibirVencedorEvento(_eventoUltimoSorteio);
+  }
 }
 
 // Extrai o placar (casa, fora) de um texto tipo "Brasil 2 x 0 Argentina"
@@ -435,6 +442,7 @@ async function verificarSorteioEvento() {
 function exibirVencedorEvento(sorteio) {
   const overlay = document.getElementById('evento-vencedor-overlay');
   if (!overlay) return;
+  _eventoUltimoSorteio = sorteio; // guarda p/ re-avaliar quando o número chegar pelo email
 
   // "Meu número" pode vir do aparelho OU da conta (email) — funciona em qualquer device
   const meuNumero = _eventoMeuNumeroCache || (_eventoMeuLead() || {}).numero;
