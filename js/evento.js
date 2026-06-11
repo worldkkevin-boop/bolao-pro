@@ -131,6 +131,7 @@ function _eventoMeuLead() {
 }
 
 let _eventoMeuPalpiteCache = null; // texto do palpite do usuário (p/ destacar na distribuição)
+let _eventoMeuNumeroCache = null;  // número do usuário (p/ detectar "VOCÊ GANHOU" em qualquer aparelho)
 
 // Reivindica o palpite deste aparelho p/ a conta logada (seta o email).
 // Idempotente: o filtro .is('email', null) faz no-op se já tiver dono.
@@ -163,6 +164,7 @@ function _eventoMostrarCardPalpite(numero, palpite) {
   document.getElementById('evento-meu-palpite').textContent = palpite || '';
   document.getElementById('evento-meu-numero-card').classList.remove('hidden');
   _eventoMeuPalpiteCache = palpite || null;
+  _eventoMeuNumeroCache = numero || null;
   if (typeof _eventoRenderParticipantes === 'function') _eventoRenderParticipantes();
 }
 
@@ -231,6 +233,7 @@ async function abrirSalaEvento(slug) {
   // Card "Seu palpite": tenta pelo aparelho; se não tiver, busca pela conta (email)
   const meuLead = lead || _eventoLeadQualquer();
   _eventoMeuPalpiteCache = (meuLead && meuLead.palpite) || null;
+  _eventoMeuNumeroCache = (meuLead && meuLead.numero) || null;
   if (meuLead && meuLead.numero) {
     _eventoMostrarCardPalpite(meuLead.numero, meuLead.palpite);
   } else {
@@ -440,8 +443,9 @@ function exibirVencedorEvento(sorteio) {
   const overlay = document.getElementById('evento-vencedor-overlay');
   if (!overlay) return;
 
-  const lead = _eventoLeadLocal(_eventoSlugAtual);
-  const souEu = lead && String(lead.numero) === String(sorteio.numero_sorte);
+  // "Meu número" pode vir do aparelho OU da conta (email) — funciona em qualquer device
+  const meuNumero = _eventoMeuNumeroCache || (_eventoMeuLead() || {}).numero;
+  const souEu = meuNumero && String(meuNumero) === String(sorteio.numero_sorte);
 
   const titulo = document.getElementById('evento-vencedor-titulo');
   const nome = document.getElementById('evento-vencedor-nome');
