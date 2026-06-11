@@ -1935,6 +1935,26 @@
     </div>
   </div>
 
+  <!-- ════════════ EVENTO FINALIZADO (overlay pós-encerramento) ════════════ -->
+  <div id="evento-finalizado" class="hidden fixed inset-0 z-[12001] bg-app-bg overflow-y-auto">
+    <div class="max-w-md mx-auto px-6 min-h-screen flex flex-col items-center justify-center text-center" style="padding-top: env(safe-area-inset-top); padding-bottom: 24px;">
+      <div class="w-20 h-20 rounded-full bg-brand-green/15 text-brand-green flex items-center justify-center mb-6 text-4xl">🏁</div>
+      <h1 class="text-2xl font-black mb-2">Evento encerrado!</h1>
+      <p class="text-[14px] text-text-muted mb-8 px-2">Valeu por participar do nosso evento ao vivo. 🎉 Esperamos que tenha curtido!</p>
+
+      <div class="w-full bg-card-bg border border-brand-green/25 rounded-2xl p-5 mb-4 shadow-[0_0_25px_rgba(16,185,129,0.08)]">
+        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-2">E agora?</p>
+        <h3 class="font-black text-white text-lg mb-1">Crie seu grupo para a Copa! 🏆</h3>
+        <p class="text-[12px] text-text-muted mb-4 leading-relaxed">Chame os amigos, dê seus palpites em todos os jogos do torneio e dispute o ranking até a final.</p>
+        <button onclick="finalizadoCriarGrupo()" class="w-full bg-brand-green text-black font-black py-3.5 rounded-xl uppercase tracking-wide text-sm active:scale-95 transition-all">
+          Criar meu grupo grátis
+        </button>
+      </div>
+
+      <button onclick="finalizadoIrHome()" class="text-text-muted text-[12px] font-bold underline mt-2">Ir para o app</button>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=31"></script>
   <script src="js/auth.js?v=32"></script>
@@ -1943,7 +1963,7 @@
   <script src="js/ui.js?v=31"></script>
   <script src="js/gm.js?v=31"></script>
   <script src="js/aovivo.js?v=31"></script>
-  <script src="js/evento.js?v=32"></script>
+  <script src="js/evento.js?v=33"></script>
 
   <!-- Registro do Service Worker -->
   <script>

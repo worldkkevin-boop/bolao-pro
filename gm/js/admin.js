@@ -1982,13 +1982,19 @@ function adminApp() {
       
       const t = Date.now();
       try {
-        const { error } = await sbClient
+        const { data, error } = await sbClient
           .from('leads_evento_telao')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .select();
 
         if (error) throw error;
-        
+        if (!data || data.length === 0) {
+          // RLS bloqueou (0 linhas) — provavelmente a policy de DELETE não foi aplicada
+          showToast('Não removeu (sem permissão). Rode a migração com a policy de DELETE.', 'error');
+          return;
+        }
+
         showToast(`Participante ${nome} removido.`, 'info');
         this.adicionarLog('Supabase', 'DELETE leads_evento_telao', 'SUCCESS', Date.now() - t, `Removido: ${nome}`);
         this.carregarTelao(); // recarrega a lista

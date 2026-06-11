@@ -119,3 +119,23 @@ CREATE POLICY "sorteio_insert_gm"
   FOR INSERT
   TO authenticated
   WITH CHECK ( (auth.jwt() ->> 'email') = 'worldkkevin@gmail.com' );
+
+-- ======================================================================
+-- 8. DELETE: o GM pode REMOVER participantes e FINALIZAR o evento
+-- ======================================================================
+-- Sem estas policies, o "apagar participante" e o "finalizar evento"
+-- (que apaga o marcador CONFIG_ATIVO) são bloqueados em silêncio pelo RLS
+-- (delete sem policy = 0 linhas, sem erro). Liberadas só para o GM.
+DROP POLICY IF EXISTS "telao_lead_delete_gm" ON leads_evento_telao;
+CREATE POLICY "telao_lead_delete_gm"
+  ON leads_evento_telao
+  FOR DELETE
+  TO authenticated
+  USING ( (auth.jwt() ->> 'email') = 'worldkkevin@gmail.com' );
+
+DROP POLICY IF EXISTS "sorteio_delete_gm" ON evento_sorteio_telao;
+CREATE POLICY "sorteio_delete_gm"
+  ON evento_sorteio_telao
+  FOR DELETE
+  TO authenticated
+  USING ( (auth.jwt() ->> 'email') = 'worldkkevin@gmail.com' );

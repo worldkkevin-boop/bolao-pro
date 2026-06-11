@@ -24,6 +24,7 @@ function obterEventoPendente() {
 
 let _eventoGlobalPollTimer = null;
 let _slugEventoAtivoEncontrado = null;
+let _eventoEstavaAtivo = false;   // p/ detectar a transição ativo -> finalizado dentro da sala
 
 // Checa se existe algum evento iniciado pelo GM no Supabase
 async function checarEventoAtivoGlobal() {
@@ -46,6 +47,9 @@ async function checarEventoAtivoGlobal() {
       const realSlug = configSlug.replace('CONFIG_ATIVO_', '');
       _slugEventoAtivoEncontrado = realSlug;
 
+      // Marca que o evento desta sala já esteve ativo (p/ detectar finalização)
+      if (realSlug === _eventoSlugAtual) _eventoEstavaAtivo = true;
+
       if (nomeEl) {
         // Tenta pegar o nome do jogo salvo ou usa um padrão
         nomeEl.textContent = 'Evento Telão Ao Vivo';
@@ -61,6 +65,15 @@ async function checarEventoAtivoGlobal() {
     } else {
       if (container) container.classList.add('hidden');
       _slugEventoAtivoEncontrado = null;
+
+      // Se a pessoa está DENTRO da sala e o evento (que estava ativo) sumiu,
+      // o GM finalizou → mostra a tela de encerramento com recomendação.
+      const room = document.getElementById('view-evento');
+      const salaAberta = room && !room.classList.contains('hidden');
+      if (salaAberta && _eventoEstavaAtivo && _eventoSlugAtual) {
+        _eventoEstavaAtivo = false;
+        mostrarEventoFinalizado();
+      }
     }
   } catch (e) {
     console.warn('[evento] erro ao checar eventos globais:', e);
@@ -106,6 +119,7 @@ function _eventoParsePalpite(texto) {
 // ---- Abre a sala (chamada após o login, pelo entrarNoApp) ----
 function abrirSalaEvento(slug) {
   _eventoSlugAtual = slug;
+  _eventoEstavaAtivo = false;  // será marcado true pelo poll global se o evento estiver ativo
   // Ponteiro persistente do "último evento" (não some ao sair) — alimenta o
   // botão "Voltar ao Evento" na home.
   try { localStorage.setItem('evento_telao_ultimo', slug); } catch (_) {}
@@ -172,6 +186,41 @@ function sairDaSalaEvento() {
   // Volta para a Home normal do bolão
   if (typeof switchView === 'function') switchView('view-inicio');
   if (typeof carregarGrupos === 'function') carregarGrupos();
+}
+
+// ---- Evento finalizado pelo GM: tela de encerramento + recomendação ----
+function mostrarEventoFinalizado() {
+  // Para os timers da sala
+  if (_eventoPollTimer)   { clearInterval(_eventoPollTimer);   _eventoPollTimer = null; }
+  if (_eventoSorteioTimer){ clearInterval(_eventoSorteioTimer); _eventoSorteioTimer = null; }
+
+  // Some o evento deste aparelho (acabou — não volta mais)
+  try {
+    const slug = _eventoSlugAtual;
+    localStorage.removeItem('evento_telao_pending');
+    localStorage.removeItem('evento_telao_ultimo');
+    if (slug) localStorage.removeItem('evento_telao_lead_' + slug);
+  } catch (_) {}
+
+  const room = document.getElementById('view-evento');
+  if (room) room.classList.add('hidden');
+  const fin = document.getElementById('evento-finalizado');
+  if (fin) fin.classList.remove('hidden');
+}
+
+function finalizadoIrHome() {
+  const fin = document.getElementById('evento-finalizado');
+  if (fin) fin.classList.add('hidden');
+  const appScreen = document.getElementById('screen-app');
+  if (appScreen) appScreen.classList.remove('hidden');
+  if (typeof switchView === 'function') switchView('view-inicio');
+  if (typeof carregarGrupos === 'function') carregarGrupos();
+  if (typeof mostrarBotaoVoltarEvento === 'function') mostrarBotaoVoltarEvento();
+}
+
+function finalizadoCriarGrupo() {
+  finalizadoIrHome();
+  if (typeof abrirModal === 'function') abrirModal('modal-criar-grupo');
 }
 
 function _eventoSetTimes(casa, fora, casaLogo, foraLogo) {
