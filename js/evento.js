@@ -109,6 +109,26 @@ function _eventoLeadLocal(slug) {
   } catch (_) { return null; }
 }
 
+// Qualquer palpite salvo neste aparelho (fallback p/ "seu palpite" quando o
+// slug exato não bate — cenário de evento único).
+function _eventoLeadQualquer() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf('evento_telao_lead_') === 0) {
+        const v = JSON.parse(localStorage.getItem(k) || 'null');
+        if (v && v.numero) return v;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+// O palpite do dono deste aparelho (slug exato OU fallback)
+function _eventoMeuLead() {
+  return _eventoLeadLocal(_eventoSlugAtual) || _eventoLeadQualquer();
+}
+
 // Extrai o placar (casa, fora) de um texto tipo "Brasil 2 x 0 Argentina"
 function _eventoParsePalpite(texto) {
   const m = String(texto || '').match(/(\d+)\s*x\s*(\d+)/i);
@@ -166,10 +186,11 @@ async function abrirSalaEvento(slug) {
   const overlay = document.getElementById('view-evento');
   if (overlay) overlay.classList.remove('hidden');
 
-  // Card "Seu número"
-  if (lead && lead.numero) {
-    document.getElementById('evento-meu-numero').textContent = lead.numero;
-    document.getElementById('evento-meu-palpite').textContent = lead.palpite || '';
+  // Card "Seu palpite" (usa o palpite deste aparelho, com fallback)
+  const meuLead = lead || _eventoLeadQualquer();
+  if (meuLead && meuLead.numero) {
+    document.getElementById('evento-meu-numero').textContent = meuLead.numero;
+    document.getElementById('evento-meu-palpite').textContent = meuLead.palpite || '';
     document.getElementById('evento-meu-numero-card').classList.remove('hidden');
   }
 
@@ -449,7 +470,7 @@ function _eventoRenderParticipantes() {
   }
 
   const { arr } = _eventoDistribuicao(_eventoParticipantes);
-  const meuPp = _eventoParsePalpite((_eventoLeadLocal(_eventoSlugAtual) || {}).palpite);
+  const meuPp = _eventoParsePalpite((_eventoMeuLead() || {}).palpite);
 
   cont.innerHTML = arr.map(d => {
     const cravando = _eventoPlacarVivo && d.casa === _eventoPlacarVivo.home && d.fora === _eventoPlacarVivo.away;
