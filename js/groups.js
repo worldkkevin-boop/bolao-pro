@@ -1453,6 +1453,10 @@ async function trocarPoteGerenciado() {
     });
   }
 
+  // Seletor pra mudar a divisão do prêmio DESTE pote a qualquer momento
+  const premiacaoAtual = poteSelecionado.premiacao || '100';
+  const opcaoSel = (v) => premiacaoAtual === v ? 'selected' : '';
+
   containerLista.innerHTML = `
     <div class="flex justify-between items-end mb-3 mt-2 px-1">
       <span class="text-xs text-gray-400">Total Arrecadado:</span>
@@ -1461,10 +1465,41 @@ async function trocarPoteGerenciado() {
     <div class="max-h-56 overflow-y-auto pr-1 space-y-1 mb-4 hide-scrollbar">
       ${listaHTML}
     </div>
+
+    <div class="mb-4 p-3 bg-black/40 border border-yellow-500/20 rounded-xl">
+      <label class="text-[9px] text-yellow-500/80 font-black uppercase tracking-widest mb-1.5 block">🏆 Divisão do Prêmio</label>
+      <select onchange="atualizarPremiacaoPote('${poteSelecionado.id}', this.value)" class="w-full bg-black/80 border border-yellow-500/30 rounded-lg p-2.5 text-white focus:border-yellow-500 outline-none text-xs font-bold">
+        <option value="100" ${opcaoSel('100')}>🥇 Tudo pro Campeão (100%)</option>
+        <option value="70-30" ${opcaoSel('70-30')}>🥇🥈 Top 2 — 70% / 30%</option>
+        <option value="50-30-20" ${opcaoSel('50-30-20')}>🥇🥈🥉 Top 3 — 50 / 30 / 20</option>
+        <option value="60-30-10" ${opcaoSel('60-30-10')}>🥇🥈🥉 Top 3 — 60 / 30 / 10</option>
+      </select>
+    </div>
+
     <button onclick="encerrarPoteAtual('${poteSelecionado.id}')" class="w-full bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all">
       ⚠️ Encerrar Este Pote
     </button>
   `;
+}
+
+// Muda a divisão do prêmio de um pote já existente (salva na hora)
+async function atualizarPremiacaoPote(poteId, novaPremiacao) {
+  const { error } = await sbClient
+    .from('potes')
+    .update({ premiacao: novaPremiacao })
+    .eq('id', poteId);
+
+  if (error) {
+    showToast("Erro ao mudar a divisão. Rodou a migração no banco?", "error");
+    return;
+  }
+
+  // Atualiza a cópia em memória pra refletir sem recarregar tudo
+  const pote = potesTesourariaAtivos.find(p => p.id === poteId);
+  if (pote) pote.premiacao = novaPremiacao;
+
+  showToast(`Divisão atualizada: ${premiacaoResumo(novaPremiacao)}%`, "success");
+  if (typeof carregarPoteBanner === 'function') carregarPoteBanner(); // Atualiza o selo pros jogadores
 }
 
 // Mostra o formulário de criar pote na mesma tela
