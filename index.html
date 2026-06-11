@@ -1864,13 +1864,16 @@
         </button>
       </div>
 
-      <!-- Seu número da sorte -->
-      <div id="evento-meu-numero-card" class="hidden bg-card-bg border border-gold/30 rounded-2xl p-4 mb-4 flex items-center justify-between shadow-[0_0_20px_rgba(251,191,36,0.08)]">
+      <!-- Seu palpite + seu número (só você vê) -->
+      <div id="evento-meu-numero-card" class="hidden bg-card-bg border border-gold/30 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3 shadow-[0_0_20px_rgba(251,191,36,0.08)]">
         <div class="min-w-0">
-          <p class="text-[10px] font-black uppercase tracking-widest text-gold mb-1">Seu número da sorte</p>
-          <p class="text-[11px] text-text-muted truncate" id="evento-meu-palpite">—</p>
+          <p class="text-[10px] font-black uppercase tracking-widest text-gold mb-1">Seu palpite</p>
+          <p class="text-[17px] font-black text-white truncate" id="evento-meu-palpite">—</p>
         </div>
-        <span id="evento-meu-numero" class="text-3xl font-black text-gold tracking-widest flex-shrink-0 ml-3">0000</span>
+        <div class="text-right flex-shrink-0">
+          <p class="text-[9px] font-bold uppercase tracking-widest text-text-muted mb-0.5">Nº da sorte</p>
+          <span id="evento-meu-numero" class="text-2xl font-black text-gold tracking-widest">0000</span>
+        </div>
       </div>
 
       <!-- Placar ao vivo -->
