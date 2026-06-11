@@ -71,6 +71,9 @@ function adminApp() {
     telaoFixture: null,              // { id, homeName, homeLogo, awayName, awayLogo, date }
     eventoAtivo: false,              // Indica se o evento está iniciado para os players
     iniciandoEvento: false,
+    palpitesTravados: false,         // Trava o cadastro público (jogo começou)
+    travandoPalpites: false,
+    telaoApresentacaoPalpites: false, // Modo Telão da distribuição de palpites
 
     // Grupos
     gruposLista: [],
@@ -1778,6 +1781,10 @@ function adminApp() {
         const { data: activeCheck } = await sbClient.from('evento_sorteio_telao').select('id').eq('evento', 'CONFIG_ATIVO_' + this.telaoEvento).limit(1);
         this.eventoAtivo = (activeCheck && activeCheck.length > 0);
 
+        // Checa se os palpites estão TRAVADOS (jogo começou)
+        const { data: lockCheck } = await sbClient.from('evento_sorteio_telao').select('id').eq('evento', 'CONFIG_TRAVADO_' + this.telaoEvento).limit(1);
+        this.palpitesTravados = (lockCheck && lockCheck.length > 0);
+
       } catch (err) {
         this.adicionarLog('Supabase', 'SELECT leads_evento_telao', 'ERROR', Date.now() - t, err.message);
         showToast('Erro ao carregar leads do telão: ' + err.message, 'error');
@@ -1808,6 +1815,57 @@ function adminApp() {
       } finally {
         this.iniciandoEvento = false;
       }
+    },
+
+    // Trava/destrava o cadastro público de palpites (quando o jogo começa)
+    async alternarTravaPalpites() {
+      if (!this.telaoEvento) return;
+      this.travandoPalpites = true;
+      try {
+        if (this.palpitesTravados) {
+          await sbClient.from('evento_sorteio_telao').delete().eq('evento', 'CONFIG_TRAVADO_' + this.telaoEvento);
+          this.palpitesTravados = false;
+          showToast('Palpites LIBERADOS novamente.', 'success');
+        } else {
+          await sbClient.from('evento_sorteio_telao').insert({
+            evento: 'CONFIG_TRAVADO_' + this.telaoEvento,
+            numero_sorte: 'STATUS',
+            nome: 'TRAVADO'
+          });
+          this.palpitesTravados = true;
+          showToast('🔒 Palpites TRAVADOS. Ninguém mais consegue cadastrar.', 'info');
+        }
+      } catch (e) {
+        showToast('Erro ao travar/liberar palpites.', 'error');
+      } finally {
+        this.travandoPalpites = false;
+      }
+    },
+
+    // Distribuição dos palpites por placar (para o Modo Telão dos Palpites)
+    distribuicaoPalpitesTelao() {
+      const mapa = {}; let total = 0;
+      for (const l of this.telaoLeads) {
+        const m = String(l.palpite || '').match(/(\d+)\s*x\s*(\d+)/i);
+        if (!m) continue;
+        const casa = parseInt(m[1], 10), fora = parseInt(m[2], 10);
+        const key = casa + 'x' + fora;
+        if (!mapa[key]) mapa[key] = { casa, fora, count: 0 };
+        mapa[key].count++; total++;
+      }
+      return Object.values(mapa)
+        .map(o => ({ ...o, pct: total ? Math.round((o.count / total) * 100) : 0 }))
+        .sort((a, b) => b.count - a.count);
+    },
+
+    abrirTelaoPalpites() {
+      if (!this.telaoLeads.length) { showToast('Sem palpites pra mostrar ainda.', 'error'); return; }
+      this.telaoApresentacaoPalpites = true;
+      try { const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); } catch (_) {}
+    },
+    fecharTelaoPalpites() {
+      this.telaoApresentacaoPalpites = false;
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) {}
     },
 
     // Filtra quem cravou exatamente o placar digitado pelo GM

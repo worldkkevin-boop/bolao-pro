@@ -204,6 +204,7 @@
   const placar = { casa: 0, fora: 0 };
   let enviando = false;
   let jaParticipou = false;   // este aparelho já palpitou neste evento?
+  let palpitesTravados = false; // o GM travou os palpites (jogo começou)
 
   // Busca o jogo real na API (se houver fixture na URL) e personaliza a tela
   async function carregarJogoDoEvento() {
@@ -229,6 +230,25 @@
       }
     }
     aplicarEvento();
+    await verificarTravaPalpites();
+  }
+
+  // Se o GM travou os palpites (jogo começou), bloqueia novos cadastros
+  async function verificarTravaPalpites() {
+    if (jaParticipou) return; // quem já palpitou continua vendo seu número
+    try {
+      const { data } = await sb.from('evento_sorteio_telao')
+        .select('id').eq('evento', 'CONFIG_TRAVADO_' + eventoSlug).limit(1);
+      if (data && data.length > 0) {
+        palpitesTravados = true;
+        const h1 = document.querySelector('#step-welcome h1');
+        if (h1) h1.innerHTML = 'Palpites <span class="text-amber-400">encerrados!</span> 🔒';
+        document.getElementById('welcome-sub').textContent =
+          'O jogo já começou e os palpites foram fechados. Fique de olho no telão para o sorteio! 🍀';
+        const btn = document.querySelector('#step-welcome button');
+        if (btn) { btn.textContent = 'Conhecer o Bolão completo 🏆'; btn.setAttribute('onclick', "window.location.href='/'"); }
+      }
+    } catch (_) {}
   }
 
   function aplicarEvento() {
@@ -320,6 +340,18 @@
     const numero   = gerarNumeroSorte();
 
     try {
+      // Re-checa a trava: pode ter travado enquanto a pessoa preenchia
+      const { data: lock } = await sb.from('evento_sorteio_telao')
+        .select('id').eq('evento', 'CONFIG_TRAVADO_' + eventoSlug).limit(1);
+      if (lock && lock.length > 0) {
+        err.textContent = '🔒 Os palpites foram encerrados (o jogo começou).';
+        err.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Enviar palpite e concorrer 🎁';
+        enviando = false;
+        return;
+      }
+
       const { error } = await sb.from('leads_evento_telao').insert({
         evento:       eventoSlug,
         nome,

@@ -2050,6 +2050,18 @@
                      <span x-show="eventoAtivo">🛑 Finalizar Evento p/ Todos</span>
                    </button>
                    <p class="text-[9px] text-zinc-500 text-center mt-2 font-bold uppercase tracking-widest" x-text="eventoAtivo ? 'O evento está aparecendo no menu dos jogadores' : 'O evento está oculto para os jogadores'"></p>
+
+                   <!-- Travar palpites (quando o jogo começa) -->
+                   <button
+                     @click="alternarTravaPalpites()"
+                     :disabled="travandoPalpites"
+                     class="w-full mt-3 py-3 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 border"
+                     :class="palpitesTravados ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20' : 'bg-amber-500/10 border-amber-500/40 text-amber-400 hover:bg-amber-500/20'"
+                   >
+                     <span x-show="!palpitesTravados">🔒 Travar Palpites (jogo começou)</span>
+                     <span x-show="palpitesTravados">🔓 Liberar Palpites de novo</span>
+                   </button>
+                   <p class="text-[9px] text-zinc-500 text-center mt-1.5 font-bold uppercase tracking-widest" x-text="palpitesTravados ? 'Cadastro FECHADO — ninguém consegue palpitar' : 'Cadastro aberto — aceitando palpites'"></p>
                 </div>
 
                 <p class="text-[10px] text-zinc-500 mt-2" x-text="'Início: ' + new Date(telaoFixture.date).toLocaleString('pt-BR')"></p>
@@ -2130,8 +2142,11 @@
               </template>
 
               <!-- Botão destaque: abre o sorteio em tela cheia pra projetar no telão -->
-              <button @click="abrirModoTelao()" :disabled="!telaoLeads.length" class="w-full mb-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                📺 Modo Telão (tela cheia)
+              <button @click="abrirModoTelao()" :disabled="!telaoLeads.length" class="w-full mb-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                📺 Modo Telão — Sorteio
+              </button>
+              <button @click="abrirTelaoPalpites()" :disabled="!telaoLeads.length" class="w-full mb-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:opacity-90 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                📊 Modo Telão — Palpites (intervalo)
               </button>
 
               <div class="flex gap-3 mt-auto">
@@ -2236,6 +2251,41 @@
 
   </div>
 
+  <!-- ════════════ MODO TELÃO: PALPITES (distribuição p/ intervalo) ════════════ -->
+  <div x-show="telaoApresentacaoPalpites" x-cloak
+       class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center p-10 overflow-y-auto">
+    <div class="absolute top-[-200px] right-[-150px] w-[500px] h-[500px] rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(6,182,212,0.16) 0%, rgba(5,5,5,0) 70%);"></div>
+
+    <button @click="fecharTelaoPalpites()" class="absolute top-6 right-6 z-10 text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-widest border border-zinc-700/60 rounded-xl px-4 py-2 transition-all active:scale-95">
+      ✕ Sair do modo telão
+    </button>
+
+    <div class="relative z-0 w-full max-w-3xl">
+      <div class="text-center mb-10">
+        <p class="text-cyan-400 uppercase tracking-[0.4em] font-black text-sm mb-3">Bolão Pro · Evento</p>
+        <h1 class="text-4xl md:text-5xl font-black text-white">📊 Palpites da Galera</h1>
+        <p class="text-zinc-400 mt-3 text-lg" x-show="telaoFixture">
+          <span x-text="telaoFixture?.homeName"></span> × <span x-text="telaoFixture?.awayName"></span>
+          · <span x-text="telaoLeads.length"></span> palpites
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="d in distribuicaoPalpitesTelao()" :key="d.casa + 'x' + d.fora">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl md:text-3xl font-black text-white"><span x-text="d.casa"></span> <span class="text-zinc-600">×</span> <span x-text="d.fora"></span></span>
+              <span class="text-2xl md:text-3xl font-black text-cyan-300"><span x-text="d.pct"></span>%</span>
+            </div>
+            <div class="w-full bg-zinc-900 rounded-full h-5 overflow-hidden border border-white/5">
+              <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-5 rounded-full transition-all duration-700" :style="`width:${d.pct}%`"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════════ MODO TELÃO: SORTEIO EM TELA CHEIA (projeção) ════════════ -->
   <div x-show="telaoApresentacao" x-cloak
        class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center p-10 text-center overflow-hidden">
@@ -2321,6 +2371,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=21"></script>
+  <script src="/gm/js/admin.js?v=22"></script>
 </body>
 </html>

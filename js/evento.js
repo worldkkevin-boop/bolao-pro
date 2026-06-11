@@ -422,6 +422,26 @@ function fecharVencedorEvento() {
   }
 }
 
+// Agrega os palpites por placar e calcula o % de cada um
+function _eventoDistribuicao(participantes) {
+  const mapa = {};
+  let total = 0;
+  for (const p of participantes) {
+    const pp = _eventoParsePalpite(p.palpite);
+    if (!pp) continue;
+    const key = pp.casa + 'x' + pp.fora;
+    if (!mapa[key]) mapa[key] = { casa: pp.casa, fora: pp.fora, count: 0 };
+    mapa[key].count++;
+    total++;
+  }
+  const arr = Object.values(mapa).map(o => ({
+    ...o, pct: total ? Math.round((o.count / total) * 100) : 0
+  }));
+  arr.sort((a, b) => b.count - a.count || (b.casa + b.fora) - (a.casa + a.fora));
+  return { arr, total };
+}
+
+// Mostra a DISTRIBUIÇÃO dos palpites em % (sem nomes nem palpites individuais)
 function _eventoRenderParticipantes() {
   const cont = document.getElementById('evento-lista-participantes');
   document.getElementById('evento-total').textContent = _eventoParticipantes.length;
@@ -431,26 +451,28 @@ function _eventoRenderParticipantes() {
     return;
   }
 
-  const meuNumero = (_eventoLeadLocal(_eventoSlugAtual) || {}).numero;
+  const { arr } = _eventoDistribuicao(_eventoParticipantes);
+  const meuPp = _eventoParsePalpite((_eventoLeadLocal(_eventoSlugAtual) || {}).palpite);
 
-  cont.innerHTML = _eventoParticipantes.map(p => {
-    const pp = _eventoParsePalpite(p.palpite);
-    const cravando = _eventoPlacarVivo && pp &&
-      pp.casa === _eventoPlacarVivo.home && pp.fora === _eventoPlacarVivo.away;
-    const ehMeu = meuNumero && String(p.numero_sorte) === String(meuNumero);
+  cont.innerHTML = arr.map(d => {
+    const cravando = _eventoPlacarVivo && d.casa === _eventoPlacarVivo.home && d.fora === _eventoPlacarVivo.away;
+    const ehMeu = meuPp && meuPp.casa === d.casa && meuPp.fora === d.fora;
 
-    const borda = ehMeu ? 'border-gold/40' : (cravando ? 'border-brand-green/40' : 'border-white/5');
-    const bg = ehMeu ? 'bg-gold/5' : (cravando ? 'bg-brand-green/5' : 'bg-card-bg');
-    const dot = cravando ? '<span class="text-brand-green">🟢</span> ' : '';
-    const tagMeu = ehMeu ? '<span class="text-[8px] font-black uppercase tracking-wider text-gold bg-gold/10 border border-gold/20 px-1.5 py-0.5 rounded ml-1">você</span>' : '';
+    const corBarra = cravando ? 'bg-brand-green' : (ehMeu ? 'bg-gold' : 'bg-zinc-600');
+    const borda = cravando ? 'border-brand-green/40' : (ehMeu ? 'border-gold/30' : 'border-white/5');
+    const dot = cravando ? '🟢 ' : '';
+    const tagMeu = ehMeu ? '<span class="text-[8px] font-black uppercase tracking-wider text-gold bg-gold/10 border border-gold/20 px-1.5 py-0.5 rounded ml-2 align-middle">seu palpite</span>' : '';
 
     return `
-      <div class="flex items-center justify-between ${bg} border ${borda} rounded-xl p-3">
-        <div class="min-w-0">
-          <p class="text-[13px] font-bold text-white truncate">${dot}${_eventoEsc(p.nome)}${tagMeu}</p>
-          <p class="text-[11px] text-text-muted truncate">${_eventoEsc(p.palpite)}</p>
+      <div class="bg-card-bg border ${borda} rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[15px] font-black text-white">${dot}${d.casa} <span class="text-text-muted font-bold">×</span> ${d.fora}${tagMeu}</span>
+          <span class="text-[15px] font-black text-white">${d.pct}%</span>
         </div>
-        <span class="text-[11px] font-black text-gold bg-gold/10 border border-gold/20 px-2 py-1 rounded-lg tracking-wider flex-shrink-0 ml-2">Nº ${_eventoEsc(p.numero_sorte)}</span>
+        <div class="w-full bg-black/40 rounded-full h-2.5 overflow-hidden">
+          <div class="${corBarra} h-2.5 rounded-full transition-all duration-500" style="width:${d.pct}%"></div>
+        </div>
+        <p class="text-[10px] text-text-muted mt-1.5">${d.count} ${d.count > 1 ? 'palpites' : 'palpite'}</p>
       </div>`;
   }).join('');
 }
