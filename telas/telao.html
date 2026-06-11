@@ -337,6 +337,14 @@
     return String(Math.floor(1000 + Math.random() * 9000));
   }
 
+  function _uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
   // ---- Envio: grava na tabela ISOLADA leads_evento_telao ----
   async function enviarLead() {
     if (enviando) return;
@@ -368,14 +376,16 @@
         return;
       }
 
-      const { data: inserido, error } = await sb.from('leads_evento_telao').insert({
+      const leadId = _uuid();   // id gerado no cliente (anon não consegue ler de volta)
+      const { error } = await sb.from('leads_evento_telao').insert({
+        id:           leadId,
         evento:       eventoSlug,
         nome,
         whatsapp,
         palpite,
         numero_sorte: numero,
         user_agent:   navigator.userAgent
-      }).select('id').single();
+      });
       if (error) throw error;
 
       // Guarda o "passaporte" do participante NESTE aparelho (mesma origem do app
@@ -384,7 +394,7 @@
         localStorage.setItem('evento_telao_pending', eventoSlug);
         localStorage.setItem('evento_telao_ultimo', eventoSlug);
         localStorage.setItem('evento_telao_lead_' + eventoSlug, JSON.stringify({
-          id:        inserido ? inserido.id : null,  // p/ reivindicar pelo email no app
+          id:        leadId,  // p/ reivindicar pelo email no app
           numero, nome, palpite,
           fixtureId: fixtureId || null,
           titulo:    eventoCfg.titulo,
