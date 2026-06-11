@@ -116,10 +116,33 @@ function _eventoParsePalpite(texto) {
   return { casa: parseInt(m[1], 10), fora: parseInt(m[2], 10) };
 }
 
+// Checa no banco se o GM iniciou (marcou ATIVO) este evento específico
+async function eventoEstaAtivo(slug) {
+  if (typeof sbClient === 'undefined' || !sbClient || !slug) return false;
+  try {
+    const { data, error } = await sbClient
+      .from('evento_sorteio_telao')
+      .select('id')
+      .eq('evento', 'CONFIG_ATIVO_' + slug)
+      .limit(1);
+    return !error && !!data && data.length > 0;
+  } catch (_) { return false; }
+}
+
 // ---- Abre a sala (chamada após o login, pelo entrarNoApp) ----
-function abrirSalaEvento(slug) {
+async function abrirSalaEvento(slug) {
+  // PORTÃO: a sala só abre se o GM tiver INICIADO o evento. Se não estiver
+  // ativo (ainda não começou ou já encerrou), mostra a tela de encerramento
+  // + recomendação — sem apagar os dados do aparelho (pode só não ter começado).
+  const ativo = await eventoEstaAtivo(slug);
+  if (!ativo) {
+    _eventoSlugAtual = slug;
+    mostrarEventoFinalizado(false);
+    return;
+  }
+
   _eventoSlugAtual = slug;
-  _eventoEstavaAtivo = false;  // será marcado true pelo poll global se o evento estiver ativo
+  _eventoEstavaAtivo = true;   // confirmado ativo agora (p/ detectar finalização depois)
   // Ponteiro persistente do "último evento" (não some ao sair) — alimenta o
   // botão "Voltar ao Evento" na home.
   try { localStorage.setItem('evento_telao_ultimo', slug); } catch (_) {}
@@ -189,18 +212,22 @@ function sairDaSalaEvento() {
 }
 
 // ---- Evento finalizado pelo GM: tela de encerramento + recomendação ----
-function mostrarEventoFinalizado() {
+// limpar=true: o GM finalizou de fato (apaga os dados do aparelho).
+// limpar=false: só não está ativo agora (mantém os dados; pode reabrir depois).
+function mostrarEventoFinalizado(limpar = true) {
   // Para os timers da sala
   if (_eventoPollTimer)   { clearInterval(_eventoPollTimer);   _eventoPollTimer = null; }
   if (_eventoSorteioTimer){ clearInterval(_eventoSorteioTimer); _eventoSorteioTimer = null; }
 
-  // Some o evento deste aparelho (acabou — não volta mais)
-  try {
-    const slug = _eventoSlugAtual;
-    localStorage.removeItem('evento_telao_pending');
-    localStorage.removeItem('evento_telao_ultimo');
-    if (slug) localStorage.removeItem('evento_telao_lead_' + slug);
-  } catch (_) {}
+  if (limpar) {
+    // Some o evento deste aparelho (acabou — não volta mais)
+    try {
+      const slug = _eventoSlugAtual;
+      localStorage.removeItem('evento_telao_pending');
+      localStorage.removeItem('evento_telao_ultimo');
+      if (slug) localStorage.removeItem('evento_telao_lead_' + slug);
+    } catch (_) {}
+  }
 
   const room = document.getElementById('view-evento');
   if (room) room.classList.add('hidden');
@@ -209,6 +236,8 @@ function mostrarEventoFinalizado() {
 }
 
 function finalizadoIrHome() {
+  // Evita reabrir a tela de encerrado a cada login
+  try { localStorage.removeItem('evento_telao_pending'); } catch (_) {}
   const fin = document.getElementById('evento-finalizado');
   if (fin) fin.classList.add('hidden');
   const appScreen = document.getElementById('screen-app');
