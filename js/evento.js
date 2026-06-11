@@ -220,13 +220,10 @@ function mostrarEventoFinalizado(limpar = true) {
   if (_eventoSorteioTimer){ clearInterval(_eventoSorteioTimer); _eventoSorteioTimer = null; }
 
   if (limpar) {
-    // Some o evento deste aparelho (acabou — não volta mais)
-    try {
-      const slug = _eventoSlugAtual;
-      localStorage.removeItem('evento_telao_pending');
-      localStorage.removeItem('evento_telao_ultimo');
-      if (slug) localStorage.removeItem('evento_telao_lead_' + slug);
-    } catch (_) {}
+    // Encerrou: para de reabrir sozinho, MAS mantém o registro do palpite
+    // (evento_telao_lead_*) pra a pessoa continuar vendo "seu palpite/número".
+    // O portão (eventoEstaAtivo) já impede reentrada quando não está ativo.
+    try { localStorage.removeItem('evento_telao_pending'); } catch (_) {}
   }
 
   const room = document.getElementById('view-evento');
