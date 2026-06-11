@@ -13,7 +13,6 @@ let _eventoFixtureId   = null;
 let _eventoPollTimer   = null;
 let _eventoSorteioTimer = null;
 let _eventoLastSorteioId = null;
-let _eventoSorteioBaselineFeito = false; // ao entrar, marca o ganhador atual como "já visto"
 let _eventoPlacarVivo  = null;   // { home, away } do jogo agora
 let _eventoParticipantes = [];
 
@@ -202,8 +201,7 @@ async function abrirSalaEvento(slug) {
 
   _eventoSlugAtual = slug;
   _eventoEstavaAtivo = true;   // confirmado ativo agora (p/ detectar finalização depois)
-  _eventoSorteioBaselineFeito = false; // não mostra ganhador antigo ao entrar
-  _eventoLastSorteioId = null;
+  _eventoLastSorteioId = null; // ao entrar/atualizar, re-mostra o ganhador atual (some só no Limpar do GM)
   // Ponteiro persistente do "último evento" (não some ao sair) — alimenta o
   // botão "Voltar ao Evento" na home.
   try { localStorage.setItem('evento_telao_ultimo', slug); } catch (_) {}
@@ -422,14 +420,9 @@ async function verificarSorteioEvento() {
 
     const sorteio = (data && data.length) ? data[0] : null;
 
-    // Ao ENTRAR na sala, marca o ganhador atual como "já visto" (não pop-a
-    // ganhadores de sorteios antigos). Só mostra os sorteados DEPOIS da entrada.
-    if (!_eventoSorteioBaselineFeito) {
-      _eventoSorteioBaselineFeito = true;
-      _eventoLastSorteioId = sorteio ? sorteio.id : null;
-      return;
-    }
-
+    // Mostra o ganhador enquanto existir registro (reaparece ao atualizar).
+    // Só some quando o GM clica em "Limpar" (que apaga o registro do banco).
+    // Não re-pop-a o MESMO ganhador a cada 5s na mesma sessão (guarda o id já visto).
     if (sorteio && sorteio.id !== _eventoLastSorteioId) {
       _eventoLastSorteioId = sorteio.id;
       exibirVencedorEvento(sorteio);
