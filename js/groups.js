@@ -1303,7 +1303,34 @@ function fecharTesouraria() {
 }
 
 // Variável global para guardar os potes carregados e evitar chamar o banco à toa
-let potesTesourariaAtivos = []; 
+let potesTesourariaAtivos = [];
+
+// ==================== PREMIAÇÃO DO POTE (1º / 2º / 3º) ====================
+// Presets de divisão do bolo. A chave (ex: '50-30-20') fica salva em potes.premiacao.
+// Potes antigos (sem a coluna) caem no fallback '100' = tudo pro campeão.
+const PREMIACAO_PRESETS = {
+  '100':      { rotulo: '🥇 Tudo pro Campeão (100%)', pcts: [100] },
+  '70-30':    { rotulo: '🥇🥈 Top 2 — 70% / 30%',     pcts: [70, 30] },
+  '50-30-20': { rotulo: '🥇🥈🥉 Top 3 — 50/30/20',     pcts: [50, 30, 20] },
+  '60-30-10': { rotulo: '🥇🥈🥉 Top 3 — 60/30/10',     pcts: [60, 30, 10] }
+};
+const MEDALHAS = ['🥇', '🥈', '🥉'];
+const LUGARES  = ['1º Lugar', '2º Lugar', '3º Lugar'];
+
+function getPremiacaoPcts(chave) {
+  return (PREMIACAO_PRESETS[chave] || PREMIACAO_PRESETS['100']).pcts;
+}
+// Resumo curto pros cards: "50/30/20"
+function premiacaoResumo(chave) {
+  return getPremiacaoPcts(chave).join('/');
+}
+// Em qual lugar (0=1º, 1=2º, 2=3º) o usuário ficou neste pote; -1 se não ganhou
+function posicaoNoPote(pote, userId) {
+  if (pote.vencedor_id === userId) return 0;
+  if (pote.vencedor_2_id === userId) return 1;
+  if (pote.vencedor_3_id === userId) return 2;
+  return -1;
+}
 
 async function carregarDadosTesouraria() {
   const container = document.getElementById('tesouraria-content');
@@ -1460,7 +1487,18 @@ function mostrarFormularioNovoPote() {
       <input type="text" id="novo-pote-nome" placeholder="Nome (Ex: Prêmio do Brasileirão)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
       <input type="number" id="novo-pote-valor" placeholder="Valor da Entrada (R$)" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
       ${pixField}
-      
+
+      <!-- DIVISÃO DO PRÊMIO (1º / 2º / 3º) -->
+      <div>
+        <label class="text-[9px] text-text-muted font-black tracking-widest uppercase mb-1 block">Como dividir o prêmio?</label>
+        <select id="novo-pote-premiacao" class="w-full bg-black/80 border border-white/10 rounded-lg p-2.5 text-white focus:border-brand-green outline-none text-xs">
+          <option value="100">🥇 Tudo pro Campeão (100%)</option>
+          <option value="70-30">🥇🥈 Top 2 — 70% / 30%</option>
+          <option value="50-30-20">🥇🥈🥉 Top 3 — 50 / 30 / 20</option>
+          <option value="60-30-10">🥇🥈🥉 Top 3 — 60 / 30 / 10</option>
+        </select>
+      </div>
+
       <!-- NOVA OPÇÃO: MARCAR COMO GERAL -->
       <div class="flex items-center gap-2 mt-2 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
         <input type="checkbox" id="novo-pote-geral" class="w-4 h-4 accent-yellow-500">
@@ -1481,6 +1519,7 @@ async function lancarPote() {
   const valor = document.getElementById('novo-pote-valor').value;
   const pix = document.getElementById('novo-pote-pix').value;
   const isGeral = document.getElementById('novo-pote-geral').checked; // Lê o checkbox
+  const premiacao = document.getElementById('novo-pote-premiacao')?.value || '100'; // Divisão 1º/2º/3º
 
   if (!nome || !valor || !pix) {
     showToast("Preencha todos os campos do Pote!", "error");
@@ -1495,7 +1534,8 @@ async function lancarPote() {
     valor_entrada: parseFloat(valor),
     chave_pix_gm: pix,
     status: 'aberto',
-    is_geral: isGeral // Salva no banco se é o geral ou não
+    is_geral: isGeral, // Salva no banco se é o geral ou não
+    premiacao: premiacao // Como o bolo será dividido (1º/2º/3º)
   }]);
 
   if (error) {
@@ -1619,85 +1659,136 @@ async function encerrarPoteAtual(poteId) {
     opcoesHTML += `<option value="${id}">🏆 ${nome}</option>`;
   });
 
+  // Quanto cada colocado leva, conforme a divisão escolhida na criação do pote
+  const pote = potesTesourariaAtivos.find(p => p.id === poteId);
+  const pcts = getPremiacaoPcts(pote && pote.premiacao);
+  const bolo = pagantes.length * parseFloat((pote && pote.valor_entrada) || 0);
+
+  // Um dropdown por colocação premiada (1º, 2º, 3º)
+  let selectsHTML = '';
+  pcts.forEach((pct, i) => {
+    const previa = bolo > 0 ? ` — R$ ${(bolo * pct / 100).toFixed(2)}` : '';
+    selectsHTML += `
+      <div class="text-left mb-3">
+        <label class="text-[9px] text-yellow-500/80 font-black uppercase tracking-widest mb-1 block">${MEDALHAS[i]} ${LUGARES[i]} · ${pct}%${previa}</label>
+        <select id="select-vencedor-${i}" class="w-full bg-black/80 border border-yellow-500/40 rounded-lg p-3 text-white text-xs font-bold outline-none">
+          ${opcoesHTML}
+        </select>
+      </div>
+    `;
+  });
+
   const divLista = document.getElementById('tesouraria-lista-participantes');
   divLista.innerHTML = `
-    <div class="bg-yellow-500/10 border border-yellow-500/50 p-4 rounded-xl mt-4 text-center animate-fade-in shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-      <span class="text-4xl mb-2 block drop-shadow-md">👑</span>
-      <h4 class="text-white font-black text-sm uppercase tracking-widest mb-3">Quem venceu a disputa?</h4>
-      
-      <select id="select-vencedor" class="w-full bg-black/80 border border-yellow-500/40 rounded-lg p-3 text-white mb-4 text-xs font-bold outline-none">
-        ${opcoesHTML}
-      </select>
-      
-      <div class="flex gap-2">
+    <div class="bg-yellow-500/10 border border-yellow-500/50 p-4 rounded-xl mt-4 animate-fade-in shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+      <span class="text-4xl mb-2 block text-center drop-shadow-md">👑</span>
+      <h4 class="text-white font-black text-sm uppercase tracking-widest mb-1 text-center">Quem subiu ao pódio?</h4>
+      <p class="text-[10px] text-yellow-500/70 font-bold uppercase tracking-widest mb-4 text-center">Bolo total: R$ ${bolo.toFixed(2)} · Divisão ${premiacaoResumo(pote && pote.premiacao)}%</p>
+
+      ${selectsHTML}
+
+      <div class="flex gap-2 mt-2">
         <button onclick="trocarPoteGerenciado()" class="w-1/3 bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-lg text-[10px] uppercase transition-all">Voltar</button>
-        <button onclick="confirmarVencedor('${poteId}')" class="w-2/3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:opacity-90 text-black font-black py-3 rounded-lg text-[10px] uppercase transition-all shadow-lg">Coroar Campeão</button>
+        <button onclick="confirmarVencedor('${poteId}')" class="w-2/3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:opacity-90 text-black font-black py-3 rounded-lg text-[10px] uppercase transition-all shadow-lg">Coroar Pódio</button>
       </div>
     </div>
   `;
 }
 
-// 3. Salva o vencedor no banco e finaliza o pote
+// 3. Salva o pódio (1º/2º/3º) no banco e finaliza o pote
 async function confirmarVencedor(poteId) {
-  const vencedorId = document.getElementById('select-vencedor').value;
-  if(!vencedorId) {
-    showToast("Selecione um vencedor na lista!", "error");
-    return;
-  }
-
-  showToast("Coroando campeão...", "success");
-
-  // Busca informações do pote e do campeão para a notificação
+  // Busca o pote pra saber a divisão (quantos colocados premiar)
   const { data: poteData } = await sbClient
     .from('potes')
-    .select('nome, valor_entrada, group_id')
+    .select('nome, valor_entrada, group_id, premiacao')
     .eq('id', poteId)
     .single();
 
-  const { data: profileData } = await sbClient
-    .from('profiles')
-    .select('full_name')
-    .eq('id', vencedorId)
-    .single();
+  const pcts = getPremiacaoPcts(poteData && poteData.premiacao);
 
+  // Lê o vencedor de cada colocação premiada
+  const vencedores = [];
+  for (let i = 0; i < pcts.length; i++) {
+    const sel = document.getElementById('select-vencedor-' + i);
+    const val = sel ? sel.value : '';
+    if (!val) {
+      showToast(`Falta escolher o ${LUGARES[i]}!`, "error");
+      return;
+    }
+    if (vencedores.includes(val)) {
+      showToast("O mesmo jogador não pode ocupar dois lugares!", "error");
+      return;
+    }
+    vencedores.push(val);
+  }
+
+  showToast("Coroando o pódio...", "success");
+
+  // Nomes dos premiados (pra notificação)
+  const { data: profiles } = await sbClient
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', vencedores);
+
+  const nomeDe = (id) => {
+    const p = profiles ? profiles.find(pr => pr.id === id) : null;
+    return (p && p.full_name) || 'Um jogador';
+  };
+
+  // Calcula o bolo total
   const { data: pagantes } = await sbClient
     .from('potes_participantes')
     .select('id')
     .eq('pote_id', poteId)
     .eq('status_pagamento', 'pago');
 
-  let winnerName = 'Um jogador';
-  if (profileData) {
-    winnerName = profileData.full_name;
-  }
+  const bolo = (poteData && pagantes) ? pagantes.length * parseFloat(poteData.valor_entrada) : 0;
+  const premioDe = (i) => bolo * (pcts[i] / 100);
 
-  let premio = 0;
-  if (poteData && pagantes) {
-    premio = pagantes.length * parseFloat(poteData.valor_entrada);
-  }
-
+  // Grava as três colocações (as não usadas vão como null)
   const { error } = await sbClient
     .from('potes')
-    .update({ status: 'encerrado', vencedor_id: vencedorId })
+    .update({
+      status: 'encerrado',
+      vencedor_id: vencedores[0],
+      vencedor_2_id: vencedores[1] || null,
+      vencedor_3_id: vencedores[2] || null
+    })
     .eq('id', poteId);
 
-  if(!error) {
-    showToast("Disputa Encerrada! O Campeão foi notificado.", "success");
-    
-    // Dispara a notificação de coroação para o grupo todo!
-    if (poteData && typeof dispararNotificacaoPush === 'function') {
+  if (error) {
+    showToast("Erro ao encerrar o pote. Tente novamente.", "error");
+    return;
+  }
+
+  showToast("Pote Encerrado! O pódio foi notificado.", "success");
+
+  if (poteData && typeof dispararNotificacaoPush === 'function') {
+    // Notificação geral com o pódio resumido
+    const resumoPodio = vencedores
+      .map((id, i) => `${MEDALHAS[i]} ${nomeDe(id)} (R$ ${premioDe(i).toFixed(2)})`)
+      .join(' · ');
+    dispararNotificacaoPush({
+      groupId: poteData.group_id,
+      title: '👑 Pódio definido!',
+      body: `Resultado do pote "${poteData.nome}": ${resumoPodio}`,
+      url: '/'
+    });
+
+    // Notificação individual pra cada premiado
+    vencedores.forEach((id, i) => {
       dispararNotificacaoPush({
-        groupId: poteData.group_id,
-        title: '👑 Temos um campeão!',
-        body: `${winnerName} acabou de faturar R$ ${premio.toFixed(2)} no pote "${poteData.nome}". Veja a classificação final!`,
+        userId: id,
+        title: `${MEDALHAS[i]} Você ficou em ${LUGARES[i]}!`,
+        body: `Você faturou R$ ${premioDe(i).toFixed(2)} no pote "${poteData.nome}". Vá resgatar seu prêmio!`,
         url: '/'
       });
-    }
-
-    fecharTesouraria();
-    if(typeof carregarPoteBanner === 'function') carregarPoteBanner();
-    if(typeof verificarPremiosGanhos === 'function') verificarPremiosGanhos(); // Checa se o GM mesmo ganhou
+    });
   }
+
+  fecharTesouraria();
+  if (typeof carregarPoteBanner === 'function') carregarPoteBanner();
+  if (typeof verificarPremiosGanhos === 'function') verificarPremiosGanhos(); // Checa se o GM mesmo ganhou
 }
 
 async function carregarPoteBanner() {
@@ -1711,13 +1802,16 @@ async function carregarPoteBanner() {
   if (!grupoAtual || !usuarioAtual) return;
 
   // ==================== VERIFICAÇÃO DE VITÓRIA ====================
-  // Busca se o usuário ganhou algum pote que já foi encerrado
-  const { data: potesVencidos } = await sbClient
+  // Busca potes encerrados do grupo e filtra onde o usuário ficou em algum lugar do pódio
+  const { data: potesEncerrados } = await sbClient
     .from('potes')
     .select('*')
     .eq('group_id', grupoAtual.id)
-    .eq('status', 'encerrado')
-    .eq('vencedor_id', usuarioAtual.id);
+    .eq('status', 'encerrado');
+
+  const potesVencidos = (potesEncerrados || []).filter(
+    p => posicaoNoPote(p, usuarioAtual.id) !== -1
+  );
 
   let vitoriasHTML = '';
 
@@ -1735,23 +1829,32 @@ async function carregarPoteBanner() {
 
       const partsPote = partsVencidos ? partsVencidos.filter(p => p.pote_id === poteGanho.id) : [];
       const qtdPagantes = partsPote.filter(p => p.status_pagamento === 'pago').length;
-      const premio = qtdPagantes * parseFloat(poteGanho.valor_entrada);
+      const bolo = qtdPagantes * parseFloat(poteGanho.valor_entrada);
+
+      // Em que lugar o usuário ficou e quanto leva da divisão
+      const pos = posicaoNoPote(poteGanho, usuarioAtual.id);
+      const pcts = getPremiacaoPcts(poteGanho.premiacao);
+      const pct = pcts[pos] || 0;
+      const premio = bolo * (pct / 100);
+      const ehCampeao = pos === 0;
+      const tituloLugar = ehCampeao ? 'Você Venceu' : `Você ficou em ${LUGARES[pos]} ${MEDALHAS[pos]}`;
+      const subLegenda = ehCampeao ? 'O dinheiro é seu!' : `${pct}% do bolo é seu!`;
 
       vitoriasHTML += `
         <div id="card-vitoria-${poteGanho.id}" class="bg-gradient-to-br from-green-600 to-brand-green border border-white/30 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_40px_rgba(0,255,100,0.3)] mb-4 relative overflow-hidden transform hover:scale-[1.02] transition-all">
-          <div class="absolute -left-4 -top-4 text-7xl opacity-20">🏆</div>
+          <div class="absolute -left-4 -top-4 text-7xl opacity-20">${MEDALHAS[pos] || '🏆'}</div>
           <div class="absolute -right-4 -bottom-4 text-7xl opacity-20">💸</div>
-          
+
           <!-- Botão fechar no canto superior direito -->
           <button onclick="dispensarCardVitoria('${poteGanho.id}')" class="absolute top-3 right-3 z-30 bg-black/10 hover:bg-black/30 text-green-950 hover:text-black w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-all" aria-label="Fechar">✕</button>
-          
+
           <span class="text-black bg-white/30 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-2 relative z-10 backdrop-blur-sm border border-white/20">
-            Você Venceu: ${poteGanho.nome}
+            ${tituloLugar}: ${poteGanho.nome}
           </span>
           <h2 class="text-4xl font-black text-black mb-1 relative z-10 drop-shadow-md">R$ ${premio.toFixed(2)}</h2>
-          <p class="text-[10px] text-green-900 font-bold uppercase tracking-widest mb-4 relative z-10">O dinheiro é seu!</p>
-          
-          <button onclick="resgatarPremio('${poteGanho.nome}', ${premio})" class="w-full bg-black text-brand-green hover:bg-gray-900 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest active:scale-95 transition-all relative z-10 shadow-[0_10px_20px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2">
+          <p class="text-[10px] text-green-900 font-bold uppercase tracking-widest mb-4 relative z-10">${subLegenda}</p>
+
+          <button onclick="resgatarPremio('${poteGanho.nome.replace(/'/g, "\\'")}', ${premio})" class="w-full bg-black text-brand-green hover:bg-gray-900 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest active:scale-95 transition-all relative z-10 shadow-[0_10px_20px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2">
             <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
             Cobrar no WhatsApp
           </button>
@@ -1811,6 +1914,7 @@ async function carregarPoteBanner() {
             <div class="flex flex-col">
               <span class="text-yellow-500 text-[9px] font-black uppercase tracking-widest">${poteGeral.nome}</span>
               <span class="text-white font-black text-xl leading-tight">R$ ${valorAcumulado.toFixed(2)}</span>
+              ${poteGeral.premiacao && poteGeral.premiacao !== '100' ? `<span class="text-yellow-500/70 text-[8px] font-black uppercase tracking-widest mt-0.5">🏆 Paga Top ${getPremiacaoPcts(poteGeral.premiacao).length} · ${premiacaoResumo(poteGeral.premiacao)}%</span>` : ''}
             </div>
           </div>
           <div>${botaoGeral}</div>
@@ -1845,7 +1949,8 @@ async function carregarPoteBanner() {
         masterHTML += `
           <div class="min-w-[75%] sm:min-w-[250px] snap-center bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col items-center text-center flex-shrink-0">
             <span class="text-gray-400 text-[9px] font-black uppercase tracking-widest mb-1">${pote.nome}</span>
-            <h2 class="text-2xl font-black text-white mb-3">R$ ${valorAcumulado.toFixed(2)}</h2>
+            <h2 class="text-2xl font-black text-white mb-1">R$ ${valorAcumulado.toFixed(2)}</h2>
+            ${pote.premiacao && pote.premiacao !== '100' ? `<span class="text-yellow-500/70 text-[8px] font-black uppercase tracking-widest mb-2">🏆 Top ${getPremiacaoPcts(pote.premiacao).length} · ${premiacaoResumo(pote.premiacao)}%</span>` : '<span class="mb-2"></span>'}
             ${botaoHTML}
           </div>
         `;
