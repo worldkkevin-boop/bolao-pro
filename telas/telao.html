@@ -78,6 +78,7 @@
           Quero participar ⚽
         </button>
         <p class="text-[10px] text-zinc-600 text-center mt-4">Promoção do evento · seus dados são usados só para o sorteio.</p>
+        <button id="link-refazer" onclick="refazerPalpite()" class="hidden mx-auto mt-3 block text-[11px] text-zinc-500 hover:text-white underline">Não é você? Refazer palpite neste aparelho</button>
       </section>
 
       <!-- ════════ STEP 1: NOME ════════ -->
@@ -277,6 +278,21 @@
       'Este aparelho já fez um palpite. Cada pessoa participa uma vez — veja seu número e acompanhe ao vivo.';
     const btn = document.querySelector('#step-welcome button');
     if (btn) { btn.textContent = 'Ver meu número e entrar ao vivo 🎬'; btn.setAttribute('onclick', "irPara('step-sucesso')"); }
+    const refazer = document.getElementById('link-refazer');
+    if (refazer) refazer.classList.remove('hidden');
+  }
+
+  // Limpa o registro local deste aparelho e recomeça (ex: aparelho compartilhado ou teste)
+  function refazerPalpite() {
+    try {
+      const remover = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf('evento_telao_') === 0) remover.push(k);
+      }
+      remover.forEach(k => localStorage.removeItem(k));
+    } catch (_) {}
+    location.reload();
   }
 
   carregarJogoDoEvento();
