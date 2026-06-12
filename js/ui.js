@@ -322,6 +322,19 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
     // Verifica se o usuário já tem palpite para essa partida
     const meuPalpite = palpitesDoUsuario.find(p => p.match_id === id);
 
+    // Marcação de Zebra Dinâmica: destaca o time "zebra" (menos de 15% dos
+    // palpites de vitória) assim que os palpites fecham. Só vale com a regra ligada.
+    let homeZebra = false, awayZebra = false;
+    const regraZebraLigada = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.regra_zebra_dinamica === true);
+    if (regraZebraLigada && isLocked) {
+      const distZebra = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[id] : null;
+      if (distZebra && distZebra.total > 0) {
+        if (distZebra.home < 15) homeZebra = true;
+        if (distZebra.away < 15) awayZebra = true;
+      }
+    }
+    const zebraBadge = `<span class="mt-1 inline-flex items-center gap-1 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow shadow-fuchsia-600/30" title="Poucos palpitaram nesse time — se ele vencer, vale o dobro!">🦓 Zebra 2x</span>`;
+
     let centerHtml = '';
     let cardBorderClass = 'border-white/5';
     let cardBgClass = '';
@@ -436,6 +449,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
               <img src="${homeLogo}" onerror="this.onerror=null; this.src='${homeFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${homeNome}</span>
+            ${homeZebra ? zebraBadge : ''}
           </div>
           <div class="w-1/3 flex flex-col items-center justify-center min-h-[60px]">
             ${centerHtml}
@@ -445,6 +459,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
               <img src="${awayLogo}" onerror="this.onerror=null; this.src='${awayFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${awayNome}</span>
+            ${awayZebra ? zebraBadge : ''}
           </div>
         </div>
       </div>`;
