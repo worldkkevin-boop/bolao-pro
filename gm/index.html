@@ -1772,6 +1772,30 @@
 
           </div>
 
+          <!-- 🎩 ESTRATÉGIA DE PLACAR — 2 CONTAS (Você + Gaby) -->
+          <div x-show="oraculo.estrategia" class="bg-zinc-900 border border-purple-500/20 rounded-2xl p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="text-[10px] text-purple-300 uppercase tracking-widest font-black">🎩 Estratégia de Placar — 2 Contas</h4>
+              <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border"
+                :class="oraculo.estrategia?.confianca === 'alta' ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : (oraculo.estrategia?.confianca === 'média' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' : 'text-zinc-400 border-zinc-700 bg-zinc-800/50')"
+                x-text="'Confiança ' + (oraculo.estrategia?.confianca || '')"></span>
+            </div>
+            <p class="text-[10px] text-zinc-500 mb-4">Cobre mais cenários dividindo entre a sua conta e a da Gaby. Apoio à decisão — lembra que o palpite trava 10 min antes.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-purple-500/10 border border-purple-500/25 rounded-xl p-4 text-center">
+                <p class="text-[10px] font-black uppercase tracking-wide text-purple-300 mb-1">🎩 Você</p>
+                <p class="text-3xl font-black text-white font-mono" x-text="oraculo.estrategia?.conta1"></p>
+                <p class="text-[9px] text-zinc-500 mt-1 truncate"><span x-text="oraculo.estrategia?.homeName"></span> x <span x-text="oraculo.estrategia?.awayName"></span></p>
+              </div>
+              <div class="bg-fuchsia-500/10 border border-fuchsia-500/25 rounded-xl p-4 text-center">
+                <p class="text-[10px] font-black uppercase tracking-wide text-fuchsia-300 mb-1">💜 Gaby</p>
+                <p class="text-3xl font-black text-white font-mono" x-text="oraculo.estrategia?.conta2"></p>
+                <p class="text-[9px] text-zinc-500 mt-1 truncate"><span x-text="oraculo.estrategia?.homeName"></span> x <span x-text="oraculo.estrategia?.awayName"></span></p>
+              </div>
+            </div>
+            <p class="text-[11px] text-zinc-300 leading-relaxed mt-4" x-text="oraculo.estrategia?.resumo"></p>
+          </div>
+
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
           <div class="relative overflow-hidden bg-zinc-900 border rounded-2xl p-6 shadow-xl" :class="oraculo.distorcao?.zebraAlert ? 'border-amber-500/30' : 'border-zinc-800'">
             <div class="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl pointer-events-none" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/8' : 'bg-purple-500/5'"></div>
@@ -2371,6 +2395,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=23"></script>
+  <script src="/gm/js/admin.js?v=24"></script>
 </body>
 </html>

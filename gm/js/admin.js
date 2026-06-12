@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, erro: null },
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -1623,6 +1623,7 @@ function adminApp() {
       this.oraculo.predicoes = null;
       this.oraculo.distribuicao = null;
       this.oraculo.distorcao = null;
+      this.oraculo.estrategia = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
@@ -1641,6 +1642,7 @@ function adminApp() {
             zebraAlert: Math.max(Math.abs(dist.homePct - pred.percent.home), Math.abs(dist.awayPct - pred.percent.away)) > 25
           };
         }
+        this.oraculo.estrategia = this._calcEstrategiaPlacar(pred);
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
         this._popularDesafioRapido(pred, dist);
       } catch(err) {
@@ -1649,6 +1651,55 @@ function adminApp() {
       } finally {
         this.oraculo.loading = false;
       }
+    },
+
+    // Sugere placares pras 2 contas (Você + Gaby) a partir das probabilidades
+    // e dos gols esperados da API. Cobre mais cenários. É só apoio à decisão.
+    _calcEstrategiaPlacar(pred) {
+      if (!pred || !pred.percent) return null;
+      const pH = Number(pred.percent.home) || 0;
+      const pD = Number(pred.percent.draw) || 0;
+      const pA = Number(pred.percent.away) || 0;
+      const homeName = pred.teams?.home?.name || 'Casa';
+      const awayName = pred.teams?.away?.name || 'Fora';
+      const favSide = pH >= pA ? 'home' : 'away';
+      const favProb = Math.max(pH, pA);
+      const favName = favSide === 'home' ? homeName : awayName;
+
+      const gH = Math.abs(parseFloat(pred.goals?.home));
+      const gA = Math.abs(parseFloat(pred.goals?.away));
+      const temGols = !isNaN(gH) && !isNaN(gA) && (gH > 0 || gA > 0);
+
+      const fmt = (h, a) => `${h}-${a}`;
+      const winScore = (side, fg, og) => side === 'home' ? fmt(fg, og) : fmt(og, fg); // fg = gols do favorito
+
+      let fgBase = 2, ogBase = 1;
+      if (temGols) {
+        const favG = favSide === 'home' ? gH : gA;
+        const dogG = favSide === 'home' ? gA : gH;
+        fgBase = Math.max(1, Math.round(favG));
+        ogBase = Math.max(0, Math.round(dogG));
+        if (fgBase <= ogBase) fgBase = ogBase + 1;
+      }
+
+      let conta1, conta2, confianca, resumo;
+      if (favProb >= 55) {
+        confianca = 'alta';
+        conta1 = winScore(favSide, fgBase, ogBase);
+        conta2 = winScore(favSide, fgBase + 1, ogBase);
+        resumo = `${favName} é favorito forte (${favProb.toFixed(0)}%). As duas contas cravam a vitória dele em placares diferentes pra aumentar a chance de placar exato — qualquer vitória já garante os pontos de vencedor nas duas.`;
+      } else if (favProb >= 45 && pD >= 27) {
+        confianca = 'média';
+        conta1 = winScore(favSide, fgBase, ogBase);
+        conta2 = '1-1';
+        resumo = `Equilibrado: ${favName} levemente favorito (${favProb.toFixed(0)}%) e empate provável (${pD.toFixed(0)}%). Uma conta vai na vitória do favorito e a outra cobre o empate (1-1).`;
+      } else {
+        confianca = 'baixa';
+        conta1 = '1-1';
+        conta2 = winScore(favSide, Math.max(2, fgBase), ogBase);
+        resumo = `Jogo aberto, sem favorito claro. Cobrimos o empate (1-1) numa conta e a vitória magra do leve favorito na outra.`;
+      }
+      return { conta1, conta2, confianca, resumo, favName, homeName, awayName };
     },
 
     _popularDesafioRapido(pred, dist) {

@@ -70,9 +70,9 @@ Versões atuais (índice rápido — confira no index.html antes de bumpar): `co
 
 ```
 index.html              App do jogador (SPA, várias "views" alternadas por switchView)
-gm/index.html           Painel do GM/Admin (Game Master)
-gm/js/admin.js          Lógica admin (tesouraria, membros, desafios, telão-evento) — grande
-gm/js/gm.js             Lógica do GM (desafios, resolução)
+gm/index.html           Dashboard GM/Admin desktop (sidebar "Sistema Quantitativo") — usa ALPINE.JS. Tem o "Oráculo Quant"
+gm/js/admin.js          Lógica do dashboard (Alpine x-data): tesouraria, membros, auditoria, Oráculo Quant, telão-evento — grande
+gm/js/gm.js             Painel GM DENTRO do app (view-gm-panel, abas via switchGMTab) — vanilla JS
 js/config.js            Supabase URL + anon key + VARIÁVEIS GLOBAIS de estado
 js/auth.js              Login/cadastro + inscrição de push (push_subscriptions)
 js/api.js               Integração API-Football (carregarJogos, buscarDadosAoVivo)
@@ -203,7 +203,8 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
-- **2026-06-12** — **Estratégia do Mago**: nova aba no painel GM (`gm-section-estrategia`). Pra cada jogo, busca `predictions`+`odds` da API e sugere placares pras 2 contas (🎩 Você + 💜 Gaby) com probabilidades, leitura e nota de zebra. Funções em [gm/js/gm.js](gm/js/gm.js): `carregarGMEstrategia`, `analisarJogoEstrategia`, `gerarEstrategiaPlacar`, `extrairOdds1x2Media`, `renderEstrategiaHTML` (gm v=32).
+- **2026-06-12** — **Estratégia de Placar (2 contas)** adicionada ao **Oráculo Quant** do dashboard (`gm/index.html` + `gm/js/admin.js`, método `_calcEstrategiaPlacar`, estado `oraculo.estrategia`). Sugere placar pra 🎩 Você + 💜 Gaby usando probabilidades + gols esperados que o Oráculo já busca. **Este é o lugar certo** (o GM que o Kevin usa é o dashboard). Bump admin v=24.
+- **2026-06-12** — **Estratégia do Mago**: nova aba no painel GM **de dentro do app** (`gm-section-estrategia`, gm.js). ⚠️ Lugar pouco usado — o Kevin usa o dashboard. Mantido pra acesso mobile, mas a versão canônica é a do Oráculo (acima). Pra cada jogo, busca `predictions`+`odds` da API e sugere placares pras 2 contas (🎩 Você + 💜 Gaby) com probabilidades, leitura e nota de zebra. Funções em [gm/js/gm.js](gm/js/gm.js): `carregarGMEstrategia`, `analisarJogoEstrategia`, `gerarEstrategiaPlacar`, `extrairOdds1x2Media`, `renderEstrategiaHTML` (gm v=32).
 - **2026-06-12** — Doc central `CLAUDE.md` criado (este arquivo).
 - **2026-06-12** — Botão "Perguntas Bônus" minimizado pra barra fininha de 1 linha (ui.js v=34).
 - **2026-06-12** — Zebra: rodapé "Casa/Emp/Fora %" + selo "Zebra Ativa/Sem Zebra" nos cards de Jogos e no Ao Vivo; 🦓 nos players que foram na zebra; helper `renderDistribuicaoZebra` (ui.js v=33, aovivo.js v=32).
