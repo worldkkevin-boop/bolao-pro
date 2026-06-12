@@ -203,6 +203,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
+- **2026-06-12** — Estratégia agora usa o mercado **Exact Score** das odds (`_fetchPlacaresProvaveis` em admin.js): ranqueia os placares mais prováveis do mercado e distribui entre as 2 contas (conta1 = #1; conta2 = mais provável de resultado diferente). Card mostra os top placares com %. Fallback heurístico quando não há odds. Bump admin v=25.
 - **2026-06-12** — **Estratégia de Placar (2 contas)** adicionada ao **Oráculo Quant** do dashboard (`gm/index.html` + `gm/js/admin.js`, método `_calcEstrategiaPlacar`, estado `oraculo.estrategia`). Sugere placar pra 🎩 Você + 💜 Gaby usando probabilidades + gols esperados que o Oráculo já busca. **Este é o lugar certo** (o GM que o Kevin usa é o dashboard). Bump admin v=24.
 - **2026-06-12** — **Estratégia do Mago**: nova aba no painel GM **de dentro do app** (`gm-section-estrategia`, gm.js). ⚠️ Lugar pouco usado — o Kevin usa o dashboard. Mantido pra acesso mobile, mas a versão canônica é a do Oráculo (acima). Pra cada jogo, busca `predictions`+`odds` da API e sugere placares pras 2 contas (🎩 Você + 💜 Gaby) com probabilidades, leitura e nota de zebra. Funções em [gm/js/gm.js](gm/js/gm.js): `carregarGMEstrategia`, `analisarJogoEstrategia`, `gerarEstrategiaPlacar`, `extrairOdds1x2Media`, `renderEstrategiaHTML` (gm v=32).
 - **2026-06-12** — Doc central `CLAUDE.md` criado (este arquivo).
@@ -216,6 +217,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 ## 12. Backlog / próximos passos
 
 - [ ] **Odds 1X2 nos jogos** (PESQUISADO, pronto pra fazer). Plano recomendado: guardar odds na tabela `matches` (colunas `odd_home/odd_draw/odd_away/odds_updated_at`) via agendamento `pg_cron` (1x/hora) e **média das casas**; exibir do lado da distribuição de palpites. Plano alternativo: buscar na hora que abre o jogo. API já confirmada (ex.: USA x Paraguai → 1.91 / 3.30 / 4.20, 14 casas).
+- [ ] **Modo estratégico por posição no ranking** (Oráculo): olhar o ranking do grupo do Kevin (gap pro líder, jogos restantes) e ajustar a sugestão pra "Segurar" (na frente, jogar com a manada) ou "Atacar" (atrás, ir na zebra/diferencial). Precisa focar num grupo específico (hoje o Oráculo olha geral). Refinos extras pesquisados: forma recente + H2H (já vêm no predictions), Over/Under e Ambas Marcam pra calibrar nº de gols, lesões/escalações (~1h antes).
 - [ ] **Alinhar zebra de empate**: fazer o selo "Zebra Ativa" considerar também o empate <15% (pra bater com a pontuação), marcando "Emp. 🦓 8%". (Pergunta aberta com o Kevin: marcar empate OU mudar a pontuação pra não dar 2x em empate.)
 - [ ] **Barra de Perguntas Bônus**: sumir sozinha quando não dá mais pra responder (depende de definir como o app sabe que "fechou").
 - [ ] **% de palpites antes da trava?**: hoje as %/selo só aparecem depois do palpite travar (pra não influenciar). Decidir se mostra o tempo todo.

@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, erro: null },
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -1624,16 +1624,19 @@ function adminApp() {
       this.oraculo.distribuicao = null;
       this.oraculo.distorcao = null;
       this.oraculo.estrategia = null;
+      this.oraculo.placaresProvaveis = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
       try {
-        const [pred, dist] = await Promise.all([
+        const [pred, dist, placares] = await Promise.all([
           analisarDistorcaoPalpites(fId),
-          this._distribuicaoLocalGM(fId)
+          this._distribuicaoLocalGM(fId),
+          this._fetchPlacaresProvaveis(fId)
         ]);
         this.oraculo.predicoes = pred;
         this.oraculo.distribuicao = dist;
+        this.oraculo.placaresProvaveis = placares;
         if (dist.total > 0) {
           this.oraculo.distorcao = {
             home: (dist.homePct - pred.percent.home).toFixed(1),
@@ -1642,7 +1645,7 @@ function adminApp() {
             zebraAlert: Math.max(Math.abs(dist.homePct - pred.percent.home), Math.abs(dist.awayPct - pred.percent.away)) > 25
           };
         }
-        this.oraculo.estrategia = this._calcEstrategiaPlacar(pred);
+        this.oraculo.estrategia = this._calcEstrategiaPlacar(pred, placares);
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
         this._popularDesafioRapido(pred, dist);
       } catch(err) {
@@ -1653,9 +1656,67 @@ function adminApp() {
       }
     },
 
-    // Sugere placares pras 2 contas (Você + Gaby) a partir das probabilidades
-    // e dos gols esperados da API. Cobre mais cenários. É só apoio à decisão.
-    _calcEstrategiaPlacar(pred) {
+    // Busca o mercado "Exact Score" das odds e devolve os placares ranqueados
+    // por probabilidade (média das casas). Retorna null se indisponível.
+    async _fetchPlacaresProvaveis(fixtureId) {
+      try {
+        const resp = await fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}`, {
+          headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+        });
+        if (!resp.ok) return null;
+        const json = await resp.json();
+        const bks = (json && json.response && json.response[0] && json.response[0].bookmakers) ? json.response[0].bookmakers : [];
+        const acc = {};
+        bks.forEach(bk => {
+          const bet = (bk.bets || []).find(b => b.name === 'Exact Score');
+          if (!bet) return;
+          (bet.values || []).forEach(v => {
+            const m = String(v.value).match(/^(\d+):(\d+)$/);
+            if (!m) return;
+            const odd = parseFloat(v.odd);
+            if (!odd || odd <= 1) return;
+            const key = `${m[1]}-${m[2]}`;
+            if (!acc[key]) acc[key] = { soma: 0, n: 0, home: +m[1], away: +m[2] };
+            acc[key].soma += odd; acc[key].n += 1;
+          });
+        });
+        const lista = Object.keys(acc).map(k => {
+          const a = acc[k];
+          const oddMedia = a.soma / a.n;
+          return {
+            placar: k, home: a.home, away: a.away, oddMedia, prob: 1 / oddMedia,
+            winner: a.home > a.away ? 'home' : (a.home < a.away ? 'away' : 'empate')
+          };
+        });
+        if (lista.length === 0) return null;
+        const s = lista.reduce((t, x) => t + x.prob, 0) || 1;
+        lista.forEach(x => { x.probNorm = x.prob / s; });
+        lista.sort((a, b) => b.prob - a.prob);
+        return lista;
+      } catch (e) { return null; }
+    },
+
+    // Sugere placares pras 2 contas (Você + Gaby). Prioriza as odds de placar
+    // exato; se não houver, cai numa heurística por probabilidade + gols.
+    _calcEstrategiaPlacar(pred, placares) {
+      // 1) Preferência: placares mais prováveis pelas ODDS de placar exato.
+      if (placares && placares.length >= 1) {
+        const c1 = placares[0];
+        const c2 = placares.find(p => p.winner !== c1.winner) || placares[1] || c1;
+        const pc = x => Math.round((x.probNorm || x.prob || 0) * 100);
+        const nomeRes = w => w === 'home' ? (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa') : (w === 'away' ? (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora') : 'o empate');
+        const alvo2 = c2.winner === 'empate' ? 'o empate' : ('a vitória de ' + nomeRes(c2.winner));
+        const confianca = c1.probNorm >= 0.13 ? 'alta' : (c1.probNorm >= 0.09 ? 'média' : 'baixa');
+        const resumo = `Pelas odds de placar exato, o cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%), pra não ficar refém de um resultado só.`;
+        return {
+          fonte: 'odds',
+          conta1: c1.placar, conta2: c2.placar, confianca, resumo,
+          homeName: (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa'),
+          awayName: (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora'),
+          top: placares.slice(0, 5).map(p => ({ placar: p.placar, pct: pc(p) }))
+        };
+      }
+      // 2) Fallback: heurística por probabilidade + gols esperados.
       if (!pred || !pred.percent) return null;
       const pH = Number(pred.percent.home) || 0;
       const pD = Number(pred.percent.draw) || 0;
@@ -1699,7 +1760,7 @@ function adminApp() {
         conta2 = winScore(favSide, Math.max(2, fgBase), ogBase);
         resumo = `Jogo aberto, sem favorito claro. Cobrimos o empate (1-1) numa conta e a vitória magra do leve favorito na outra.`;
       }
-      return { conta1, conta2, confianca, resumo, favName, homeName, awayName };
+      return { fonte: 'heuristica', conta1, conta2, confianca, resumo, favName, homeName, awayName };
     },
 
     _popularDesafioRapido(pred, dist) {

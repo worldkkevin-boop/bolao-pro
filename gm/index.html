@@ -1794,6 +1794,13 @@
               </div>
             </div>
             <p class="text-[11px] text-zinc-300 leading-relaxed mt-4" x-text="oraculo.estrategia?.resumo"></p>
+            <div x-show="oraculo.estrategia?.top && oraculo.estrategia.top.length" class="mt-3 flex flex-wrap items-center gap-1.5">
+              <span class="text-[9px] text-zinc-500 uppercase font-black tracking-wider">Placares mais prováveis:</span>
+              <template x-for="p in (oraculo.estrategia?.top || [])" :key="p.placar">
+                <span class="text-[10px] font-mono font-bold text-zinc-300 bg-zinc-950/70 border border-zinc-800 rounded px-1.5 py-0.5"><span x-text="p.placar"></span> <span class="text-zinc-500" x-text="p.pct + '%'"></span></span>
+              </template>
+            </div>
+            <p class="text-[9px] text-zinc-600 italic mt-2" x-text="oraculo.estrategia?.fonte === 'odds' ? 'Baseado nas odds reais de placar exato do mercado.' : 'Baseado em estimativa (odds de placar exato indisponíveis pra esse jogo).'"></p>
           </div>
 
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
@@ -2395,6 +2402,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=24"></script>
+  <script src="/gm/js/admin.js?v=25"></script>
 </body>
 </html>
