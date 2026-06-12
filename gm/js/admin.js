@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, erro: null },
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -1625,6 +1625,7 @@ function adminApp() {
       this.oraculo.distorcao = null;
       this.oraculo.estrategia = null;
       this.oraculo.placaresProvaveis = null;
+      this.oraculo.tabelaPlacares = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
@@ -1646,6 +1647,7 @@ function adminApp() {
           };
         }
         this.oraculo.estrategia = this._calcEstrategiaPlacar(pred, placares);
+        this.oraculo.tabelaPlacares = placares ? this._agruparPlacares(placares) : null;
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
         this._popularDesafioRapido(pred, dist);
       } catch(err) {
@@ -1694,6 +1696,21 @@ function adminApp() {
         lista.sort((a, b) => b.prob - a.prob);
         return lista;
       } catch (e) { return null; }
+    },
+
+    // Agrupa os placares por resultado (Casa / Empate / Fora), ordena por odd
+    // (menor = mais provável) e limita a 6 por coluna — formato tabela do mercado.
+    _agruparPlacares(lista) {
+      const fmt = arr => arr
+        .slice()
+        .sort((a, b) => a.oddMedia - b.oddMedia)
+        .slice(0, 6)
+        .map(p => ({ placar: p.placar, odd: p.oddMedia.toFixed(2), pct: Math.round((p.probNorm || 0) * 100) }));
+      return {
+        casa: fmt(lista.filter(p => p.winner === 'home')),
+        empate: fmt(lista.filter(p => p.winner === 'empate')),
+        fora: fmt(lista.filter(p => p.winner === 'away'))
+      };
     },
 
     // Sugere placares pras 2 contas (Você + Gaby). Prioriza as odds de placar

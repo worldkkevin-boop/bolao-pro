@@ -1794,13 +1794,44 @@
               </div>
             </div>
             <p class="text-[11px] text-zinc-300 leading-relaxed mt-4" x-text="oraculo.estrategia?.resumo"></p>
-            <div x-show="oraculo.estrategia?.top && oraculo.estrategia.top.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-              <span class="text-[9px] text-zinc-500 uppercase font-black tracking-wider">Placares mais prováveis:</span>
-              <template x-for="p in (oraculo.estrategia?.top || [])" :key="p.placar">
-                <span class="text-[10px] font-mono font-bold text-zinc-300 bg-zinc-950/70 border border-zinc-800 rounded px-1.5 py-0.5"><span x-text="p.placar"></span> <span class="text-zinc-500" x-text="p.pct + '%'"></span></span>
-              </template>
+            <!-- Tabela de placares (odds do mercado), estilo Correct Score -->
+            <div x-show="oraculo.tabelaPlacares" class="mt-4">
+              <p class="text-[9px] text-zinc-500 uppercase font-black tracking-wider mb-2">📋 Odds de placar exato (média das casas) — destacados = escolhidos das 2 contas</p>
+              <div class="grid grid-cols-3 gap-2">
+                <!-- CASA -->
+                <div class="bg-zinc-950/50 border border-zinc-800 rounded-xl p-2">
+                  <p class="text-[9px] font-black uppercase text-emerald-400 truncate mb-1.5" x-text="oraculo.predicoes?.teams?.home?.name || 'Casa'"></p>
+                  <template x-for="p in (oraculo.tabelaPlacares?.casa || [])" :key="'h'+p.placar">
+                    <div class="flex items-center justify-between text-[10px] py-0.5 px-1.5 rounded mb-0.5" :class="(p.placar === oraculo.estrategia?.conta1 || p.placar === oraculo.estrategia?.conta2) ? 'bg-purple-500/20 border border-purple-500/30' : ''">
+                      <span class="font-mono font-bold text-zinc-300" x-text="p.placar"></span>
+                      <span class="font-mono text-amber-400" x-text="p.odd"></span>
+                    </div>
+                  </template>
+                </div>
+                <!-- EMPATE -->
+                <div class="bg-zinc-950/50 border border-zinc-800 rounded-xl p-2">
+                  <p class="text-[9px] font-black uppercase text-blue-400 truncate mb-1.5">Empate</p>
+                  <template x-for="p in (oraculo.tabelaPlacares?.empate || [])" :key="'d'+p.placar">
+                    <div class="flex items-center justify-between text-[10px] py-0.5 px-1.5 rounded mb-0.5" :class="(p.placar === oraculo.estrategia?.conta1 || p.placar === oraculo.estrategia?.conta2) ? 'bg-purple-500/20 border border-purple-500/30' : ''">
+                      <span class="font-mono font-bold text-zinc-300" x-text="p.placar"></span>
+                      <span class="font-mono text-amber-400" x-text="p.odd"></span>
+                    </div>
+                  </template>
+                </div>
+                <!-- FORA -->
+                <div class="bg-zinc-950/50 border border-zinc-800 rounded-xl p-2">
+                  <p class="text-[9px] font-black uppercase text-purple-400 truncate mb-1.5" x-text="oraculo.predicoes?.teams?.away?.name || 'Fora'"></p>
+                  <template x-for="p in (oraculo.tabelaPlacares?.fora || [])" :key="'a'+p.placar">
+                    <div class="flex items-center justify-between text-[10px] py-0.5 px-1.5 rounded mb-0.5" :class="(p.placar === oraculo.estrategia?.conta1 || p.placar === oraculo.estrategia?.conta2) ? 'bg-purple-500/20 border border-purple-500/30' : ''">
+                      <span class="font-mono font-bold text-zinc-300" x-text="p.placar"></span>
+                      <span class="font-mono text-amber-400" x-text="p.odd"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <p class="text-[9px] text-zinc-600 mt-1.5">Odd menor = mais provável. Mostra os 6 placares mais prováveis de cada lado.</p>
             </div>
-            <p class="text-[9px] text-zinc-600 italic mt-2" x-text="oraculo.estrategia?.fonte === 'odds' ? 'Baseado nas odds reais de placar exato do mercado.' : 'Baseado em estimativa (odds de placar exato indisponíveis pra esse jogo).'"></p>
+            <p class="text-[9px] text-zinc-600 italic mt-2" x-text="oraculo.estrategia?.fonte === 'odds' ? 'Sugestão calculada a partir dessas odds reais de placar exato.' : 'Baseado em estimativa (odds de placar exato indisponíveis pra esse jogo).'"></p>
           </div>
 
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
@@ -2402,6 +2433,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=25"></script>
+  <script src="/gm/js/admin.js?v=26"></script>
 </body>
 </html>
