@@ -94,6 +94,36 @@ async function carregarDadosBaseTVAoVivo() {
   }
 }
 
+// Calcula a distribuição de palpites do grupo por jogo (Casa/Empate/Fora) e marca
+// as zebras (time com < 15% dos palpites de vitória — só com a regra ligada).
+// Retorna mapa match_id -> {homePct, empatePct, awayPct, total, homeZebra, awayZebra}.
+function calcularZebrasTV() {
+  const mapa = {};
+  const regraOn = (grupoAtual && grupoAtual.regra_zebra_dinamica === true);
+  const cont = {};
+  (tvDados.palpites || []).forEach(g => {
+    if (!cont[g.match_id]) cont[g.match_id] = { home: 0, away: 0, empate: 0, total: 0 };
+    cont[g.match_id].total++;
+    if (g.score_home > g.score_away) cont[g.match_id].home++;
+    else if (g.score_away > g.score_home) cont[g.match_id].away++;
+    else cont[g.match_id].empate++;
+  });
+  for (const mId in cont) {
+    const c = cont[mId];
+    if (c.total > 0) {
+      const homePct = (c.home / c.total) * 100;
+      const awayPct = (c.away / c.total) * 100;
+      const empatePct = (c.empate / c.total) * 100;
+      mapa[mId] = {
+        homePct, empatePct, awayPct, total: c.total,
+        homeZebra: regraOn && homePct < 15,
+        awayZebra: regraOn && awayPct < 15
+      };
+    }
+  }
+  return mapa;
+}
+
 async function atualizarTVAoVivo() {
   const leagueId = (grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
   const jogosContainer = document.getElementById('lista-jogos-ao-vivo');
@@ -133,6 +163,10 @@ async function atualizarTVAoVivo() {
     return j.league.id === leagueId && statusAoVivo.includes(j.fixture.status.short);
   });
 
+  // Mapa de zebras do grupo (time com <15% dos palpites de vitória)
+  const zebrasTV = calcularZebrasTV();
+  const zebraTagTV = `<span class="bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full tracking-wide flex-shrink-0" title="Time zebra — vale o dobro se vencer">🦓</span>`;
+
   // 1. RENDERIZA JOGOS AO VIVO
   if (jogosAtivosGrupo.length === 0) {
     const htmlSemJogos = renderEmptyState(
@@ -151,25 +185,34 @@ async function atualizarTVAoVivo() {
       const homeFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(jogo.teams.home.name) + '&background=047857&color=fff';
       const awayFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(jogo.teams.away.name) + '&background=b45309&color=fff';
       const elapsed = jogo.fixture.status.elapsed ? `${jogo.fixture.status.elapsed}'` : '';
+      const zJogo = zebrasTV[jogo.fixture.id] || {};
+      const footerLive = (typeof renderDistribuicaoZebra === 'function')
+        ? renderDistribuicaoZebra(zJogo.homePct, zJogo.empatePct, zJogo.awayPct, zJogo.total, (grupoAtual && grupoAtual.regra_zebra_dinamica === true))
+        : '';
 
       htmlJogos += `
-        <div class="bg-card-bg p-4 rounded-2xl border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.05)] relative overflow-hidden flex items-center justify-between">
+        <div class="bg-card-bg p-4 rounded-2xl border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.05)] relative overflow-hidden">
           <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-          
-          <div class="flex items-center gap-3 w-[40%]">
-            <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover">
-            <span class="font-bold text-[12px] text-white truncate">${jogo.teams.home.name}</span>
-          </div>
 
-          <div class="flex flex-col items-center justify-center w-[20%]">
-            <span class="text-[9px] font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 uppercase tracking-widest animate-pulse mb-1">${elapsed}</span>
-            <div class="text-base font-black text-white tracking-widest">${jogo.goals.home ?? 0}x${jogo.goals.away ?? 0}</div>
-          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 w-[40%]">
+              <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover">
+              <span class="font-bold text-[12px] text-white truncate">${jogo.teams.home.name}</span>
+              ${zJogo.homeZebra ? zebraTagTV : ''}
+            </div>
 
-          <div class="flex items-center justify-end gap-3 w-[40%] text-right">
-            <span class="font-bold text-[12px] text-white truncate">${jogo.teams.away.name}</span>
-            <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover">
+            <div class="flex flex-col items-center justify-center w-[20%]">
+              <span class="text-[9px] font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 uppercase tracking-widest animate-pulse mb-1">${elapsed}</span>
+              <div class="text-base font-black text-white tracking-widest">${jogo.goals.home ?? 0}x${jogo.goals.away ?? 0}</div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 w-[40%] text-right">
+              ${zJogo.awayZebra ? zebraTagTV : ''}
+              <span class="font-bold text-[12px] text-white truncate">${jogo.teams.away.name}</span>
+              <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover">
+            </div>
           </div>
+          ${footerLive}
         </div>
       `;
     });
@@ -435,7 +478,8 @@ async function atualizarTVAoVivo() {
 
     jogosAtivosGrupo.forEach(jogo => {
       const matchGuesses = tvDados.palpites.filter(g => g.match_id === jogo.fixture.id);
-      
+      const zJogoP = zebrasTV[jogo.fixture.id] || {};
+
       let htmlGuessesList = '';
       if (matchGuesses.length === 0) {
         htmlGuessesList = '<p class="text-text-muted text-[11px] py-3 text-center">Ninguém palpitou nessa partida.</p>';
@@ -443,7 +487,10 @@ async function atualizarTVAoVivo() {
         matchGuesses.forEach(g => {
           const perfil = tvDados.perfis.find(p => p.id === g.user_id);
           const fotoUrl = perfil?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(perfil?.full_name || 'U') + '&background=random&color=fff';
-          
+
+          const foiNaZebra = (g.score_home > g.score_away && zJogoP.homeZebra) || (g.score_away > g.score_home && zJogoP.awayZebra);
+          const zebraPlayerTag = foiNaZebra ? '<span class="text-[11px] flex-shrink-0" title="Foi na zebra! Coragem.">🦓</span>' : '';
+
           const liveHome = jogo.goals.home ?? 0;
           const liveAway = jogo.goals.away ?? 0;
           const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway);
@@ -462,6 +509,7 @@ async function atualizarTVAoVivo() {
               <div class="flex items-center gap-2 min-w-0">
                 <img src="${fotoUrl}" class="w-6 h-6 rounded-full border border-white/10 object-cover flex-shrink-0">
                 <span class="text-[12px] font-bold text-zinc-300 truncate">${perfil?.full_name || 'Participante'}</span>
+                ${zebraPlayerTag}
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
                 <span class="text-[12px] font-black font-mono text-white">${g.score_home} x ${g.score_away}</span>

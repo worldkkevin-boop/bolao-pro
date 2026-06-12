@@ -263,6 +263,32 @@ function formatarData(dateStr) {
   return dia + ' de ' + mes + ' às ' + hora;
 }
 
+// Monta o rodapé de distribuição de palpites de um jogo: "Casa X% · Emp. Y% · Fora Z%"
+// e, com a regra ligada, um selo "Zebra Ativa" (algum time < 15%) ou "Sem Zebra".
+// Recebe as porcentagens já em 0-100. Retorna '' se ainda não houver palpites.
+function renderDistribuicaoZebra(homePct, empatePct, awayPct, total, regraZebraOn) {
+  if (!total || total <= 0) return '';
+  const h = Math.round(homePct), e = Math.round(empatePct), a = Math.round(awayPct);
+  let statusPill = '';
+  if (regraZebraOn) {
+    const temZebra = (homePct < 15 || awayPct < 15);
+    statusPill = temZebra
+      ? `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white whitespace-nowrap">🦓 Zebra Ativa</span>`
+      : `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/5 whitespace-nowrap">Sem Zebra</span>`;
+  }
+  return `
+    <div class="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
+        <span>Casa <span class="text-white/80">${h}%</span></span>
+        <span class="text-white/20">·</span>
+        <span>Emp. <span class="text-white/80">${e}%</span></span>
+        <span class="text-white/20">·</span>
+        <span>Fora <span class="text-white/80">${a}%</span></span>
+      </div>
+      ${statusPill}
+    </div>`;
+}
+
 function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
   const container = document.getElementById('lista-jogos');
   container.innerHTML = '';
@@ -334,6 +360,12 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       }
     }
     const zebraBadge = `<span class="mt-1 inline-flex items-center gap-1 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow shadow-fuchsia-600/30" title="Poucos palpitaram nesse time — se ele vencer, vale o dobro!">🦓 Zebra 2x</span>`;
+
+    // Rodapé com a distribuição Casa/Empate/Fora + selo de zebra (só após o bloqueio dos palpites)
+    const distFooter = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[id] : null;
+    const footerZebra = (isLocked && distFooter && distFooter.total > 0)
+      ? renderDistribuicaoZebra(distFooter.home, distFooter.empate, distFooter.away, distFooter.total, regraZebraLigada)
+      : '';
 
     let centerHtml = '';
     let cardBorderClass = 'border-white/5';
@@ -462,6 +494,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
             ${awayZebra ? zebraBadge : ''}
           </div>
         </div>
+        ${footerZebra}
       </div>`;
   });
   container.innerHTML = html;
