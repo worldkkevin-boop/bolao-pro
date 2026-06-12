@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, erro: null },
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -1626,18 +1626,22 @@ function adminApp() {
       this.oraculo.estrategia = null;
       this.oraculo.placaresProvaveis = null;
       this.oraculo.tabelaPlacares = null;
+      this.oraculo.golsInfo = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
       try {
-        const [pred, dist, placares] = await Promise.all([
+        const [pred, dist, odds] = await Promise.all([
           analisarDistorcaoPalpites(fId),
           this._distribuicaoLocalGM(fId),
-          this._fetchPlacaresProvaveis(fId)
+          this._fetchOddsOraculo(fId)
         ]);
         this.oraculo.predicoes = pred;
         this.oraculo.distribuicao = dist;
+        const placares = odds.placares;
+        if (placares) this._calcEVPlacares(placares, dist);
         this.oraculo.placaresProvaveis = placares;
+        this.oraculo.golsInfo = odds.gols;
         if (dist.total > 0) {
           this.oraculo.distorcao = {
             home: (dist.homePct - pred.percent.home).toFixed(1),
@@ -1658,16 +1662,17 @@ function adminApp() {
       }
     },
 
-    // Busca o mercado "Exact Score" das odds e devolve os placares ranqueados
-    // por probabilidade (média das casas). Retorna null se indisponível.
-    async _fetchPlacaresProvaveis(fixtureId) {
+    // Busca as odds (1x) e extrai: placares prováveis (Exact Score) + gols
+    // esperados (Goals Over/Under). Retorna { placares, gols }.
+    async _fetchOddsOraculo(fixtureId) {
       try {
         const resp = await fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}`, {
           headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
         });
-        if (!resp.ok) return null;
+        if (!resp.ok) return { placares: null, gols: null };
         const json = await resp.json();
         const bks = (json && json.response && json.response[0] && json.response[0].bookmakers) ? json.response[0].bookmakers : [];
+        // --- Placar exato (Exact Score) ---
         const acc = {};
         bks.forEach(bk => {
           const bet = (bk.bets || []).find(b => b.name === 'Exact Score');
@@ -1682,7 +1687,7 @@ function adminApp() {
             acc[key].soma += odd; acc[key].n += 1;
           });
         });
-        const lista = Object.keys(acc).map(k => {
+        let placares = Object.keys(acc).map(k => {
           const a = acc[k];
           const oddMedia = a.soma / a.n;
           return {
@@ -1690,12 +1695,92 @@ function adminApp() {
             winner: a.home > a.away ? 'home' : (a.home < a.away ? 'away' : 'empate')
           };
         });
-        if (lista.length === 0) return null;
-        const s = lista.reduce((t, x) => t + x.prob, 0) || 1;
-        lista.forEach(x => { x.probNorm = x.prob / s; });
-        lista.sort((a, b) => b.prob - a.prob);
-        return lista;
-      } catch (e) { return null; }
+        if (placares.length === 0) {
+          placares = null;
+        } else {
+          const s = placares.reduce((t, x) => t + x.prob, 0) || 1;
+          placares.forEach(x => { x.probNorm = x.prob / s; });
+          placares.sort((a, b) => b.prob - a.prob);
+        }
+        const gols = this._calcGolsEsperados(bks);
+        return { placares, gols };
+      } catch (e) { return { placares: null, gols: null }; }
+    },
+
+    // Estima gols esperados e total mais provável a partir do mercado Over/Under.
+    _calcGolsEsperados(bks) {
+      const linhas = {};
+      bks.forEach(bk => {
+        const bet = (bk.bets || []).find(b => b.name === 'Goals Over/Under');
+        if (!bet) return;
+        (bet.values || []).forEach(v => {
+          const m = String(v.value).match(/^(Over|Under)\s+([\d.]+)$/i);
+          if (!m) return;
+          const odd = parseFloat(v.odd);
+          if (!odd || odd <= 1) return;
+          const linha = m[2];
+          if (!linhas[linha]) linhas[linha] = { over: [], under: [] };
+          linhas[linha][m[1].toLowerCase()].push(odd);
+        });
+      });
+      const pOver = {};
+      Object.keys(linhas).forEach(l => {
+        const o = linhas[l].over, u = linhas[l].under;
+        if (!o.length || !u.length) return;
+        const avgO = o.reduce((a, b) => a + b, 0) / o.length;
+        const avgU = u.reduce((a, b) => a + b, 0) / u.length;
+        const iO = 1 / avgO, iU = 1 / avgU;
+        pOver[parseFloat(l)] = iO / (iO + iU);
+      });
+      if (Object.keys(pOver).length === 0) return null;
+      const distK = {};
+      if (pOver[0.5] != null) distK[0] = Math.max(0, 1 - pOver[0.5]);
+      for (let k = 1; k <= 6; k++) {
+        const lo = k - 0.5, hi = k + 0.5;
+        if (pOver[lo] != null) {
+          const pHi = pOver[hi] != null ? pOver[hi] : 0;
+          distK[k] = Math.max(0, pOver[lo] - pHi);
+        }
+      }
+      let esperado = 0, soma = 0, maisProv = null, maxP = -1;
+      Object.keys(distK).forEach(k => {
+        esperado += Number(k) * distK[k];
+        soma += distK[k];
+        if (distK[k] > maxP) { maxP = distK[k]; maisProv = Number(k); }
+      });
+      if (soma <= 0) return null;
+      return { esperado: esperado / soma, maisProvavel: maisProv };
+    },
+
+    // Pontos de um palpite contra um resultado real (escala padrão 12/7/6/3).
+    _pontosPalpite(ph, pa, rh, ra) {
+      if (ph === rh && pa === ra) return 12;
+      const vp = ph > pa ? 'h' : (ph < pa ? 'a' : 'e');
+      const vr = rh > ra ? 'h' : (rh < ra ? 'a' : 'e');
+      if (vp !== vr) return 0;
+      if (vr === 'e') return 6;
+      return Math.abs(ph - pa) === Math.abs(rh - ra) ? 7 : 3;
+    },
+
+    // EV (pontos esperados) de cada placar: soma os pontos contra cada resultado
+    // possível, ponderado pela probabilidade. Aplica zebra 2x (aprox.) quando a
+    // distribuição do bolão mostra <15% no resultado vencedor.
+    _calcEVPlacares(placares, distribuicao) {
+      const crowd = distribuicao && distribuicao.total > 0 ? distribuicao : null;
+      placares.forEach(cand => {
+        let ev = 0;
+        placares.forEach(real => {
+          let pts = this._pontosPalpite(cand.home, cand.away, real.home, real.away);
+          if (pts > 0 && crowd) {
+            const w = real.winner;
+            const pctW = w === 'home' ? crowd.homePct : (w === 'away' ? crowd.awayPct : crowd.drawPct);
+            if (pctW != null && pctW < 15) pts *= 2;
+          }
+          ev += (real.probNorm || 0) * pts;
+        });
+        cand.ev = ev;
+      });
+      return placares;
     },
 
     // Agrupa os placares por resultado (Casa / Empate / Fora), ordena por odd
@@ -1705,7 +1790,7 @@ function adminApp() {
         .slice()
         .sort((a, b) => a.oddMedia - b.oddMedia)
         .slice(0, 6)
-        .map(p => ({ placar: p.placar, odd: p.oddMedia.toFixed(2), pct: Math.round((p.probNorm || 0) * 100) }));
+        .map(p => ({ placar: p.placar, odd: p.oddMedia.toFixed(2), pct: Math.round((p.probNorm || 0) * 100), ev: (typeof p.ev === 'number' ? p.ev.toFixed(1) : null) }));
       return {
         casa: fmt(lista.filter(p => p.winner === 'home')),
         empate: fmt(lista.filter(p => p.winner === 'empate')),
@@ -1716,21 +1801,27 @@ function adminApp() {
     // Sugere placares pras 2 contas (Você + Gaby). Prioriza as odds de placar
     // exato; se não houver, cai numa heurística por probabilidade + gols.
     _calcEstrategiaPlacar(pred, placares) {
-      // 1) Preferência: placares mais prováveis pelas ODDS de placar exato.
+      // 1) Preferência: escolhe pelos PONTOS ESPERADOS (EV); senão, pela prob.
       if (placares && placares.length >= 1) {
-        const c1 = placares[0];
-        const c2 = placares.find(p => p.winner !== c1.winner) || placares[1] || c1;
+        const temEV = placares.some(p => typeof p.ev === 'number');
+        const ord = placares.slice().sort((a, b) => temEV ? ((b.ev || 0) - (a.ev || 0)) : ((b.prob || 0) - (a.prob || 0)));
+        const c1 = ord[0];
+        const c2 = ord.find(p => p.winner !== c1.winner) || ord[1] || c1;
         const pc = x => Math.round((x.probNorm || x.prob || 0) * 100);
         const nomeRes = w => w === 'home' ? (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa') : (w === 'away' ? (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora') : 'o empate');
         const alvo2 = c2.winner === 'empate' ? 'o empate' : ('a vitória de ' + nomeRes(c2.winner));
         const confianca = c1.probNorm >= 0.13 ? 'alta' : (c1.probNorm >= 0.09 ? 'média' : 'baixa');
-        const resumo = `Pelas odds de placar exato, o cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%), pra não ficar refém de um resultado só.`;
+        const ev1 = temEV ? ` (~${c1.ev.toFixed(1)} pts esperados)` : '';
+        const ev2 = temEV ? ` (~${c2.ev.toFixed(1)} pts)` : '';
+        const resumo = temEV
+          ? `Otimizando por pontos esperados, o melhor placar é ${c1.placar}${ev1} — ${pc(c1)}% de chance no mercado. A 2ª conta cobre ${alvo2} com ${c2.placar}${ev2}, pra diversificar o resultado.`
+          : `O cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%), pra não ficar refém de um resultado só.`;
         return {
           fonte: 'odds',
           conta1: c1.placar, conta2: c2.placar, confianca, resumo,
           homeName: (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa'),
           awayName: (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora'),
-          top: placares.slice(0, 5).map(p => ({ placar: p.placar, pct: pc(p) }))
+          top: ord.slice(0, 5).map(p => ({ placar: p.placar, pct: pc(p) }))
         };
       }
       // 2) Fallback: heurística por probabilidade + gols esperados.
