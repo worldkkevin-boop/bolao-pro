@@ -3963,8 +3963,9 @@ async function verificarExibicaoBotaoBonusJogador() {
     if (config && (config.q1_ativa || config.q2_ativa || config.q3_ativa || config.q4_ativa || config.q5_ativa)) {
       container.classList.remove('hidden');
       container.innerHTML = `
-        <button onclick="abrirResponderBonus()" class="w-full bg-brand-green/10 border border-brand-green/30 hover:bg-brand-green/20 text-brand-green font-black py-4 rounded-2xl text-[13px] uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_0_15px_rgba(0,255,163,0.1)]">
-          <span class="text-base">⭐</span> Responder Perguntas Bônus
+        <button onclick="abrirResponderBonus()" class="w-full bg-brand-green/10 border border-brand-green/25 hover:bg-brand-green/20 text-brand-green font-bold py-2.5 px-3.5 rounded-xl text-[12px] flex items-center justify-between gap-2 active:scale-[0.99] transition-all">
+          <span class="flex items-center gap-1.5"><span class="text-[13px]">⭐</span> Perguntas Bônus</span>
+          <span class="text-[11px] font-black uppercase tracking-wide opacity-80 flex items-center gap-0.5">Responder ›</span>
         </button>
       `;
     } else {
