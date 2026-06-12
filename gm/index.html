@@ -1508,6 +1508,36 @@
           </div>
         </div>
 
+        <!-- FOCO NO GRUPO (regras + palpites do seu bolão pro EV) -->
+        <div class="bg-zinc-900/80 border border-purple-500/20 rounded-2xl p-4 mt-4">
+          <div class="flex flex-col md:flex-row md:items-center gap-3">
+            <div class="flex-1">
+              <p class="text-[10px] font-black uppercase tracking-wider text-purple-300 mb-1">🎯 Focar no seu grupo</p>
+              <p class="text-[10px] text-zinc-500">Faz o EV usar as <span class="text-zinc-300">regras de pontos</span> e os <span class="text-zinc-300">palpites do SEU bolão</span> (em vez da média de todos os grupos).</p>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" x-model="grupoFoco.code" @keydown.enter="focarGrupo()" placeholder="código (ex: 0VR5A4D)" class="bg-zinc-950 border border-zinc-800 focus:border-purple-500 rounded-xl px-3 py-2 font-mono text-purple-300 text-sm outline-none uppercase w-44 placeholder-zinc-700">
+              <button @click="focarGrupo()" :disabled="grupoFoco.carregando || !grupoFoco.code" class="px-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95">
+                <span x-show="!grupoFoco.carregando">Focar</span>
+                <span x-show="grupoFoco.carregando">...</span>
+              </button>
+            </div>
+          </div>
+          <div x-show="grupoFoco.id" class="mt-3 pt-3 border-t border-zinc-800 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px]">
+            <span class="font-black text-emerald-400 uppercase">✓ <span x-text="grupoFoco.nome"></span></span>
+            <span class="text-zinc-500">Exato <span class="text-white font-mono" x-text="grupoFoco.regras?.exato"></span></span>
+            <span class="text-zinc-500">Saldo <span class="text-white font-mono" x-text="grupoFoco.regras?.saldo"></span></span>
+            <span class="text-zinc-500">Empate <span class="text-white font-mono" x-text="grupoFoco.regras?.empate"></span></span>
+            <span class="text-zinc-500">Vencedor <span class="text-white font-mono" x-text="grupoFoco.regras?.vencedor"></span></span>
+            <span x-show="grupoFoco.regras?.zebra" class="text-fuchsia-400 font-bold">🦓 Zebra 2x</span>
+            <label class="flex items-center gap-1.5 cursor-pointer ml-auto">
+              <input type="checkbox" x-model="oraculo.mataMata" @change="oraculo.fixtureId && analisarOraculoGM()" class="accent-amber-500">
+              <span class="text-amber-400 font-bold">Mata-mata 2x</span>
+            </label>
+          </div>
+          <div x-show="grupoFoco.erro" class="mt-2 text-red-400 text-[10px]" x-text="grupoFoco.erro"></div>
+        </div>
+
         <!-- Mode Toggle for Oracle -->
         <div class="flex items-center justify-center p-1 bg-zinc-900/60 rounded-xl border border-zinc-800/80 w-max mx-auto mt-4 mb-2">
           <button @click="oraculo.modo = 'zebra'" :class="(!oraculo.modo || oraculo.modo === 'zebra') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10' : 'text-zinc-500 hover:text-white'" class="px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all">🦓 Radar de Zebra</button>
@@ -1842,6 +1872,8 @@
               <p class="text-[9px] text-zinc-600 mt-1.5"><span class="text-amber-400 font-mono">odd</span> = cotação do mercado · <span class="text-emerald-400 font-mono">pt</span> = pontos esperados (EV) no seu bolão. Roxo = escolhidos das 2 contas.</p>
             </div>
             <p class="text-[9px] text-zinc-600 italic mt-2" x-text="oraculo.estrategia?.fonte === 'odds' ? 'Sugestão calculada a partir dessas odds reais de placar exato.' : 'Baseado em estimativa (odds de placar exato indisponíveis pra esse jogo).'"></p>
+            <p x-show="grupoFoco.id" class="text-[9px] text-emerald-500/80 mt-1">✓ EV com as regras e os palpites do grupo <span class="font-bold" x-text="grupoFoco.nome"></span><span x-show="oraculo.mataMata"> · mata-mata 2x ligado</span>.</p>
+            <p x-show="!grupoFoco.id" class="text-[9px] text-amber-600/80 mt-1">⚠️ Usando escala padrão (12/7/6/3) e a média de todos os grupos. Foque no seu grupo acima pra ficar exato.</p>
           </div>
 
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
@@ -2443,6 +2475,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=27"></script>
+  <script src="/gm/js/admin.js?v=28"></script>
 </body>
 </html>

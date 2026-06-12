@@ -144,7 +144,10 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, erro: null },
+
+    // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
+    grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -1617,6 +1620,47 @@ function adminApp() {
       }
     },
 
+    // Carrega as regras de pontos do grupo pelo código de convite, pra usar no EV.
+    async focarGrupo() {
+      const code = (this.grupoFoco.code || '').trim().toUpperCase();
+      if (!code) return;
+      this.grupoFoco.carregando = true;
+      this.grupoFoco.erro = null;
+      const t = Date.now();
+      try {
+        const { data, error } = await sbClient
+          .from('groups')
+          .select('id, name, pt_placar_exato, pt_vencedor_saldo, pt_empate_nao_exato, pt_apenas_vencedor, regra_zebra_dinamica, mult_fase_final')
+          .eq('invite_code', code)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          this.grupoFoco.id = null; this.grupoFoco.nome = null; this.grupoFoco.regras = null;
+          this.grupoFoco.erro = 'Grupo não encontrado com esse código.';
+          return;
+        }
+        this.grupoFoco.id = data.id;
+        this.grupoFoco.nome = data.name;
+        this.grupoFoco.regras = {
+          exato: data.pt_placar_exato ?? 12,
+          saldo: data.pt_vencedor_saldo ?? 7,
+          empate: data.pt_empate_nao_exato ?? 6,
+          vencedor: data.pt_apenas_vencedor ?? 3,
+          zebra: data.regra_zebra_dinamica === true,
+          multFase: data.mult_fase_final ?? 2
+        };
+        this.adicionarLog('Supabase', `SELECT groups (foco ${code})`, 'SUCCESS', Date.now() - t, data.name);
+        if (typeof showToast === 'function') showToast('Foco no grupo ' + data.name + ' ✓', 'success');
+        // Se já tinha uma análise aberta, reanalisa com as regras do grupo
+        if (this.oraculo.fixtureId) this.analisarOraculoGM();
+      } catch (err) {
+        this.grupoFoco.erro = err.message;
+        this.adicionarLog('Supabase', 'SELECT groups (foco)', 'ERROR', Date.now() - t, err.message);
+      } finally {
+        this.grupoFoco.carregando = false;
+      }
+    },
+
     async analisarOraculoGM() {
       if (!this.oraculo.fixtureId) return;
       this.oraculo.loading = true;
@@ -1633,7 +1677,7 @@ function adminApp() {
       try {
         const [pred, dist, odds] = await Promise.all([
           analisarDistorcaoPalpites(fId),
-          this._distribuicaoLocalGM(fId),
+          this._distribuicaoLocalGM(fId, this.grupoFoco.id),
           this._fetchOddsOraculo(fId)
         ]);
         this.oraculo.predicoes = pred;
@@ -1752,14 +1796,16 @@ function adminApp() {
       return { esperado: esperado / soma, maisProvavel: maisProv };
     },
 
-    // Pontos de um palpite contra um resultado real (escala padrão 12/7/6/3).
+    // Pontos de um palpite contra um resultado real. Usa as regras do grupo
+    // focado, com fallback na escala padrão 12/7/6/3.
     _pontosPalpite(ph, pa, rh, ra) {
-      if (ph === rh && pa === ra) return 12;
+      const r = (this.grupoFoco && this.grupoFoco.regras) ? this.grupoFoco.regras : { exato: 12, saldo: 7, empate: 6, vencedor: 3 };
+      if (ph === rh && pa === ra) return r.exato;
       const vp = ph > pa ? 'h' : (ph < pa ? 'a' : 'e');
       const vr = rh > ra ? 'h' : (rh < ra ? 'a' : 'e');
       if (vp !== vr) return 0;
-      if (vr === 'e') return 6;
-      return Math.abs(ph - pa) === Math.abs(rh - ra) ? 7 : 3;
+      if (vr === 'e') return r.empate;
+      return Math.abs(ph - pa) === Math.abs(rh - ra) ? r.saldo : r.vencedor;
     },
 
     // EV (pontos esperados) de cada placar: soma os pontos contra cada resultado
@@ -1767,14 +1813,21 @@ function adminApp() {
     // distribuição do bolão mostra <15% no resultado vencedor.
     _calcEVPlacares(placares, distribuicao) {
       const crowd = distribuicao && distribuicao.total > 0 ? distribuicao : null;
+      // Zebra: se não há grupo focado, mantém a aproximação; se há, respeita a regra do grupo.
+      const zebraOn = !this.grupoFoco || !this.grupoFoco.regras || this.grupoFoco.regras.zebra;
+      const multMata = (this.grupoFoco && this.grupoFoco.regras && this.grupoFoco.regras.multFase) ? this.grupoFoco.regras.multFase : 2;
+      const isMata = !!this.oraculo.mataMata;
       placares.forEach(cand => {
         let ev = 0;
         placares.forEach(real => {
           let pts = this._pontosPalpite(cand.home, cand.away, real.home, real.away);
-          if (pts > 0 && crowd) {
-            const w = real.winner;
-            const pctW = w === 'home' ? crowd.homePct : (w === 'away' ? crowd.awayPct : crowd.drawPct);
-            if (pctW != null && pctW < 15) pts *= 2;
+          if (pts > 0) {
+            if (zebraOn && crowd) {
+              const w = real.winner;
+              const pctW = w === 'home' ? crowd.homePct : (w === 'away' ? crowd.awayPct : crowd.drawPct);
+              if (pctW != null && pctW < 15) pts *= 2;
+            }
+            if (isMata) pts *= multMata;
           }
           ev += (real.probNorm || 0) * pts;
         });
@@ -1971,8 +2024,10 @@ function adminApp() {
       }
     },
 
-    async _distribuicaoLocalGM(fixtureId) {
-      const { data, error } = await sbClient.from('guesses').select('score_home, score_away').eq('match_id', fixtureId);
+    async _distribuicaoLocalGM(fixtureId, groupId) {
+      let q = sbClient.from('guesses').select('score_home, score_away').eq('match_id', fixtureId);
+      if (groupId) q = q.eq('group_id', groupId);
+      const { data, error } = await q;
       if (error || !data || data.length === 0) return { total: 0, homePct: 0, drawPct: 0, awayPct: 0, raw: { home: 0, draw: 0, away: 0 } };
       let home = 0, draw = 0, away = 0;
       data.forEach(g => { if (g.score_home > g.score_away) home++; else if (g.score_home < g.score_away) away++; else draw++; });
