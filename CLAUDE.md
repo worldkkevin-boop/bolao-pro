@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=34`, `gm v=32`, `aovivo v=32`, `evento v=42`.
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=35`, `gm v=32`, `aovivo v=32`, `evento v=42`. (gm/index.html: `admin v=27`)
 
 ---
 
@@ -202,6 +202,8 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 ## 11. Changelog
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
+
+- **2026-06-12** — Compartilhamento do ranking (WhatsApp, ui.js): agora mostra **todos** os participantes (sem cortar em 10), **só o primeiro nome**, compacto (sem 👤 repetido, "exatos" só quando >0) e **sem o link** (mantém só o código do grupo). Bump ui v=35.
 
 - **2026-06-12** — Oráculo: **EV (pontos esperados)** + **gols esperados**. `_calcEVPlacares` calcula o EV de cada placar (prob × pontos pela escala 12/7/6/3, com zebra 2x aprox. quando a galera <15%); a recomendação passa a escolher por EV. `_calcGolsEsperados` lê o mercado Over/Under (mesmo request de odds) e mostra gols esperados + total mais provável. Tabela mostra `odd` + `pt` (EV) por placar. `_fetchPlacaresProvaveis` virou `_fetchOddsOraculo` (retorna {placares, gols}). Bump admin v=27. ⚠️ EV usa escala padrão e crowd cross-group — versão precisa vem com "focar no grupo".
 - **2026-06-12** — Oráculo: card agora mostra a **tabela de odds de placar exato** (Casa/Empate/Fora, estilo Correct Score do bookmaker), com os 2 placares escolhidos destacados (`_agruparPlacares`, estado `oraculo.tabelaPlacares`). Bump admin v=26.

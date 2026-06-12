@@ -1983,27 +1983,18 @@ async function compartilharRankingWhatsApp() {
 
   let msg = `🏆 *${tipoTexto} - Bolão ${grupoAtual.name || grupoAtual.nome || 'Grupo'}* 🏆\n\n`;
 
-  ranking.slice(0, 10).forEach((user, index) => {
+  ranking.forEach((user, index) => {
     const posicao = index + 1;
-    let emoji = '👤';
-    if (posicao === 1) emoji = '🥇';
-    else if (posicao === 2) emoji = '🥈';
-    else if (posicao === 3) emoji = '🥉';
-
-    msg += `${emoji} ${posicao}º ${user.nome} - *${user.pontos} Pts* (${user.acertosExatos} exatos)\n`;
+    const primeiroNome = (user.nome || 'Participante').trim().split(/\s+/)[0];
+    let prefixo = `${posicao}º`;
+    if (posicao === 1) prefixo = '🥇 1º';
+    else if (posicao === 2) prefixo = '🥈 2º';
+    else if (posicao === 3) prefixo = '🥉 3º';
+    const exatos = user.acertosExatos > 0 ? ` (${user.acertosExatos} exato${user.acertosExatos > 1 ? 's' : ''})` : '';
+    msg += `${prefixo} ${primeiroNome} - *${user.pontos} pts*${exatos}\n`;
   });
 
-  if (ranking.length > 10) {
-    msg += `\n...e mais ${ranking.length - 10} participantes!`;
-  }
-
-  const origin = window.location.origin + window.location.pathname;
-  const linkApp = origin.startsWith("file://")
-    ? "https://bolao-pro-six.vercel.app/?code=" + grupoAtual.invite_code
-    : origin + "?code=" + grupoAtual.invite_code;
-
-  msg += `\n\n👉 Jogue conosco! Código do grupo: *${grupoAtual.invite_code}*`;
-  msg += `\n🔗 ${linkApp}`;
+  msg += `\n📲 Código do grupo: *${grupoAtual.invite_code}*`;
 
   const urlUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
   // Redireciona para abrir o WhatsApp diretamente (evita bloqueio de popup em PWAs mobile)
