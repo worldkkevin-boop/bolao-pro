@@ -1812,6 +1812,11 @@
             </div>
             <p class="text-[10px] text-zinc-500 mb-3">Cobre mais cenários dividindo entre a sua conta e a da Gaby. Apoio à decisão — lembra que o palpite trava 10 min antes.</p>
             <p x-show="oraculo.golsInfo" class="text-[11px] text-zinc-400 mb-4 bg-zinc-950/40 border border-zinc-800 rounded-lg px-3 py-2">🎯 Gols esperados pelo mercado: <span class="text-emerald-400 font-bold font-mono" x-text="oraculo.golsInfo ? oraculo.golsInfo.esperado.toFixed(1) : ''"></span> <span class="text-zinc-600">·</span> total mais provável: <span class="text-white font-bold font-mono" x-text="oraculo.golsInfo?.maisProvavel"></span> <span class="text-zinc-600">gols</span></p>
+            <!-- Modo da estratégia -->
+            <div class="flex items-center gap-1 p-1 bg-zinc-950/60 rounded-lg border border-zinc-800 w-max mb-3">
+              <button @click="oraculo.modoEstrategia = 'hedge'; recalcEstrategia()" :class="oraculo.modoEstrategia === 'hedge' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'" class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all">🛡️ Cobrir cenários</button>
+              <button @click="oraculo.modoEstrategia = 'cacar'; recalcEstrategia()" :class="oraculo.modoEstrategia === 'cacar' ? 'bg-purple-600 text-white' : 'text-zinc-500 hover:text-zinc-300'" class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all">🎯 Caçar placar</button>
+            </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-purple-500/10 border border-purple-500/25 rounded-xl p-4 text-center">
                 <p class="text-[10px] font-black uppercase tracking-wide text-purple-300 mb-1">🎩 Você</p>
@@ -1874,6 +1879,34 @@
             <p class="text-[9px] text-zinc-600 italic mt-2" x-text="oraculo.estrategia?.fonte === 'odds' ? 'Sugestão calculada a partir dessas odds reais de placar exato.' : 'Baseado em estimativa (odds de placar exato indisponíveis pra esse jogo).'"></p>
             <p x-show="grupoFoco.id" class="text-[9px] text-emerald-500/80 mt-1">✓ EV com as regras e os palpites do grupo <span class="font-bold" x-text="grupoFoco.nome"></span><span x-show="oraculo.mataMata"> · mata-mata 2x ligado</span>.</p>
             <p x-show="!grupoFoco.id" class="text-[9px] text-amber-600/80 mt-1">⚠️ Usando escala padrão (12/7/6/3) e a média de todos os grupos. Foque no seu grupo acima pra ficar exato.</p>
+          </div>
+
+          <!-- 🦓 RADAR DE ZEBRA DO GRUPO (quem cravou cada resultado + jogadas) -->
+          <div x-show="oraculo.zebraRadar && oraculo.zebraRadar.total > 0" class="bg-zinc-900 border border-fuchsia-500/20 rounded-2xl p-6 shadow-xl">
+            <h4 class="text-[10px] text-fuchsia-300 uppercase tracking-widest font-black mb-1">🦓 Radar de Zebra — grupo <span x-text="grupoFoco.nome"></span></h4>
+            <p class="text-[10px] text-zinc-500 mb-4">Quem cravou cada resultado no SEU bolão. Menos de 15% dos palpites num resultado = zebra (2x). <span class="text-zinc-400 font-mono" x-text="(oraculo.zebraRadar?.total || 0) + ' palpites até agora'"></span>.</p>
+            <div class="space-y-2">
+              <template x-for="r in (oraculo.zebraRadar?.resultados || [])" :key="r.key">
+                <div class="rounded-xl border p-3" :class="r.isZebra ? 'border-fuchsia-500/30 bg-fuchsia-950/15' : 'border-zinc-800 bg-zinc-950/40'">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="text-xs font-black text-white truncate" x-text="r.key === 'home' ? (oraculo.predicoes?.teams?.home?.name || 'Casa') : (r.key === 'away' ? (oraculo.predicoes?.teams?.away?.name || 'Fora') : 'Empate')"></span>
+                      <span x-show="r.isZebra" class="flex-shrink-0 text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-fuchsia-600 text-white">🦓 Zebra 2x</span>
+                    </div>
+                    <span class="flex-shrink-0 text-[11px] font-mono text-zinc-400"><span class="text-white font-bold" x-text="r.count"></span> · <span x-text="Math.round(r.pct) + '%'"></span></span>
+                  </div>
+                  <p x-show="r.count > 0" class="text-[10px] text-zinc-500 mt-1.5 truncate" x-text="'👥 ' + r.nomes.join(', ')"></p>
+                  <p x-show="r.count === 0" class="text-[10px] text-zinc-600 mt-1.5 italic">Ninguém cravou esse resultado ainda.</p>
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-mono">
+                    <span class="text-zinc-600 uppercase tracking-wider">Se vocês entrarem:</span>
+                    <span class="text-zinc-500">+1 → <span :class="r.pct1 < 15 ? 'text-emerald-400' : 'text-red-400'" x-text="Math.round(r.pct1) + '%'"></span></span>
+                    <span class="text-zinc-500">+2 → <span :class="r.pct2 < 15 ? 'text-emerald-400' : 'text-red-400'" x-text="Math.round(r.pct2) + '%'"></span></span>
+                    <span class="text-zinc-600" x-text="r.isZebra ? (r.pct2 < 15 ? '(cabem 2 e segue zebra 🎯)' : (r.pct1 < 15 ? '(só 1 conta mantém a zebra)' : '(qualquer 1 já mata)')) : '(já não é zebra)'"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+            <p class="text-[9px] text-zinc-600 italic mt-3">🎯 <b>Pegar:</b> entre num resultado <span class="text-fuchsia-300">zebra</span> e mantenha &lt;15% (verde) → você ganha o 2x. 🛡️ <b>Impedir:</b> se só rivais estão numa zebra, vocês entrando podem empurrar pra ≥15% (vermelho) e derrubar o 2x deles.</p>
           </div>
 
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
@@ -2475,6 +2508,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=28"></script>
+  <script src="/gm/js/admin.js?v=29"></script>
 </body>
 </html>

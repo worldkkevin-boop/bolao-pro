@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, erro: null },
 
     // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
     grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
@@ -1671,6 +1671,7 @@ function adminApp() {
       this.oraculo.placaresProvaveis = null;
       this.oraculo.tabelaPlacares = null;
       this.oraculo.golsInfo = null;
+      this.oraculo.zebraRadar = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
@@ -1696,6 +1697,7 @@ function adminApp() {
         }
         this.oraculo.estrategia = this._calcEstrategiaPlacar(pred, placares);
         this.oraculo.tabelaPlacares = placares ? this._agruparPlacares(placares) : null;
+        this.oraculo.zebraRadar = this.grupoFoco.id ? await this._zebraRadarGrupo(fId, this.grupoFoco.id) : null;
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
         this._popularDesafioRapido(pred, dist);
       } catch(err) {
@@ -1836,6 +1838,47 @@ function adminApp() {
       return placares;
     },
 
+    // Recalcula só a sugestão das 2 contas (ao trocar o modo) sem refazer a busca.
+    recalcEstrategia() {
+      if (this.oraculo.placaresProvaveis) {
+        this.oraculo.estrategia = this._calcEstrategiaPlacar(this.oraculo.predicoes, this.oraculo.placaresProvaveis);
+      }
+    },
+
+    // Radar de zebra do grupo focado: quem cravou cada resultado e o que acontece
+    // ao adicionar 1 ou 2 contas (mantém a zebra <15% ou estoura ≥15%).
+    async _zebraRadarGrupo(fixtureId, groupId) {
+      if (!groupId) return null;
+      const { data: gs, error } = await sbClient
+        .from('guesses')
+        .select('user_id, score_home, score_away')
+        .eq('match_id', fixtureId)
+        .eq('group_id', groupId);
+      if (error || !gs || gs.length === 0) return { total: 0, resultados: [] };
+      const ids = [...new Set(gs.map(g => g.user_id))];
+      const nomes = {};
+      const { data: profs } = await sbClient.from('profiles').select('id, full_name').in('id', ids);
+      (profs || []).forEach(p => { nomes[p.id] = (p.full_name || 'Participante').trim().split(/\s+/)[0]; });
+      const buckets = { home: [], draw: [], away: [] };
+      gs.forEach(g => {
+        const w = g.score_home > g.score_away ? 'home' : (g.score_home < g.score_away ? 'away' : 'draw');
+        buckets[w].push(nomes[g.user_id] || 'Participante');
+      });
+      const total = gs.length;
+      const mk = (key) => {
+        const arr = buckets[key];
+        const count = arr.length;
+        const pct = total ? (count / total) * 100 : 0;
+        return {
+          key, count, nomes: arr, pct,
+          isZebra: total > 0 && pct < 15,
+          pct1: ((count + 1) / (total + 1)) * 100,
+          pct2: ((count + 2) / (total + 2)) * 100
+        };
+      };
+      return { total, resultados: [mk('home'), mk('draw'), mk('away')] };
+    },
+
     // Agrupa os placares por resultado (Casa / Empate / Fora), ordena por odd
     // (menor = mais provável) e limita a 6 por coluna — formato tabela do mercado.
     _agruparPlacares(lista) {
@@ -1859,16 +1902,23 @@ function adminApp() {
         const temEV = placares.some(p => typeof p.ev === 'number');
         const ord = placares.slice().sort((a, b) => temEV ? ((b.ev || 0) - (a.ev || 0)) : ((b.prob || 0) - (a.prob || 0)));
         const c1 = ord[0];
-        const c2 = ord.find(p => p.winner !== c1.winner) || ord[1] || c1;
+        const cacar = (this.oraculo && this.oraculo.modoEstrategia === 'cacar');
+        // Caçar placar: 2ª conta vai no 2º melhor placar (mesmo vencedor ok) → dobra a chance do exato.
+        // Cobrir cenários (hedge): 2ª conta vai no melhor placar de OUTRO resultado.
+        const c2 = cacar
+          ? (ord[1] || c1)
+          : (ord.find(p => p.winner !== c1.winner) || ord[1] || c1);
         const pc = x => Math.round((x.probNorm || x.prob || 0) * 100);
         const nomeRes = w => w === 'home' ? (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa') : (w === 'away' ? (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora') : 'o empate');
         const alvo2 = c2.winner === 'empate' ? 'o empate' : ('a vitória de ' + nomeRes(c2.winner));
         const confianca = c1.probNorm >= 0.13 ? 'alta' : (c1.probNorm >= 0.09 ? 'média' : 'baixa');
         const ev1 = temEV ? ` (~${c1.ev.toFixed(1)} pts esperados)` : '';
         const ev2 = temEV ? ` (~${c2.ev.toFixed(1)} pts)` : '';
-        const resumo = temEV
-          ? `Otimizando por pontos esperados, o melhor placar é ${c1.placar}${ev1} — ${pc(c1)}% de chance no mercado. A 2ª conta cobre ${alvo2} com ${c2.placar}${ev2}, pra diversificar o resultado.`
-          : `O cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%), pra não ficar refém de um resultado só.`;
+        const resumo = cacar
+          ? `🎯 Caçar placar: as duas contas vão nos 2 placares de maior EV (${c1.placar}${ev1} e ${c2.placar}${ev2}) pra dobrar a chance de cravar o exato quando o jogo sair como esperado.`
+          : (temEV
+            ? `🛡️ Cobrir cenários: o melhor placar é ${c1.placar}${ev1} — ${pc(c1)}% no mercado. A 2ª conta cobre ${alvo2} com ${c2.placar}${ev2}, pra não ficar refém de um resultado só.`
+            : `O cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%).`);
         return {
           fonte: 'odds',
           conta1: c1.placar, conta2: c2.placar, confianca, resumo,
