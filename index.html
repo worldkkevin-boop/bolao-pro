@@ -1294,6 +1294,15 @@
         </div>
       </div>
 
+      <!-- SEÇÃO 4: ESTRATÉGIA DO MAGO (apoio à decisão de palpites) -->
+      <div id="gm-section-estrategia" class="space-y-4 hidden">
+        <h3 class="font-bold text-sm text-purple-400 uppercase tracking-wider">🎩 Estratégia do Mago</h3>
+        <p class="text-[11px] text-text-muted -mt-2 leading-relaxed">Sugestão de placares pras duas contas (🎩 Você + 💜 Gaby) usando as estatísticas da API (probabilidades, odds e leitura da partida). É só apoio — a decisão final é sua.</p>
+        <div id="estrategia-jogos" class="space-y-3 pb-8">
+          <p class="text-text-muted text-[12px] text-center py-6">Carregando próximos jogos...</p>
+        </div>
+      </div>
+
       <!-- SEÇÃO 3: METRICAS E STATS -->
       <div id="gm-section-stats" class="space-y-4 hidden">
         <h3 class="font-bold mb-3 text-sm text-purple-400 uppercase tracking-wider">Métricas da Plataforma</h3>
@@ -1840,6 +1849,10 @@
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
         <span class="text-[10px] font-bold">Métricas</span>
       </button>
+      <button onclick="switchGMTab('estrategia')" id="nav-gm-estrategia" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg>
+        <span class="text-[10px] font-bold">Estratégia</span>
+      </button>
     </div>
 
   </div>
@@ -1964,7 +1977,7 @@
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=33"></script>
   <script src="js/ui.js?v=34"></script>
-  <script src="js/gm.js?v=31"></script>
+  <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=32"></script>
   <script src="js/evento.js?v=42"></script>
 

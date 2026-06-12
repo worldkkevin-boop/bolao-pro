@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=34`, `gm v=31`, `aovivo v=32`, `evento v=42`.
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=34`, `gm v=32`, `aovivo v=32`, `evento v=42`.
 
 ---
 
@@ -188,7 +188,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 ### API-Football (api-sports.io v3)
 - Host: `v3.football.api-sports.io` · Key (no frontend, [js/api.js](js/api.js)): `47ca2bb05eb5931347aca04964818eb5`
 - **Plano: Pro** — 7.500 requisições/dia. Inclui **odds**.
-- Endpoints usados: `/fixtures?league=&season=2026`, `/fixtures?live=all`. (Disponível e ainda não usado: `/odds`.)
+- Endpoints usados: `/fixtures?league=&season=2026`, `/fixtures?live=all`, `/fixtures?...&next=N`, `/predictions?fixture=` e `/odds?fixture=` (estes 2 na Estratégia do Mago, no GM). Odds 1X2 = "Match Winner".
 - `league_id` vem de `groups.league_id` (Copa = 1). Season fixa **2026** no código.
 
 ### MercadoPago
@@ -203,6 +203,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
+- **2026-06-12** — **Estratégia do Mago**: nova aba no painel GM (`gm-section-estrategia`). Pra cada jogo, busca `predictions`+`odds` da API e sugere placares pras 2 contas (🎩 Você + 💜 Gaby) com probabilidades, leitura e nota de zebra. Funções em [gm/js/gm.js](gm/js/gm.js): `carregarGMEstrategia`, `analisarJogoEstrategia`, `gerarEstrategiaPlacar`, `extrairOdds1x2Media`, `renderEstrategiaHTML` (gm v=32).
 - **2026-06-12** — Doc central `CLAUDE.md` criado (este arquivo).
 - **2026-06-12** — Botão "Perguntas Bônus" minimizado pra barra fininha de 1 linha (ui.js v=34).
 - **2026-06-12** — Zebra: rodapé "Casa/Emp/Fora %" + selo "Zebra Ativa/Sem Zebra" nos cards de Jogos e no Ao Vivo; 🦓 nos players que foram na zebra; helper `renderDistribuicaoZebra` (ui.js v=33, aovivo.js v=32).

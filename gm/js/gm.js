@@ -531,7 +531,7 @@ async function resolverDesafioReal(desafioId, fixtureId, eventType, players) {
 // ============ GERENCIAMENTO DE ABAS DO GM ============
 
 function switchGMTab(tabId) {
-  const sections = ['desafios', 'grupos', 'stats'];
+  const sections = ['desafios', 'grupos', 'stats', 'estrategia'];
   sections.forEach(sec => {
     const el = document.getElementById('gm-section-' + sec);
     const navBtn = document.getElementById('nav-gm-' + sec);
@@ -557,7 +557,181 @@ function switchGMTab(tabId) {
     carregarGMMetricas();
   } else if (tabId === 'desafios') {
     carregarGMView();
+  } else if (tabId === 'estrategia') {
+    carregarGMEstrategia();
   }
+}
+
+// ============ ESTRATÉGIA DO MAGO (apoio à decisão de palpites) ============
+// Usa estatísticas da API-Football (predictions + odds) pra sugerir placares
+// pras duas contas (Você + Gaby), cobrindo mais cenários. É só apoio.
+const ESTRATEGIA_API_HOST = 'v3.football.api-sports.io';
+const ESTRATEGIA_API_KEY  = '47ca2bb05eb5931347aca04964818eb5';
+const ESTRATEGIA_SEASON   = 2026;
+let estrategiaJogosMap = {};
+
+async function carregarGMEstrategia() {
+  const cont = document.getElementById('estrategia-jogos');
+  if (!cont) return;
+  cont.innerHTML = '<p class="text-text-muted text-[12px] text-center py-6 animate-pulse">Carregando próximos jogos...</p>';
+  const leagueId = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
+  try {
+    const resp = await fetch(`https://${ESTRATEGIA_API_HOST}/fixtures?league=${leagueId}&season=${ESTRATEGIA_SEASON}&next=8`, {
+      headers: { 'x-rapidapi-host': ESTRATEGIA_API_HOST, 'x-rapidapi-key': ESTRATEGIA_API_KEY }
+    });
+    const dados = await resp.json();
+    const jogos = Array.isArray(dados.response) ? dados.response : [];
+    if (jogos.length === 0) {
+      cont.innerHTML = '<p class="text-text-muted text-[12px] text-center py-6">Nenhum jogo próximo encontrado nessa liga.</p>';
+      return;
+    }
+    estrategiaJogosMap = {};
+    cont.innerHTML = jogos.map(j => {
+      estrategiaJogosMap[j.fixture.id] = { home: j.teams.home.name, away: j.teams.away.name };
+      const data = new Date(j.fixture.date).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      return `
+        <div class="bg-card-bg border border-white/5 rounded-2xl p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-[10px] text-text-muted font-bold mb-0.5">${data}</p>
+              <p class="text-[13px] font-bold text-white truncate">${j.teams.home.name} <span class="text-text-muted">x</span> ${j.teams.away.name}</p>
+            </div>
+            <button onclick="analisarJogoEstrategia(${j.fixture.id}, this)" class="flex-shrink-0 bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[11px] font-black uppercase tracking-wide px-3 py-2 rounded-xl active:scale-95 transition-all">Analisar</button>
+          </div>
+          <div id="estrategia-result-${j.fixture.id}" class="mt-3 hidden"></div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('Erro ao carregar jogos da estratégia:', e);
+    cont.innerHTML = '<p class="text-red-400 text-[12px] text-center py-6">Erro ao carregar jogos.</p>';
+  }
+}
+
+async function analisarJogoEstrategia(fixtureId, btn) {
+  const box = document.getElementById('estrategia-result-' + fixtureId);
+  if (!box) return;
+  box.classList.remove('hidden');
+  box.innerHTML = '<p class="text-text-muted text-[11px] py-3 animate-pulse">🔮 Consultando as estatísticas...</p>';
+  if (btn) btn.disabled = true;
+  try {
+    const h = { 'x-rapidapi-host': ESTRATEGIA_API_HOST, 'x-rapidapi-key': ESTRATEGIA_API_KEY };
+    const [predR, oddsR] = await Promise.all([
+      fetch(`https://${ESTRATEGIA_API_HOST}/predictions?fixture=${fixtureId}`, { headers: h }).then(r => r.json()).catch(() => null),
+      fetch(`https://${ESTRATEGIA_API_HOST}/odds?fixture=${fixtureId}`, { headers: h }).then(r => r.json()).catch(() => null)
+    ]);
+    const pred = (predR && predR.response && predR.response[0]) ? predR.response[0] : null;
+    const oddsAvg = extrairOdds1x2Media(oddsR);
+    const nomes = estrategiaJogosMap[fixtureId] || { home: (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa'), away: (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora') };
+    const est = gerarEstrategiaPlacar(pred, oddsAvg, fixtureId);
+    box.innerHTML = renderEstrategiaHTML(est, pred, oddsAvg, nomes);
+  } catch (e) {
+    console.error('Erro ao analisar jogo:', e);
+    box.innerHTML = '<p class="text-red-400 text-[11px] py-3">Erro ao analisar. Tenta de novo.</p>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reanalisar'; }
+  }
+}
+
+function extrairOdds1x2Media(oddsR) {
+  try {
+    const bks = (oddsR && oddsR.response && oddsR.response[0] && oddsR.response[0].bookmakers) ? oddsR.response[0].bookmakers : [];
+    let sh=0, sd=0, sa=0, n=0;
+    bks.forEach(bk => {
+      const mw = (bk.bets || []).find(b => b.name === 'Match Winner');
+      if (!mw) return;
+      const get = v => { const o = (mw.values || []).find(x => x.value === v); return o ? parseFloat(o.odd) : null; };
+      const hh = get('Home'), dd = get('Draw'), aa = get('Away');
+      if (hh && dd && aa) { sh+=hh; sd+=dd; sa+=aa; n++; }
+    });
+    if (n === 0) return null;
+    return { home: sh/n, draw: sd/n, away: sa/n, casas: n };
+  } catch (e) { return null; }
+}
+
+// Decide os 2 placares a partir das probabilidades (odds têm prioridade; senão a prediction).
+function gerarEstrategiaPlacar(pred, oddsAvg, fixtureId) {
+  let pH=null, pD=null, pA=null, fonte='';
+  if (oddsAvg) {
+    const iH=1/oddsAvg.home, iD=1/oddsAvg.draw, iA=1/oddsAvg.away, s=iH+iD+iA;
+    pH=iH/s; pD=iD/s; pA=iA/s; fonte='odds';
+  } else if (pred && pred.predictions && pred.predictions.percent) {
+    const num = x => (x ? parseFloat(String(x).replace('%','')) / 100 : 0);
+    pH=num(pred.predictions.percent.home); pD=num(pred.predictions.percent.draw); pA=num(pred.predictions.percent.away);
+    const s=(pH+pD+pA) || 1; pH/=s; pD/=s; pA/=s; fonte='prediction';
+  }
+  if (pH === null) return { ok:false };
+
+  const favSide = pH >= pA ? 'home' : 'away';
+  const favProb = Math.max(pH, pA);
+  const placar = (hg, ag) => `${hg}-${ag}`;
+  // hg = gols do favorito; mapeia pra casa/fora conforme quem é o favorito
+  const winScore = (side, fg, og) => side === 'home' ? placar(fg, og) : placar(og, fg);
+
+  let conta1, conta2, confianca, resumo;
+  if (favProb >= 0.55) {
+    confianca = 'alta';
+    conta1 = winScore(favSide, 2, 0);
+    conta2 = winScore(favSide, 2, 1);
+    resumo = `Favorito forte (${Math.round(favProb*100)}%). As duas contas cravam a vitória dele em placares diferentes (2-0 e 2-1): aumenta a chance de uma bater o placar exato, e qualquer vitória já garante os pontos de vencedor nas duas.`;
+  } else if (favProb >= 0.45 && pD >= 0.27) {
+    confianca = 'média';
+    conta1 = winScore(favSide, 2, 1);
+    conta2 = '1-1';
+    resumo = `Equilibrado, favorito leve (${Math.round(favProb*100)}%) e empate provável (${Math.round(pD*100)}%). Uma conta vai na vitória do favorito (2-1) e a outra cobre o empate (1-1).`;
+  } else {
+    confianca = 'baixa';
+    conta1 = '1-1';
+    conta2 = winScore(favSide, 2, 1);
+    resumo = `Jogo muito aberto, sem favorito claro. Cobrimos o empate (1-1) numa conta e a vitória magra do leve favorito (2-1) na outra.`;
+  }
+
+  // Nota de zebra (se a distribuição do grupo estiver carregada e a regra ligada)
+  let zebraNote = '';
+  try {
+    const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[fixtureId] : null;
+    const regraOn = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.regra_zebra_dinamica === true);
+    if (dist && regraOn && dist.total > 0) {
+      const favPctGrupo = favSide === 'home' ? dist.home : dist.away;
+      if (favPctGrupo < 15 && favProb >= 0.40) {
+        zebraNote = `O grupo quase não cravou o favorito (${Math.round(favPctGrupo)}% dos palpites). Se ele vencer, é ZEBRA (vale 2x). Vale uma conta arriscar com tudo na vitória dele.`;
+      }
+    }
+  } catch (e) {}
+
+  return { ok:true, favSide, favProb, probs:{home:pH,draw:pD,away:pA}, fonte, conta1, conta2, confianca, resumo, zebraNote };
+}
+
+function renderEstrategiaHTML(est, pred, oddsAvg, nomes) {
+  if (!est || !est.ok) {
+    return '<p class="text-text-muted text-[11px] py-3">Sem estatísticas suficientes pra esse jogo ainda (as odds/predições costumam aparecer perto da data do jogo).</p>';
+  }
+  const pct = x => Math.round(x*100);
+  const advice = (pred && pred.predictions && pred.predictions.advice) ? pred.predictions.advice : null;
+  const corConf = est.confianca === 'alta' ? 'text-brand-green' : (est.confianca === 'média' ? 'text-amber-400' : 'text-zinc-400');
+  const oddsLine = oddsAvg ? `<span class="text-text-muted">Odds (méd. ${oddsAvg.casas} casas): <span class="text-white/80">${oddsAvg.home.toFixed(2)} · ${oddsAvg.draw.toFixed(2)} · ${oddsAvg.away.toFixed(2)}</span></span>` : '';
+  return `
+    <div class="border-t border-white/5 pt-3 space-y-3">
+      <div class="text-[11px] font-bold flex flex-wrap gap-x-3 gap-y-1">
+        <span class="text-text-muted">Prob: <span class="text-white/80">Casa ${pct(est.probs.home)}% · Emp ${pct(est.probs.draw)}% · Fora ${pct(est.probs.away)}%</span></span>
+        ${oddsLine}
+      </div>
+      ${advice ? `<p class="text-[11px] text-text-muted">📊 Leitura da API: <span class="text-white/80">${advice}</span></p>` : ''}
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-purple-500/10 border border-purple-500/25 rounded-xl p-3 text-center">
+          <p class="text-[10px] font-black uppercase tracking-wide text-purple-300 mb-1">🎩 Você</p>
+          <p class="text-2xl font-black text-white font-mono">${est.conta1}</p>
+          <p class="text-[9px] text-text-muted mt-0.5 truncate">${nomes.home} x ${nomes.away}</p>
+        </div>
+        <div class="bg-fuchsia-500/10 border border-fuchsia-500/25 rounded-xl p-3 text-center">
+          <p class="text-[10px] font-black uppercase tracking-wide text-fuchsia-300 mb-1">💜 Gaby</p>
+          <p class="text-2xl font-black text-white font-mono">${est.conta2}</p>
+          <p class="text-[9px] text-text-muted mt-0.5 truncate">${nomes.home} x ${nomes.away}</p>
+        </div>
+      </div>
+      <p class="text-[11px] text-zinc-300 leading-relaxed"><span class="${corConf} font-black uppercase text-[9px] tracking-wide">Confiança ${est.confianca}</span> · ${est.resumo}</p>
+      ${est.zebraNote ? `<p class="text-[11px] text-fuchsia-300 bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-lg p-2">🦓 ${est.zebraNote}</p>` : ''}
+      <p class="text-[9px] text-text-muted italic">Sugestão baseada em estatística — a decisão final é sua. Lembra que o palpite trava 10 min antes.</p>
+    </div>`;
 }
 
 async function carregarGMGrupos() {
