@@ -2204,16 +2204,29 @@ function adminApp() {
       });
     },
 
-    // Sorteio geral: escolhe 1 participante aleatório entre todos do evento
-    realizarSorteioTelao() {
-      if (!this.telaoLeads.length) {
-        showToast('Nenhum participante para sortear ainda.', 'error');
-        return;
+    // Define o conjunto do sorteio: todos OU só quem acertou o placar.
+    // Retorna null (e avisa) se não der pra sortear.
+    _poolSorteio(soAcertadores) {
+      if (soAcertadores) {
+        if (this.telaoPlacar.casa === '' || this.telaoPlacar.fora === '') {
+          showToast('Digite o placar final no card "Quem Acertou o Placar" primeiro.', 'error');
+          return null;
+        }
+        const ac = this.telaoAcertadores();
+        if (!ac.length) { showToast('Ninguém acertou esse placar. 😬', 'error'); return null; }
+        return ac;
       }
-      const i = Math.floor(Math.random() * this.telaoLeads.length);
-      this.telaoVencedor = this.telaoLeads[i];
+      if (!this.telaoLeads.length) { showToast('Nenhum participante para sortear ainda.', 'error'); return null; }
+      return this.telaoLeads;
+    },
+
+    // Sorteio (aqui no painel): geral OU só entre os acertadores
+    realizarSorteioTelao(soAcertadores = false) {
+      const pool = this._poolSorteio(soAcertadores);
+      if (!pool) return;
+      this.telaoVencedor = pool[Math.floor(Math.random() * pool.length)];
       this._salvarSorteioTelao(this.telaoVencedor);
-      showToast('🎉 Bilhete premiado sorteado!', 'mago');
+      showToast(soAcertadores ? '🎯 Sorteado entre os acertadores!' : '🎉 Bilhete premiado sorteado!', 'mago');
     },
 
     // Grava o ganhador pra o celular dele acender "VOCÊ GANHOU"
@@ -2261,9 +2274,11 @@ function adminApp() {
       try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) {}
     },
 
-    // Sorteia com um "rolar" de números pra criar suspense, depois revela
-    sortearNoTelao() {
-      if (!this.telaoLeads.length) { showToast('Nenhum participante pra sortear.', 'error'); return; }
+    // Sorteia com um "rolar" de números pra criar suspense, depois revela.
+    // soAcertadores=true sorteia só entre quem cravou o placar.
+    sortearNoTelao(soAcertadores = false) {
+      const pool = this._poolSorteio(soAcertadores);
+      if (!pool) return;
       this.telaoVencedor = null;
       this.telaoSorteando = true;
       let ticks = 0;
@@ -2272,8 +2287,7 @@ function adminApp() {
         this.telaoRolando = String(Math.floor(1000 + Math.random() * 9000));
         if (++ticks >= total) {
           clearInterval(timer);
-          const i = Math.floor(Math.random() * this.telaoLeads.length);
-          this.telaoVencedor = this.telaoLeads[i];
+          this.telaoVencedor = pool[Math.floor(Math.random() * pool.length)];
           this.telaoSorteando = false;
           this._salvarSorteioTelao(this.telaoVencedor);
           showToast('🎉 Temos um ganhador!', 'mago');
