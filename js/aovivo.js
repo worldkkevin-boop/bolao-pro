@@ -246,9 +246,13 @@ async function atualizarTVAoVivo() {
     if (!jogo) return;
 
     if (statusTerminado.includes(jogo.fixture.status.short) && jogo.goals.home !== null && jogo.goals.away !== null) {
-      const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away);
+      // Pontos REAIS: mesmo motor do Ranking Oficial (aplica zebra dinâmica + mata-mata)
+      const vencedorReal = jogo.goals.home > jogo.goals.away ? 'home' : (jogo.goals.home < jogo.goals.away ? 'away' : 'empate');
+      const zc = zebrasTV[g.match_id];
+      const pctVencedor = zc ? zc[vencedorReal + 'Pct'] : 100;
+      const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away, jogo.league.round, pctVencedor);
       scoresProvisorios[g.user_id].pontosConsolidados += pts;
-      if (pts === 30) {
+      if (g.score_home === jogo.goals.home && g.score_away === jogo.goals.away) {
         scoresProvisorios[g.user_id].acertosExatos += 1;
       }
     }
@@ -271,10 +275,13 @@ async function atualizarTVAoVivo() {
 
       const liveHome = jogoAoVivo.goals.home ?? 0;
       const liveAway = jogoAoVivo.goals.away ?? 0;
-      const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway);
+      const vencedorLive = liveHome > liveAway ? 'home' : (liveHome < liveAway ? 'away' : 'empate');
+      const zl = zebrasTV[g.match_id];
+      const pctVencedorLive = zl ? zl[vencedorLive + 'Pct'] : 100;
+      const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway, jogoAoVivo.league.round, pctVencedorLive);
 
       scoresProvisorios[g.user_id].pontosParciaisAoVivo += ptsParciais;
-      if (ptsParciais === 30) {
+      if (g.score_home === liveHome && g.score_away === liveAway) {
         scoresProvisorios[g.user_id].acertosExatos += 1;
       }
     });
@@ -493,11 +500,14 @@ async function atualizarTVAoVivo() {
 
           const liveHome = jogo.goals.home ?? 0;
           const liveAway = jogo.goals.away ?? 0;
-          const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway);
+          const vencedorLiveP = liveHome > liveAway ? 'home' : (liveHome < liveAway ? 'away' : 'empate');
+          const pctVencedorP = (zJogoP[vencedorLiveP + 'Pct'] !== undefined) ? zJogoP[vencedorLiveP + 'Pct'] : 100;
+          const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway, jogo.league.round, pctVencedorP);
+          const ehExato = (g.score_home === liveHome && g.score_away === liveAway);
 
           let ptsBadge = '';
-          if (ptsParciais === 30) {
-            ptsBadge = '<span class="bg-gold/20 text-gold text-[9px] font-black px-2 py-0.5 rounded border border-gold/30 uppercase tracking-wide">+30 PTS (Exato)</span>';
+          if (ehExato && ptsParciais > 0) {
+            ptsBadge = `<span class="bg-gold/20 text-gold text-[9px] font-black px-2 py-0.5 rounded border border-gold/30 uppercase tracking-wide">+${ptsParciais} PTS (Exato)</span>`;
           } else if (ptsParciais > 0) {
             ptsBadge = `<span class="bg-brand-green/20 text-brand-green text-[9px] font-black px-2 py-0.5 rounded border border-brand-green/30 uppercase tracking-wide">+${ptsParciais} PTS</span>`;
           } else {

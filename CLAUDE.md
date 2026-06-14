@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=36`, `gm v=32`, `aovivo v=32`, `evento v=42`. (gm/index.html: `admin v=27`)
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=36`, `gm v=32`, `aovivo v=33`, `evento v=42`. (gm/index.html: `admin v=27`)
 
 ---
 
@@ -203,6 +203,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
+- **2026-06-14** — **Fix: Ao Vivo (Modo TV) não contava a zebra** (`atualizarTVAoVivo` em aovivo.js). As 3 chamadas de `calcularPontosPalpite` eram sem `round`/`pctVencedor`, então o "Fixo", o parcial ao vivo e o selo de pontos por palpite ignoravam zebra dinâmica + mata-mata (Ray Mundo aparecia Fixo 27 em vez de 39). Agora passam a % do resultado vencedor via `zebrasTV[matchId]` (usa `homePct/empatePct/awayPct`) + `jogo.league.round`. Também corrigido bug legado `pts === 30` (placar exato é 12/configurável, nunca 30) → exato agora comparado pelos placares e o selo mostra "+N PTS (Exato)" com o valor real. Bump aovivo v=33.
 - **2026-06-14** — **Fix: painel de detalhes do jogador não contava a zebra** (`abrirHistoricoUsuario` em ui.js). O resumo de pontos usava `detalharPontosPalpite` (cascata base) e somava `pts × qtd`, ignorando zebra dinâmica e mata-mata — então um placar exato em zebra aparecia como 12 em vez de 24 e o total não batia com o Ranking Oficial. Agora cada acerto soma os **pontos reais** via `calcularPontosPalpite(..., round, pctVencedor)` (mesmo motor do ranking, usando `distribuicaoPalpitesGrupo`), acumulando `totalPts`/`zebra` por categoria. A linha mostra "🦓 N zebras (x2)" e fica roxa quando houve dobra. Bump ui v=36.
 
 - **2026-06-12** — Oráculo: **modo da estratégia** (🛡️ Cobrir cenários = 2ª conta em outro resultado / 🎯 Caçar placar = 2ª conta no 2º melhor EV do mesmo favorito; `oraculo.modoEstrategia` + `recalcEstrategia()`) e **Radar de Zebra do grupo** (`_zebraRadarGrupo`, `oraculo.zebraRadar`): mostra quem cravou cada resultado no grupo focado, status zebra (<15%), e cenários "+1/+2 contas" (mantém <15% verde / estoura ≥15% vermelho) pra PEGAR ou IMPEDIR a zebra. Bump admin v=29.
