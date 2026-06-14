@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=35`, `gm v=32`, `aovivo v=32`, `evento v=42`. (gm/index.html: `admin v=27`)
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=36`, `gm v=32`, `aovivo v=32`, `evento v=42`. (gm/index.html: `admin v=27`)
 
 ---
 
@@ -203,7 +203,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
-- **2026-06-12** — Compartilhamento do ranking (WhatsApp, ui.js): agora mostra **todos** os participantes (sem cortar em 10), **só o primeiro nome**, compacto (sem 👤 repetido, "exatos" só quando >0) e **sem o link** (mantém só o código do grupo). Bump ui v=35.
+- **2026-06-14** — **Fix: painel de detalhes do jogador não contava a zebra** (`abrirHistoricoUsuario` em ui.js). O resumo de pontos usava `detalharPontosPalpite` (cascata base) e somava `pts × qtd`, ignorando zebra dinâmica e mata-mata — então um placar exato em zebra aparecia como 12 em vez de 24 e o total não batia com o Ranking Oficial. Agora cada acerto soma os **pontos reais** via `calcularPontosPalpite(..., round, pctVencedor)` (mesmo motor do ranking, usando `distribuicaoPalpitesGrupo`), acumulando `totalPts`/`zebra` por categoria. A linha mostra "🦓 N zebras (x2)" e fica roxa quando houve dobra. Bump ui v=36.
 
 - **2026-06-12** — Oráculo: **modo da estratégia** (🛡️ Cobrir cenários = 2ª conta em outro resultado / 🎯 Caçar placar = 2ª conta no 2º melhor EV do mesmo favorito; `oraculo.modoEstrategia` + `recalcEstrategia()`) e **Radar de Zebra do grupo** (`_zebraRadarGrupo`, `oraculo.zebraRadar`): mostra quem cravou cada resultado no grupo focado, status zebra (<15%), e cenários "+1/+2 contas" (mantém <15% verde / estoura ≥15% vermelho) pra PEGAR ou IMPEDIR a zebra. Bump admin v=29.
 - **2026-06-12** — Oráculo: **Foco no grupo** (`grupoFoco` + `focarGrupo()`). Campo de código carrega as regras de pontos do grupo (groups table) e o EV passa a usar elas + os palpites SÓ daquele grupo (`_distribuicaoLocalGM(fId, groupId)`), zebra conforme a regra do grupo, e toggle **Mata-mata 2x** (`oraculo.mataMata`). Sem foco, mantém escala padrão + média de todos. Bump admin v=28. Grupo do Kevin: **Ladaya** código `0VR5A4D` (regras 12/7/6/3, zebra on, mata-mata 2x). Próximo: modo por ranking (Segurar/Atacar).

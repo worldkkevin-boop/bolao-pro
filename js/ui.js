@@ -3476,15 +3476,27 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
     };
 
     // Objeto para consolidar a contagem por regras
+    // totalPts = soma dos pontos REAIS (já com zebra/mata-mata); zebra = nº de acertos multiplicados
     const counts = {
-      placar_exato: { name: "Placar Exato 🎯", ptsEach: regras.pt_placar_exato, count: 0 },
-      vencedor_gols_time: { name: "Vencedor e Gols de um Time ⚽", ptsEach: regras.pt_vencedor_gols_time, count: 0 },
-      empate_nao_exato: { name: "Empate Não-Exato 🤝", ptsEach: regras.pt_empate_nao_exato, count: 0 },
-      vencedor_saldo: { name: "Vencedor e Saldo de Gols 📊", ptsEach: regras.pt_vencedor_saldo, count: 0 },
-      vencedor_gols_perdedor: { name: "Vencedor e Gols do Perdedor 📉", ptsEach: regras.pt_vencedor_gols_perdedor, count: 0 },
-      apenas_vencedor: { name: "Apenas o Vencedor 👑", ptsEach: regras.pt_apenas_vencedor, count: 0 },
-      gols_um_time: { name: "Placar de Algum Time ⚽", ptsEach: regras.pt_gols_um_time, count: 0 },
-      desafios: { name: "Desafios do GM (Bônus) ⚡", ptsEach: null, count: 0, totalPts: 0 }
+      placar_exato: { name: "Placar Exato 🎯", ptsEach: regras.pt_placar_exato, count: 0, totalPts: 0, zebra: 0 },
+      vencedor_gols_time: { name: "Vencedor e Gols de um Time ⚽", ptsEach: regras.pt_vencedor_gols_time, count: 0, totalPts: 0, zebra: 0 },
+      empate_nao_exato: { name: "Empate Não-Exato 🤝", ptsEach: regras.pt_empate_nao_exato, count: 0, totalPts: 0, zebra: 0 },
+      vencedor_saldo: { name: "Vencedor e Saldo de Gols 📊", ptsEach: regras.pt_vencedor_saldo, count: 0, totalPts: 0, zebra: 0 },
+      vencedor_gols_perdedor: { name: "Vencedor e Gols do Perdedor 📉", ptsEach: regras.pt_vencedor_gols_perdedor, count: 0, totalPts: 0, zebra: 0 },
+      apenas_vencedor: { name: "Apenas o Vencedor 👑", ptsEach: regras.pt_apenas_vencedor, count: 0, totalPts: 0, zebra: 0 },
+      gols_um_time: { name: "Placar de Algum Time ⚽", ptsEach: regras.pt_gols_um_time, count: 0, totalPts: 0, zebra: 0 },
+      desafios: { name: "Desafios do GM (Bônus) ⚡", ptsEach: null, count: 0, totalPts: 0, zebra: 0 }
+    };
+
+    // Mapa de categoria (desc do detalharPontosPalpite -> chave do counts)
+    const mapaCategoria = {
+      'Placar Exato': 'placar_exato',
+      'Vencedor + Gols Time': 'vencedor_gols_time',
+      'Empate Não-Exato': 'empate_nao_exato',
+      'Vencedor + Saldo': 'vencedor_saldo',
+      'Vencedor + Gols Perdedor': 'vencedor_gols_perdedor',
+      'Apenas Vencedor': 'apenas_vencedor',
+      'Placar de um Time': 'gols_um_time'
     };
 
     // Processa palpites dos jogos encerrados
@@ -3497,13 +3509,19 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
         if (isFinished && match.goals.home !== null && match.goals.away !== null) {
           const ptDetails = detalharPontosPalpite(g.score_home, g.score_away, match.goals.home, match.goals.away);
           if (ptDetails.pts > 0) {
-            if (ptDetails.desc === 'Placar Exato') counts.placar_exato.count++;
-            else if (ptDetails.desc === 'Vencedor + Gols Time') counts.vencedor_gols_time.count++;
-            else if (ptDetails.desc === 'Empate Não-Exato') counts.empate_nao_exato.count++;
-            else if (ptDetails.desc === 'Vencedor + Saldo') counts.vencedor_saldo.count++;
-            else if (ptDetails.desc === 'Vencedor + Gols Perdedor') counts.vencedor_gols_perdedor.count++;
-            else if (ptDetails.desc === 'Apenas Vencedor') counts.apenas_vencedor.count++;
-            else if (ptDetails.desc === 'Placar de um Time') counts.gols_um_time.count++;
+            const chave = mapaCategoria[ptDetails.desc];
+            if (chave && counts[chave]) {
+              // Pontos REAIS: mesmo motor do ranking oficial (aplica zebra dinâmica + mata-mata)
+              const vencedorReal = match.goals.home > match.goals.away ? 'home' : (match.goals.home < match.goals.away ? 'away' : 'empate');
+              const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined' && distribuicaoPalpitesGrupo) ? distribuicaoPalpitesGrupo[g.match_id] : null;
+              const pctVencedor = dist ? dist[vencedorReal] : 100;
+              const ptsReais = calcularPontosPalpite(g.score_home, g.score_away, match.goals.home, match.goals.away, match.league.round, pctVencedor);
+
+              counts[chave].count++;
+              counts[chave].totalPts += ptsReais;
+              // Foi multiplicado (zebra ou mata-mata) se rendeu mais que o valor-base da categoria
+              if (ptsReais > ptDetails.pts) counts[chave].zebra++;
+            }
           }
         }
       });
@@ -3523,11 +3541,12 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
     let totalPontos = 0;
     let placaresExatos = counts.placar_exato.count;
 
-    const renderRow = (name, ptsEach, countVal, totalVal, isPurple = false) => {
+    const renderRow = (name, ptsEach, countVal, totalVal, isPurple = false, zebraVal = 0) => {
       const total = totalVal !== undefined ? totalVal : (ptsEach * countVal);
-      const sub = ptsEach !== null ? `${ptsEach} pts por acerto` : 'Pontos de desafios extras';
-      const borderTheme = isPurple ? 'border-purple-500/20 bg-purple-950/10' : 'border-zinc-800/80 bg-zinc-900/30';
-      const ptsTheme = isPurple ? 'text-purple-400 bg-purple-500/10' : 'text-brand-green bg-brand-green/10';
+      let sub = ptsEach !== null ? `${ptsEach} pts por acerto` : 'Pontos de desafios extras';
+      if (zebraVal > 0) sub += ` · 🦓 ${zebraVal} zebra${zebraVal > 1 ? 's' : ''} (x2)`;
+      const borderTheme = isPurple ? 'border-purple-500/20 bg-purple-950/10' : (zebraVal > 0 ? 'border-purple-500/30 bg-purple-950/10' : 'border-zinc-800/80 bg-zinc-900/30');
+      const ptsTheme = isPurple ? 'text-purple-400 bg-purple-500/10' : (zebraVal > 0 ? 'text-purple-300 bg-purple-500/15' : 'text-brand-green bg-brand-green/10');
 
       return `
         <div class="border p-4 rounded-xl flex items-center justify-between ${borderTheme} transition-colors">
@@ -3552,8 +3571,8 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
         }
       } else {
         if (cat.ptsEach > 0 || cat.count > 0) {
-          html += renderRow(cat.name, cat.ptsEach, cat.count);
-          totalPontos += (cat.ptsEach * cat.count);
+          html += renderRow(cat.name, cat.ptsEach, cat.count, cat.totalPts, false, cat.zebra);
+          totalPontos += cat.totalPts;
         }
       }
     });
