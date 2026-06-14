@@ -2317,7 +2317,8 @@ function adminApp() {
         // Mesmas ligas usadas no bolão: Copa do Mundo (1), Brasileirão (71), Libertadores (13), Nordeste (325), Amistosos (10)
         const ligas = [1, 71, 13, 325, 10];
         const hoje = new Date();
-        const from = hoje.toISOString().split('T')[0];
+        // Começa 14 dias atrás pra achar também jogos JÁ ENCERRADOS (ver resultado da galera)
+        const from = new Date(hoje.getTime() - 14 * 24 * 3600 * 1000).toISOString().split('T')[0];
         const ate  = new Date(hoje.getTime() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
         let jogos = [];
         for (const liga of ligas) {
