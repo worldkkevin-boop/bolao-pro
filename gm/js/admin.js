@@ -148,6 +148,7 @@ function adminApp() {
 
     // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
     grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
+    grupoFocoHistorico: [], // histórico de grupos focados (code + nome) p/ reuso rápido
 
     // Desafio rápido — lançado diretamente do Oráculo
     desafioRapido: { eventType: 'Goal', pts: 5, fichas: 3, players: [], jogadorInput: '', lancando: false, motivo: '' },
@@ -199,6 +200,9 @@ function adminApp() {
         
         const ht = localStorage.getItem('gm_telao_history');
         if (ht) this.telaoHistoricoBusca = JSON.parse(ht);
+
+        const gf = localStorage.getItem('gm_grupo_foco_history');
+        if (gf) this.grupoFocoHistorico = JSON.parse(gf);
       } catch(e) {
         console.warn("Erro ao restaurar histórico:", e);
       }
@@ -1651,6 +1655,10 @@ function adminApp() {
         };
         this.adicionarLog('Supabase', `SELECT groups (foco ${code})`, 'SUCCESS', Date.now() - t, data.name);
         if (typeof showToast === 'function') showToast('Foco no grupo ' + data.name + ' ✓', 'success');
+        // Salva no histórico (code + nome) pra reuso rápido sem digitar
+        let hf = [{ code, nome: data.name }, ...this.grupoFocoHistorico.filter(g => g.code !== code)];
+        this.grupoFocoHistorico = hf.slice(0, 5);
+        try { localStorage.setItem('gm_grupo_foco_history', JSON.stringify(this.grupoFocoHistorico)); } catch (_) {}
         // Se já tinha uma análise aberta, reanalisa com as regras do grupo
         if (this.oraculo.fixtureId) this.analisarOraculoGM();
       } catch (err) {
@@ -1659,6 +1667,12 @@ function adminApp() {
       } finally {
         this.grupoFoco.carregando = false;
       }
+    },
+
+    // Reusa um grupo do histórico (clique no chip) sem digitar o código
+    usarFocoHistorico(code) {
+      this.grupoFoco.code = code;
+      this.focarGrupo();
     },
 
     async analisarOraculoGM() {
