@@ -2,66 +2,44 @@
    ORACULO — módulo standalone
    Usa API-Football + palpite local Supabase
    ========================================================= */
-
-// Stub inicial para evitar ReferenceError antes da inicialização.
-const ORACLE = window.ORACLE || {
-  async predictions(fixtureId) {
-    throw new Error('ORACLE.predictions nao inicializado');
-  }
-};
-
 (() => {
   const HOST = 'v3.football.api-sports.io';
-  const API_KEY = '47ca2bb05eb5931347aca04964818eb5';
+  const API_KEY='47ca2bb05eb5931347aca04964818eb5';
 
-  async function fetchJson(path) {
-    const headers = {
-      'x-rapidapi-host': HOST,
-      'x-rapidapi-key': API_KEY
-    };
-
-    const r = await fetch(`https://${HOST}${path}`, { headers });
-    if (!r.ok) {
-      throw new Error(`API-Football ${r.status}`);
+  const ORACLE = {
+    async predictions(fixtureId) {
+      const headers = {
+        'x-rapidapi-host': HOST,
+        'x-rapidapi-key': API_KEY
+      };
+      const r = await fetch(`https://${HOST}/predictions?fixture=${fixtureId}`, { headers });
+      if (!r.ok) throw new Error(`API-Football ${r.status}`);
+      const j = await r.json().catch(() => ({}));
+      if (!j.response || !j.response.length) throw new Error('Sem predicoes para esta partida.');
+      const p = j.response[0];
+      const x = p.predictions.percent || {};
+      return {
+        teams: p.teams,
+        winner: p.predictions.winner,
+        advice: p.predictions.advice,
+        under_over: p.predictions.under_over || null,
+        win_or_draw: !!p.predictions.win_or_draw,
+        percent: {
+          home: parseFloat(x.home) || 0,
+          draw: parseFloat(x.draw) || 0,
+          away: parseFloat(x.away) || 0
+        },
+        goals: p.predictions.goals,
+        comparison: p.comparison || null,
+        h2h: p.h2h || null,
+        homeLast5: p.teams?.home?.last_5 || null,
+        awayLast5: p.teams?.away?.last_5 || null,
+        homeFixtures: p.teams?.home?.fixtures || null,
+        awayFixtures: p.teams?.away?.fixtures || null,
+        league: p.league || null
+      };
     }
-    const data = await r.json().catch(() => ({}));
-    return data;
-  }
+  };
 
-  async function predictions(fixtureId) {
-    const j = await fetchJson(`/predictions?fixture=${fixtureId}`);
-
-    if (!j.response || !j.response.length) {
-      throw new Error('Sem predicoes para esta partida.');
-    }
-
-    const pred = j.response[0];
-    const pct = pred.predictions.percent || {};
-
-    return {
-      teams: pred.teams,
-      winner: pred.predictions.winner,
-      advice: pred.predictions.advice,
-      under_over: pred.predictions.under_over || null,
-      win_or_draw: !!pred.predictions.win_or_draw,
-      percent: {
-        home: parseFloat(pct.home) || 0,
-        draw: parseFloat(pct.draw) || 0,
-        away: parseFloat(pct.away) || 0
-      },
-      goals: pred.predictions.goals,
-      comparison: pred.comparison || null,
-      h2h: pred.h2h || null,
-      homeLast5: pred.teams?.home?.last_5 || null,
-      awayLast5: pred.teams?.away?.last_5 || null,
-      homeFixtures: pred.teams?.home?.fixtures || null,
-      awayFixtures: pred.teams?.away?.fixtures || null,
-      league: pred.league || null
-    };
-  }
-
-  // Hidrata o objeto global.
-  window.ORACLE = Object.assign(window.ORACLE || {}, {
-    predictions
-  });
+  if (!window.ORACLE) window.ORACLE = ORACLE;
 })();

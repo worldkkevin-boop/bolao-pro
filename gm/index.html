@@ -2114,18 +2114,18 @@
                 ]" :key="qattr.key">
                   <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black font-mono text-emerald-400 w-8 text-right"
-                      x-text="parseFloat(oraculo.quantData.comparison[qattr.key]?.home || 0).toFixed(0) + '%'"></span>
+                      x-text="parseFloat((oraculo.quantData?.comparison || {})[qattr.key]?.home || 0).toFixed(0) + '%'"></span>
                     <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <div class="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                        :style="'width: ' + parseFloat(oraculo.quantData.comparison[qattr.key]?.home || 0) + '%'"></div>
+                        :style="'width: ' + parseFloat((oraculo.quantData?.comparison || {})[qattr.key]?.home || 0) + '%'"></div>
                     </div>
                     <span class="text-[8px] text-zinc-500 font-black uppercase tracking-widest w-10 text-center" x-text="qattr.label"></span>
                     <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden flex justify-end">
                       <div class="h-full bg-purple-500 rounded-full transition-all duration-700"
-                        :style="'width: ' + parseFloat(oraculo.quantData.comparison[qattr.key]?.away || 0) + '%'"></div>
+                        :style="'width: ' + parseFloat((oraculo.quantData?.comparison || {})[qattr.key]?.away || 0) + '%'"></div>
                     </div>
                     <span class="text-[10px] font-black font-mono text-purple-400 w-8"
-                      x-text="parseFloat(oraculo.quantData.comparison[qattr.key]?.away || 0).toFixed(0) + '%'"></span>
+                      x-text="parseFloat((oraculo.quantData?.comparison || {})[qattr.key]?.away || 0).toFixed(0) + '%'"></span>
                   </div>
                 </template>
               </div>
