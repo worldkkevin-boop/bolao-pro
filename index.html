@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Bolão Pro | Brasileirão 2026</title>
+  <!-- PWA & Mobile App Settings -->
+  <link rel="manifest" href="manifest.json?v=5">
+  <meta name="theme-color" content="#0b0d13">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bolão Pro">
+  <!-- Aqui vai o ícone para o iPhone -->
+  <link rel="apple-touch-icon" href="midia/icon-192.png?v=5">
+  <meta name="description" content="O melhor bolão do Brasileirão 2026. Crie grupos, faça palpites e dispute com seus amigos!">
+  <link rel="icon" type="image/png" href="midia/favicon.png">
+  <meta property="og:title" content="Bolão Pro | Brasileirão 2026">
+  <meta property="og:description" content="Crie seu bolão, convide os amigos e prove quem manja mais de futebol! ⚽">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://bolao-pro-six.vercel.app/midia/favicon.png">
+  <meta property="og:url" content="https://bolao-pro-six.vercel.app">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            'app-bg': '#0a0c10',
+            'surface': '#11141c',
+            'surface2': '#181c26',
+            'surface3': '#1f2431',
+            'border1': '#ffffff08',
+            'border2': '#ffffff12',
+            'border3': '#ffffff20',
+            'text-main': '#e8edf4',
+            'text-muted': '#7c88a0',
+            'text-dim': '#4b5468',
+            'brand': '#10b981',
+            'brand2': '#34d399',
+            'gold': '#fbbf24',
+            'silver': '#9ca3af',
+            'bronze': '#b45309'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      height: -webkit-fill-available;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background-color: #0a0c10;
+      color: #e8edf4;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Login */
+    .bg-glow {
+      position: absolute; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(9, 9, 11, 0) 70%);
+      border-radius: 50%; top: -100px; left: -100px; z-index: 0;
+    }
+    .bg-glow-2 {
+      position: absolute; width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(9, 9, 11, 0) 70%);
+      border-radius: 50%; bottom: -150px; right: -150px; z-index: 0;
+    }
+    .fade-up {
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0; transform: translateY(20px);
+    }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* App */
+    .app-card {
+      background: #181c26;
+      border: 1px solid #ffffff12;
+      border-radius: 1rem;
+      box-shadow: rgba(50,50,93,.15) 0 8px 24px -6px, rgba(0,0,0,.25) 0 2px 8px -2px;
+    }
+    .nav-fixed {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%); width: 100%; max-width: 28rem;
+      background: rgba(17,20,28,.85);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid #ffffff12;
+    }
+    .fade-in { animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .glow-gold {
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    .btn-circle:active { transform: scale(0.90); }
+
+    #icone-grupo-header {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 16px;
+    }
+
+    /* Inputs */
+    input, select, textarea {
+      background: #181c26;
+      border: 1px solid #ffffff12;
+      border-radius: 0.75rem;
+      color: #e8edf4;
+      padding: 0.75rem 0.875rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #10b981;
+      box-shadow: 0 4px 20px rgba(16,185,129,.25);
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      font-weight: 700; font-size: .875rem;
+      padding: .75rem 1rem; border-radius: .75rem; border: none; cursor: pointer;
+      transition: transform .1s, opacity .15s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-brand {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: black;
+      box-shadow: 0 4px 18px rgba(16,185,129,.25);
+    }
+    .btn-secondary {
+      background: #181c26;
+      border: 1px solid #ffffff12;
+      color: #e8edf4;
+    }
+    .btn-secondary:hover { border-color: #ffffff22; }
+
+    /* Safe areas */
+    #screen-app {
+      padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    }
+    #screen-login {
+      padding-top: env(safe-area-inset-top) !important;
+    }
+    #bottom-nav,
+    #gm-bottom-nav {
+      padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important;
+    }
+    #modal-regras-pontuacao > div:first-child,
+    #modal-perguntas-bonus > div:first-child,
+    #modal-responder-bonus > div:first-child,
+    #modal-historico-pontos > div:first-child {
+      padding-top: calc(16px + env(safe-area-inset-top)) !important;
+    }
+    #modal-tesouraria {
+      padding-top: env(safe-area-inset-top) !important;
+    }
+    #pull-to-refresh {
+      top: env(safe-area-inset-top) !important;
+    }
+
+    /* Cards */
+    .surface {
+      background: #181c26;
+      border: 1px solid #ffffff12;
+      border-radius: 1rem;
+    }
+    .surface-hover:hover {
+      background: #1f2431;
+      border-color: #ffffff20;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pull to Refresh Indicator -->
+  <div id="pull-to-refresh" class="fixed top-0 left-0 right-0 flex items-center justify-center pointer-events-none z-50 transform -translate-y-full transition-transform duration-200 ease-out" style="height: 60px;">
+    <div class="bg-[#18181b] border border-white/10 rounded-full py-2 px-4 shadow-2xl flex items-center gap-2">
+      <svg id="ptr-icon" class="w-4 h-4 text-brand transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+        <path d="M19 9l-7 7-7-7"></path>
+      </svg>
+      <div id="ptr-spinner" class="hidden w-4 h-4 border-2 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+      <span id="ptr-text" class="text-[10px] font-bold text-white uppercase tracking-wider">Puxe para atualizar</span>
+    </div>
+  </div>
+
+  <!-- Tela de Carregamento Inicial -->
+  <div id="screen-loading" class="fixed inset-0 bg-[#09090b] z-[20000] flex flex-col items-center justify-center gap-4">
+    <div class="w-12 h-12 border-4 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Iniciando o App...</span>
+  </div>
+
+  <!-- ===================== TELA DE LOGIN ===================== -->
+  <div id="screen-login" class="min-h-screen flex flex-col items-center justify-center relative p-6 overflow-x-hidden hidden">
+
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <div class="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center">
+
+      <div id="logo-header" class="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#18181b] to-[#09090b] border border-white/10 shadow-[0_0_40px_rgba(16,185,129,0.2)] flex items-center justify-center mb-6 fade-up transition-all duration-500" style="animation-delay: 0.1s;">
+        <svg width="48" height="48" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4l3 3"/>
+        </svg>
+      </div>
+
+      <div id="title-header" class="text-center mb-8 fade-up transition-all duration-500" style="animation-delay: 0.2s;">
+        <h1 class="text-4xl font-black tracking-tight mb-2 uppercase">Bolão <span class="text-brand">Pro</span></h1>
+        <p class="text-[14px] text-text-muted font-medium px-4">
+          Crie grupos, convide amigos e domine o ranking nas principais ligas.
+        </p>
+      </div>
+
+      <div id="login-options" class="w-full fade-up transition-all duration-300" style="animation-delay: 0.3s;">
+
+        <button onclick="entrarComGoogle()" class="w-full bg-white text-black font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-200 transition-colors active:scale-95 shadow-xl mb-6">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Entrar com Google
+        </button>
+
+        <div class="flex items-center gap-4 mb-6 opacity-60">
+          <div class="h-px w-full bg-text-muted"></div>
+          <span class="text-xs font-bold text-text-muted uppercase tracking-widest">OU</span>
+          <div class="h-px w-full bg-text-muted"></div>
+        </div>
+
+        <button onclick="mostrarInputCodigo()" class="w-full surface border border2 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-card-hover transition-colors active:scale-95">
+          Acessar com código
+        </button>
+
+      </div>
+
+      <div id="code-input-section" class="w-full hidden opacity-0 transition-all duration-300 transform translate-y-4">
+
+        <button onclick="voltarParaLogin()" class="mb-6 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold transition-colors">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+          Voltar
+        </button>
+
+        <h2 class="text-[18px] font-black mb-1 text-white uppercase tracking-wide">Código do Convite</h2>
+        <p class="text-[13px] text-text-muted mb-6">Insira o código de 7 dígitos enviado pelo administrador.</p>
+
+        <input type="text" id="group-code" placeholder="ABC1234" maxlength="7" class="w-full surface text-white text-4xl font-black text-center tracking-[0.25em] rounded-2xl border border2 focus:border-brand-green outline-none py-5 mb-5 shadow-inner transition-colors placeholder-[#2a2a35] uppercase">
+
+        <button onclick="simularValidacao()" id="btn-validar" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">
+          Validar Convite
+        </button>
+
+        <div id="validation-error" class="hidden mt-6 bg-[#1a1a24] border border-red-500/30 rounded-2xl p-5 text-center fade-up">
+          <div class="w-10 h-10 rounded-full bg-red-500/20 text-red-400 mx-auto flex items-center justify-center mb-3">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </div>
+          <p class="text-[11px] text-red-400 font-bold uppercase tracking-widest mb-1">Código Inválido</p>
+          <p class="text-[13px] text-text-muted">Nenhum bolão encontrado com esse código. Verifique e tente novamente.</p>
+        </div>
+
+        <div id="validation-success" class="hidden mt-6 bg-[#1a1a24] border border-brand-green/30 rounded-2xl p-5 text-center fade-up">
+          <div class="w-10 h-10 rounded-full bg-brand-green/20 text-brand mx-auto flex items-center justify-center mb-3">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <p class="text-[11px] text-text-muted font-bold uppercase tracking-widest mb-1">Convite Encontrado</p>
+          <h3 id="validation-success-group-name" class="font-black text-white text-lg mb-4">Bolão Ladaya</h3>
+          <button onclick="entrarComGoogle()" class="w-full bg-white text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-[13px] hover:bg-gray-200 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Entrar com Google para participar
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Footer movido para dentro do container flex para fluir naturalmente e evitar sobreposição -->
+      <div class="mt-8 mb-4 w-full text-center z-10 fade-up" style="animation-delay: 0.5s;">
+        <p class="text-[10px] text-text-muted font-medium">
+          Ao entrar, você concorda com nossos <br>
+          <a href="#" class="text-brand underline decoration-brand-green/30 underline-offset-2">Termos de Uso</a> e <a href="#" class="text-brand underline decoration-brand-green/30 underline-offset-2">Privacidade</a>.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===================== APP PRINCIPAL ===================== -->
+  <div id="screen-app" class="hidden pt-1 px-4 max-w-md mx-auto pb-28">
+
+    <div id="view-inicio" class="fade-in block">
+
+      <!-- Profile strip -->
+      <div class="flex items-center justify-between mb-4 mt-2 surface p-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <img id="avatar-google" src="" alt="foto" class="w-11 h-11 rounded-full object-cover border-2 border-brand/60 flex-shrink-0">
+          <div class="min-w-0">
+            <p id="nome-usuario" class="font-bold text-[15px] leading-tight truncate text-text-main">—</p>
+            <p id="email-usuario" class="text-[12px] text-text-muted leading-tight truncate">—</p>
+          </div>
+        </div>
+        <button onclick="deslogar()" class="text-red-400 text-[13px] font-bold hover:text-red-300 transition-colors flex-shrink-0 ml-3">Sair</button>
+      </div>
+
+      <!-- Push Notification Banner -->
+      <div id="push-notification-banner" class="hidden bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-2xl p-4 mb-4 flex items-start gap-3 cursor-pointer hover:bg-yellow-500/15 transition-all" onclick="inicializarNotificacoesPush()">
+        <span class="text-xl flex-shrink-0">🔔</span>
+        <div class="text-[13px] leading-relaxed font-medium">
+          <span class="font-bold text-white block mb-0.5">Ativar Notificações Push</span>
+          Receba avisos quando o GM confirmar seu PIX ou novos desafios! <span class="underline font-bold text-white">Ativar agora</span>
+        </div>
+      </div>
+
+      <!-- Install App PWA Banner -->
+      <div id="pwa-install-banner" class="hidden bg-brand-green/10 border border-brand-green/20 text-brand rounded-2xl p-4 mb-6 flex items-start gap-3 cursor-pointer hover:bg-brand-green/15 transition-all" onclick="abrirModal('modal-instalar-app')">
+        <span class="text-xl flex-shrink-0">📲</span>
+        <div class="text-[13px] leading-relaxed font-medium">
+          <span class="font-bold text-white block mb-0.5">Instalar no Celular</span>
+          Salve o app na tela inicial para jogar igual a um aplicativo real! <span class="underline font-bold text-white">Como fazer?</span>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="grid grid-cols-2 gap-3 mb-7">
+        <button onclick="abrirModal('modal-criar-grupo')" class="bg-brand-green text-black font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:opacity-90 transition-opacity active:scale-95">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Criar Grupo
+        </button>
+        <button onclick="abrirModal('modal-entrar-grupo')" class="surface border border2 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:bg-card-hover transition-colors active:scale-95">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          Entrar
+        </button>
+      </div>
+
+      <!-- Botão do GM (Apenas para worldkkevin@gmail.com) -->
+      <div id="gm-panel-button-container" class="hidden mb-6">
+        <button onclick="abrirPainelGM()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] transition-all active:scale-95 shadow-lg shadow-purple-600/20 uppercase tracking-wide">
+          Entrar na Sala do Mago 🧙‍♂️
+        </button>
+      </div>
+
+      <!-- Seção: Eventos Ao Vivo (Aparece apenas quando o GM inicia) -->
+      <div id="container-eventos-ativos" class="hidden mb-8">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          Evento rolando agora
+        </h2>
+        
+        <button onclick="abrirSalaEventoDesdeMenu()" class="w-full bg-gradient-to-br from-[#18181b] to-black border border-pink-500/30 rounded-3xl p-5 flex items-center gap-4 hover:border-pink-500/60 transition-all active:scale-[0.98] text-left relative overflow-hidden group shadow-xl">
+          <div class="absolute -right-10 -top-10 w-32 h-32 bg-pink-500/5 rounded-full blur-2xl group-hover:bg-pink-500/10 transition-all"></div>
+          
+          <div class="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center text-2xl flex-shrink-0 border border-pink-500/20">🏟️</div>
+          
+          <div class="flex-1 min-w-0">
+            <h3 class="font-black text-[15px] text-white uppercase tracking-tight" id="menu-evento-nome">Carregando evento...</h3>
+            <p class="text-[11px] text-pink-400 font-bold mt-0.5">Clique para entrar na sala ao vivo →</p>
+          </div>
+          
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" class="text-pink-500 flex-shrink-0"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Lista de grupos -->
+      <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Meus grupos</h2>
+      <div id="lista-grupos">
+        <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
+      </div>
+
+      <!-- Loja Pro -->
+      <div class="mt-6 mb-2">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Planos &amp; Fichas</h2>
+        <button onclick="switchView('view-loja')" class="w-full surface border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 hover:bg-card-hover transition-colors active:scale-95 text-left">
+          <div class="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-[14px] text-white">Loja Pro</h3>
+            <p class="text-[11px] text-zinc-500">Fichas · Upgrade de Grupo · Planos</p>
+          </div>
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-amber-400 flex-shrink-0"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Small start footer with support and install quick links -->
+      <div class="text-center mt-8 pb-4 flex flex-col items-center gap-1.5">
+        <p class="text-[11px] text-text-muted">Bolão Pro Beta v1.2 • <span class="text-amber-500 font-semibold">Fase de Testes</span></p>
+        <div class="flex items-center justify-center gap-3">
+          <button onclick="abrirSuporteWhatsapp()" class="text-[11px] text-brand hover:underline font-bold flex items-center gap-1">Suporte & Sugestões no WhatsApp 💬</button>
+          <span class="text-zinc-700 text-[10px]">•</span>
+          <button onclick="abrirModal('modal-instalar-app')" class="text-[11px] text-brand hover:underline font-bold flex items-center gap-1">Instalar no Celular 📲</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- View: Loja Pro (3 Tabs) -->
+    <div id="view-loja" class="fade-in hidden px-4 pb-28 pt-0">
+
+      <!-- Header -->
+      <div class="flex items-center gap-4 mb-5 mt-2">
+        <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2 flex-shrink-0">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="flex-1">
+          <h1 class="text-xl font-black tracking-tight">🛍️ Loja Pro</h1>
+          <p class="text-[11px] text-zinc-500">Planos · Passes · Fichas</p>
+        </div>
+        <span class="badge-fichas text-[12px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full">🎫 ...</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex bg-zinc-900/80 rounded-2xl p-1 mb-6 border border2 gap-1">
+        <button id="loja-btn-grupos" onclick="mudarTabLoja('grupos')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/10 text-white">🏆 Grupos</button>
+        <button id="loja-btn-passes" onclick="mudarTabLoja('passes')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all text-zinc-500">🎟️ Passes</button>
+        <button id="loja-btn-fichas" onclick="mudarTabLoja('fichas')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all text-zinc-500">🪙 Fichas</button>
+      </div>
+
+      <!-- ══ TAB 1: PACOTES DE GRUPO ══════════════════════════════════════════ -->
+      <div id="loja-tab-grupos">
+
+        <!-- Seletor de grupo (apenas grupos que o usuário criou) -->
+        <div class="mb-5">
+          <label class="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-2">Qual grupo você quer turbinar?</label>
+          <select id="loja-grupo-select" class="w-full bg-zinc-900 border border-white/10 text-white text-[13px] font-bold rounded-xl px-4 py-3.5 outline-none focus:border-purple-500/50 cursor-pointer">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+
+        <div class="space-y-3">
+
+          <!-- Várzea (free) -->
+          <div class="surface border border2 rounded-2xl p-4 opacity-50">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-black text-[14px] text-zinc-400">⚽ Várzea <span class="text-[10px] font-bold text-zinc-600 ml-1">ATUAL</span></h3>
+                <p class="text-[11px] text-zinc-600 mt-0.5">Até 10 jogadores · Motor de pontos básico</p>
+              </div>
+              <span class="text-[14px] font-black text-zinc-500">Grátis</span>
+            </div>
+          </div>
+
+          <!-- Série A -->
+          <button onclick="gerarPagamentoPix('grupo_serie_a')" class="w-full surface border border-brand-green/25 rounded-2xl p-4 hover:border-brand-green/60 transition-all active:scale-95 text-left">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-black text-[14px] text-white">⚡ Série A</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Até 30 jogadores · Zebra Dinâmica</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-brand block">R$ 29,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+            <div class="w-full bg-brand-green text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+          <!-- Champions -->
+          <button onclick="gerarPagamentoPix('grupo_champions')" class="w-full surface border border-purple-500/35 rounded-2xl p-4 hover:border-purple-500/70 transition-all active:scale-95 text-left relative shadow-[0_0_20px_rgba(139,92,246,0.06)]">
+            <div class="absolute -top-2.5 right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">🔥 MAIS VENDIDO</div>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-black text-[14px] text-purple-300">🏆 Champions</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Até 70 jogadores · Central de Desafios</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-purple-400 block">R$ 49,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+          <!-- God Mode -->
+          <button onclick="gerarPagamentoPix('grupo_god_mode')" class="w-full surface border border-amber-500/25 rounded-2xl p-4 hover:border-amber-500/55 transition-all active:scale-95 text-left">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-black text-[14px] text-amber-400">👑 God Mode</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Ilimitado · Ferramentas de TV · Controle total</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-amber-400 block">R$ 99,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ══ TAB 2: PASSES DE JOGADOR ═════════════════════════════════════════ -->
+      <div id="loja-tab-passes" class="hidden">
+        <p class="text-[12px] text-zinc-400 mb-5 text-center leading-relaxed">Pague uma vez e entre em múltiplos bolões premium sem precisar do dono liberar.</p>
+
+        <div class="space-y-3">
+
+          <!-- Amador (free) -->
+          <div class="surface border border2 rounded-2xl p-4 opacity-50">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-black text-[14px] text-zinc-400">🎟️ Palpiteiro Amador <span class="text-[10px] font-bold text-zinc-600 ml-1">ATUAL</span></h3>
+                <p class="text-[11px] text-zinc-600 mt-0.5">Entra em 1 grupo premium</p>
+              </div>
+              <span class="text-[14px] font-black text-zinc-500">Grátis</span>
+            </div>
+          </div>
+
+          <!-- Camisa 10 -->
+          <button onclick="gerarPagamentoPix('passe_camisa10')" class="w-full surface border border-brand-green/25 rounded-2xl p-4 hover:border-brand-green/60 transition-all active:scale-95 text-left">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-black text-[14px] text-white">🎟️ Camisa 10</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Jogue em até 3 grupos premium simultâneos</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-brand block">R$ 9,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+            <div class="w-full bg-brand-green text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+          <!-- Lenda da Copa -->
+          <button onclick="gerarPagamentoPix('passe_lenda')" class="w-full surface border border-amber-500/25 rounded-2xl p-4 hover:border-amber-500/55 transition-all active:scale-95 text-left relative">
+            <div class="absolute -top-2.5 right-4 bg-gradient-to-r from-amber-500 to-orange-400 text-black text-[8px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">🌟 VIP</div>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-black text-[14px] text-amber-400">🌟 Lenda da Copa</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Grupos ilimitados + Borda Neon Animada no Avatar</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-amber-400 block">R$ 19,90</span>
+                <span class="text-[9px] text-zinc-600 block">por mês</span>
+              </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ══ TAB 3: MERCADO DE FICHAS ═════════════════════════════════════════ -->
+      <div id="loja-tab-fichas" class="hidden">
+
+        <!-- Saldo atual -->
+        <div class="bg-amber-500/5 border border-amber-500/15 rounded-xl px-4 py-3 flex items-center justify-between mb-5">
+          <span class="text-[12px] text-zinc-400 font-medium">Seu saldo de fichas</span>
+          <span class="badge-fichas text-[15px] font-black text-amber-400">🎫 ...</span>
+        </div>
+
+        <div class="space-y-3">
+
+          <!-- Pacote Resenha -->
+          <button onclick="gerarPagamentoPix('fichas_resenha')" class="w-full surface border border2 rounded-2xl p-4 hover:border-amber-500/30 transition-all active:scale-95 text-left">
+            <div class="flex items-center gap-4 mb-3">
+              <div class="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-xl flex-shrink-0">🪙</div>
+              <div class="flex-1">
+                <h3 class="font-black text-[14px] text-white">Pacote Resenha</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">15 Fichas para Desafios</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-brand block">R$ 1,99</span>
+              </div>
+            </div>
+            <div class="w-full bg-brand-green text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+          <!-- Kit Sniper -->
+          <button onclick="gerarPagamentoPix('fichas_sniper')" class="w-full surface border border-amber-500/30 rounded-2xl p-4 hover:border-amber-500/60 transition-all active:scale-95 text-left relative shadow-[0_0_15px_rgba(245,158,11,0.06)]">
+            <div class="absolute -top-2.5 right-4 bg-amber-500 text-black text-[8px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">💎 MELHOR CUSTO</div>
+            <div class="flex items-center gap-4 mb-3">
+              <div class="w-12 h-12 bg-amber-500/15 rounded-xl flex items-center justify-center text-xl flex-shrink-0">💎</div>
+              <div class="flex-1">
+                <h3 class="font-black text-[14px] text-amber-400">Kit Sniper</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">40 Fichas para Desafios</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-amber-400 block">R$ 4,90</span>
+              </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-amber-500 to-orange-400 text-black font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+          <!-- Baú do Mago -->
+          <button onclick="gerarPagamentoPix('fichas_bau')" class="w-full surface border border-purple-500/20 rounded-2xl p-4 hover:border-purple-500/45 transition-all active:scale-95 text-left">
+            <div class="flex items-center gap-4 mb-3">
+              <div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-xl flex-shrink-0">🎁</div>
+              <div class="flex-1">
+                <h3 class="font-black text-[14px] text-purple-300">Baú do Mago</h3>
+                <p class="text-[11px] text-zinc-500 mt-0.5">100 Fichas para Desafios</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[16px] font-black text-purple-400 block">R$ 9,90</span>
+              </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black py-2 rounded-xl text-xs uppercase tracking-wide text-center">COMPRAR COM PIX</div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Rodapé -->
+      <p class="text-[10px] text-zinc-700 text-center mt-8 leading-relaxed">
+        Pagamento via PIX · Ativação automática após confirmação<br>Suporte pelo WhatsApp · 100% seguro via Mercado Pago
+      </p>
+
+    </div>
+
+    <!-- View: Home do Grupo (Dashboard) -->
+    <div id="view-grupo-home" class="fade-in hidden p-4 pb-24">
+      
+      <!-- Top header de voltar para os grupos gerais -->
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-xl font-black tracking-tight">Painel do Bolão</h1>
+      </div>
+
+      <div class="flex justify-between items-center mb-8 mt-2">
+        <div class="flex items-center gap-4">
+          <div id="grupo-icon-container" class="w-16 h-16 rounded-2xl surface flex items-center justify-center text-brand border border2 shadow-xl overflow-hidden flex-shrink-0">
+            <svg id="grupo-icon-fallback" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            <img id="icone-grupo-header" src="" class="hidden">
+          </div>
+          <div>
+            <h1 id="nome-grupo" class="text-xl font-black uppercase tracking-tight">Ladaya</h1>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[10px] text-text-muted font-bold tracking-widest">CÓD: <span class="text-white" id="codigo-grupo">8187964</span></span>
+              <button onclick="copiarCodigo()" class="text-brand text-[10px] font-bold underline">Copiar</button>
+              <span class="text-zinc-700 text-[10px]">•</span>
+              <button onclick="switchView('view-regras')" class="text-brand text-[10px] font-bold underline">Regras</button>
+              <span id="badge-vagas" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full"></span>
+            </div>
+          </div>
+        </div>
+        <button onclick="compartilharGrupo()" class="p-3 surface rounded-xl border border2 active:scale-95 transition-transform text-white">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        </button>
+      </div>
+
+      <!-- Container para Botão de Upgrade (Plano) -->
+      <div id="container-upgrade-grupo" class="hidden"></div>
+
+      <!-- Container para Botão da Tesouraria -->
+      <div id="container-tesouraria-grupo" class="hidden mb-3"></div>
+
+      <!-- Pote Banner Container -->
+      <div id="pote-banner-container"></div>
+
+      <!-- Container para Responder Perguntas Bônus (Jogador) -->
+      <div id="container-responder-bonus-jogador" class="mb-3"></div>
+
+      <!-- Banner Modo TV Ao Vivo -->
+      <div id="btn-ao-vivo-tv" onclick="abrirTVAoVivo()" class="surface p-5 rounded-2xl border border2 mb-6 transition-all hover:border-white/10 cursor-pointer flex items-center justify-between shadow-none active:scale-[0.98]">
+        <div class="flex items-center gap-3">
+          <div class="relative flex h-2.5 w-2.5">
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-zinc-600"></span>
+          </div>
+          <div>
+            <h3 class="font-black text-[13px] text-white flex items-center gap-1.5 uppercase tracking-wide">
+              <span>📺</span> MODO TV AO VIVO
+            </h3>
+            <p class="text-[10px] text-zinc-300 mt-0.5">Acompanhe a classificação parcial e palpites em tempo real!</p>
+          </div>
+        </div>
+        <span class="text-zinc-500 text-[10px] font-black uppercase tracking-widest bg-zinc-800 px-2.5 py-1.5 rounded-xl border border-zinc-700/50">OFF</span>
+      </div>
+
+      <!-- Container Desafios Ativos do GM -->
+      <div id="container-desafios-ativos-gm" class="hidden space-y-3 mb-6">
+        <!-- Renderizado dinamicamente -->
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 mb-8">
+        <div id="prox-jogo-card" class="bg-gradient-to-r from-brand-green/20 to-transparent p-4 rounded-2xl border border-brand-green/30 transition-all hover:border-brand-green/50">
+          <p class="text-[9px] font-black uppercase text-brand tracking-widest mb-1">Próximo Jogo</p>
+          <h3 id="prox-jogo-nome" class="font-bold text-[14px]">Carregando...</h3>
+          <div class="flex items-center justify-between mt-1 min-h-[20px]">
+            <p id="prox-jogo-tempo" class="text-[11px] text-white/70">...</p>
+            <span id="prox-jogo-palpite" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+          </div>
+        </div>
+        
+        <div id="ultimo-jogo-card" class="surface p-4 rounded-2xl border border2 transition-all hover:border-brand-green/20">
+          <p class="text-[9px] font-black uppercase text-text-muted tracking-widest mb-1">Último Resultado</p>
+          <h3 id="ultimo-jogo-nome" class="font-bold text-[14px]">...</h3>
+          <div class="flex items-center justify-between mt-1 min-h-[20px]">
+            <p id="ultimo-jogo-placar" class="text-[11px] text-text-muted">...</p>
+            <span id="ultimo-jogo-palpite" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View: TV Ao Vivo (Live Dashboard) -->
+    <div id="view-ao-vivo" class="fade-in hidden p-4 pb-24">
+      <!-- Header -->
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-xl font-black tracking-tight flex items-center gap-2">
+          <span>📺</span> Bolão TV Ao Vivo
+        </h1>
+      </div>
+
+      <!-- Jogos Ao Vivo Rolando -->
+      <div class="mb-8 relative">
+        <h2 class="font-bold text-xs uppercase tracking-widest text-red-500 mb-3 flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          Partidas em Andamento
+        </h2>
+        <div id="lista-jogos-ao-vivo" class="space-y-3">
+          <!-- Renderizado dinamicamente -->
+          <div class="surface p-6 rounded-2xl border border2 text-center text-text-muted text-[12px] font-semibold">
+            Buscando jogos ao vivo...
+          </div>
+        </div>
+      </div>
+
+      <!-- Classificação Parcial Ao Vivo -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-bold text-xs uppercase tracking-widest text-purple-400 flex items-center gap-2">
+            📊 Classificação Provisória Ao Vivo
+          </h2>
+          <span class="text-[9px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 animate-pulse">Parcial</span>
+        </div>
+        <div id="lista-ranking-ao-vivo" class="space-y-3">
+          <!-- Renderizado dinamicamente -->
+          <div class="surface p-6 rounded-2xl border border2 text-center text-text-muted text-[12px] font-semibold">
+            Carregando classificação provisória...
+          </div>
+        </div>
+      </div>
+      
+      <!-- Detalhes de Quem está Pontuando -->
+      <div>
+        <h2 class="font-bold text-xs uppercase tracking-widest text-brand mb-3 flex items-center gap-2">
+          ⚽ Palpites nos Jogos Ao Vivo
+        </h2>
+        <div id="lista-palpites-ao-vivo" class="space-y-3">
+          <!-- Renderizado dinamicamente -->
+          <div class="surface p-6 rounded-2xl border border2 text-center text-text-muted text-[12px] font-semibold">
+            Nenhum palpite ativo para exibir.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-jogos" class="fade-in hidden">
+      <div class="flex items-center justify-between mb-4 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight">Partidas</h1>
+        </div>
+        <span class="surface text-brand text-xs px-3 py-1 rounded-md font-bold border border-brand-green/20">Fase de Grupos</span>
+      </div>
+      
+      <!-- Filtro de Rodadas (Horizontal Scrollable) -->
+      <div id="filtros-rodada" class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <!-- Gerado dinamicamente -->
+      </div>
+
+      <div id="lista-jogos"></div>
+    </div>
+
+    <div id="view-palpite" class="fade-in hidden p-2 pb-10">
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="desativarTelaAoVivo(); switchView('view-jogos')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-xl font-black tracking-tight">Detalhes do Jogo</h1>
+      </div>
+
+      <div class="surface p-6 rounded-3xl border border2 mb-6 shadow-xl">
+        <div class="flex justify-between items-center mb-8">
+          <div class="flex flex-col items-center w-1/3">
+            <div class="w-12 h-12 rounded-lg overflow-hidden mb-3">
+              <img id="d-home-logo" src="" class="w-full h-full object-cover">
+            </div>
+            <span id="d-home-nome" class="text-[13px] font-bold text-center"></span>
+          </div>
+          <span id="d-real-score" class="text-lg font-black text-text-muted">VS</span>
+          <div class="flex flex-col items-center w-1/3">
+            <div class="w-12 h-12 rounded-lg overflow-hidden mb-3">
+              <img id="d-away-logo" src="" class="w-full h-full object-cover">
+            </div>
+            <span id="d-away-nome" class="text-[13px] font-bold text-center"></span>
+          </div>
+        </div>
+
+        <div class="surface p-5 rounded-2xl border border2 mb-6">
+          <p class="text-center text-xs font-bold text-text-muted uppercase tracking-widest mb-4">Seu Palpite</p>
+          <div class="flex justify-between items-center px-4">
+            <div class="flex items-center gap-3">
+              <button onclick="mudarGols('d-home', -1)" class="btn-circle w-10 h-10 rounded-full bg-surface2 hover:bg-surface3 flex items-center justify-center text-white text-xl font-bold transition-all">-</button>
+              <span id="d-home-score" class="text-2xl font-black text-white w-6 text-center">0</span>
+              <button onclick="mudarGols('d-home', 1)" class="btn-circle w-10 h-10 rounded-full bg-surface2 hover:bg-surface3 flex items-center justify-center text-white text-xl font-bold transition-all">+</button>
+            </div>
+            <span class="text-text-muted font-bold text-[13px] uppercase">vs</span>
+            <div class="flex items-center gap-3">
+              <button onclick="mudarGols('d-away', -1)" class="btn-circle w-10 h-10 rounded-full bg-surface2 hover:bg-surface3 flex items-center justify-center text-white text-xl font-bold transition-all">-</button>
+              <span id="d-away-score" class="text-2xl font-black text-white w-6 text-center">0</span>
+              <button onclick="mudarGols('d-away', 1)" class="btn-circle w-10 h-10 rounded-full bg-surface2 hover:bg-surface3 flex items-center justify-center text-white text-xl font-bold transition-all">+</button>
+            </div>
+          </div>
+        </div>
+        <button id="btn-confirmar-palpite" onclick="salvarPalpite()" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 hover:opacity-90 active:scale-95 transition-all uppercase tracking-wide">
+          Confirmar Palpite
+        </button>
+      </div>
+
+      <!-- Tab Controller -->
+      <div class="flex border-b border2 mb-4">
+        <button id="btn-aba-detalhes" onclick="alternarAba('detalhes')" class="flex-1 py-3 border-b-2 border-brand-green font-bold text-brand transition-all">Detalhes</button>
+        <button id="btn-aba-palpites" onclick="alternarAba('palpites')" class="flex-1 py-3 text-text-muted hover:text-white transition-all">Palpites</button>
+      </div>
+
+      <!-- Tab Content: Detalhes -->
+      <div id="tab-content-detalhes" class="block fade-in space-y-4">
+        <div class="surface p-4 rounded-2xl flex items-center justify-between border border2">
+          <div class="flex items-center gap-2 text-[13px] font-semibold text-white">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-brand"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="d-jogo-data"></span>
+          </div>
+          <div class="flex items-center gap-2 text-[12px] text-text-muted font-bold">
+            <div class="flex -space-x-2" id="d-palpitadores-fotos"></div>
+            <span id="d-contador-palpites">0 de 0 palpitaram</span>
+          </div>
+        </div>
+
+        <!-- Container do Desafio do Jogador (GM) -->
+        <div id="desafio-jogo-container" class="hidden">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </div>
+
+      <!-- Tab Content: Palpites -->
+      <div id="tab-content-palpites" class="hidden fade-in space-y-3">
+        <div id="lista-palpites-amigos" class="space-y-2">
+          <p class="text-text-muted text-[13px] text-center py-4">Nenhum palpite ainda.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-ranking" class="fade-in hidden">
+      <div class="flex items-center justify-between mb-4 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight">Ranking Oficial</h1>
+        </div>
+        <div id="nome-grupo-ranking" class="bg-brand-green/10 text-brand text-[11px] font-bold px-3 py-1.5 rounded-lg border border-brand-green/20 uppercase tracking-widest">—</div>
+      </div>
+      
+      <!-- Seletor de Tipo de Ranking (Geral ou Rodada) -->
+      <div class="mb-4">
+        <select id="seletor-ranking" onchange="exibirRankingSelecionado()" class="w-full surface border border2 rounded-2xl py-3 px-4 text-[13px] font-bold text-white outline-none focus:border-brand-green transition-colors">
+          <option value="geral">Ranking Geral</option>
+        </select>
+      </div>
+
+      <div id="lista-ranking" class="space-y-3">
+        <p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>
+      </div>
+
+      <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
+        <span>📲</span> COMPARTILHAR RANKING
+      </button>
+    </div>
+
+    <div id="view-painel" class="fade-in hidden">
+      <!-- Cabeçalho Premium -->
+      <div class="flex items-center justify-between mb-6 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-8 h-8 bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white rounded-full flex items-center justify-center hover:bg-zinc-800 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-white font-black text-xl tracking-wide">Configurações</h1>
+        </div>
+      </div>
+
+      <!-- Card do Usuário (Logado) -->
+      <div class="surface rounded-2xl p-4 flex items-center justify-between border border-[#2a2a35] mb-5">
+        <div class="flex items-center gap-4">
+          <div class="w-11 h-11 rounded-full overflow-hidden"><img id="painel-foto-usuario" src="" class="w-full h-full object-cover"></div>
+          <div>
+            <h3 id="painel-nome-usuario" class="font-bold text-[15px] text-white">—</h3>
+            <p id="painel-email-usuario" class="text-[12px] text-text-muted">—</p>
+          </div>
+        </div>
+        <span id="painel-badge-admin" class="border border-brand-green/50 text-brand text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10 hidden">Admin</span>
+      </div>
+
+      <!-- Card de Participantes & Limite -->
+      <div class="bg-[#151518] border border2 rounded-2xl p-5 mb-5 shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <span>👥</span> Participantes
+            </p>
+            <p class="text-3xl font-black text-brand mt-1" id="config-gm-qtd-users">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-gray-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 justify-end">
+              <span>✅</span> Limite
+            </p>
+            <p class="text-3xl font-black text-brand mt-1" id="config-gm-limite">Ilimitado</p>
+          </div>
+        </div>
+        <div id="badge-status-plano" class="w-full bg-brand-green/10 border border-brand-green/30 text-brand text-xs font-bold py-2 rounded-lg text-center flex justify-center items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Voucher ativo · limite ampliado
+        </div>
+      </div>
+
+      <!-- Seção: PONTUAÇÃO -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Pontuação</p>
+        <div class="bg-[#151518] border border2 rounded-2xl overflow-hidden flex flex-col mb-5">
+          
+          <button onclick="abrirEditorRegras()" class="flex items-center justify-between p-4 border-b border2 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-brand text-lg">⚖️</div>
+              <span class="text-white font-bold text-sm">Regras de Pontuação</span>
+            </div>
+            <span class="text-brand font-bold text-lg" id="seta-ajustes-regras">›</span>
+          </button>
+
+          <button onclick="abrirHistoricoPontos()" class="flex items-center justify-between p-4 border-b border2 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-brand text-lg">📄</div>
+              <span class="text-white font-bold text-sm">Histórico de pontuação</span>
+            </div>
+            <span class="text-brand font-bold text-lg">›</span>
+          </button>
+
+          <button onclick="abrirPerguntasBonus()" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-brand text-lg">⭐</div>
+              <span class="text-white font-bold text-sm">Configurar Perguntas Bônus</span>
+            </div>
+            <span class="text-brand font-bold text-lg">›</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seção: ADMINISTRAÇÃO -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Administração</p>
+        <div class="bg-[#151518] border border2 rounded-2xl overflow-hidden flex flex-col mb-5">
+          
+          <!-- Membros do Bolão -->
+          <button onclick="toggleAjustesMembros()" class="flex items-center justify-between p-4 border-b border2 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-brand text-lg">👥</div>
+              <span class="text-white font-bold text-sm">Gerenciar Participantes</span>
+            </div>
+            <span class="text-brand font-bold text-lg" id="seta-ajustes-membros">›</span>
+          </button>
+
+          <!-- Lista de Membros (Colapsável) -->
+          <div id="container-ajustes-membros" class="hidden p-4 bg-zinc-950/40 border-b border2 transition-all">
+            <div id="lista-participantes-grupo" class="space-y-3">
+              <!-- Renderizado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Configurações Gerais -->
+          <button onclick="toggleAjustesGerais()" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-brand text-lg">⚙️</div>
+              <span class="text-white font-bold text-sm">Configurações Gerais</span>
+            </div>
+            <span class="text-brand font-bold text-lg" id="seta-ajustes-gerais">›</span>
+          </button>
+
+          <!-- Configurações Gerais (Colapsável) -->
+          <div id="container-ajustes-gerais" class="hidden p-4 bg-zinc-950/40 space-y-4 border-t border2 transition-all">
+              <!-- Nome do Grupo -->
+              <div>
+                  <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Nome do Grupo</label>
+                  <button onclick="alterarNomeGrupoPrompt()" class="w-full bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wide flex items-center justify-between transition-all active:scale-[0.98]">
+                      <span class="flex items-center gap-2">
+                          <span>📝</span>
+                          <span id="txt-nome-grupo-atual" class="text-white font-black normal-case text-sm"></span>
+                      </span>
+                      <span class="text-[10px] text-brand font-black uppercase tracking-wider">Alterar</span>
+                  </button>
+              </div>
+
+              <!-- Privacidade -->
+              <div class="border-t border-zinc-800 pt-4 flex items-center justify-between">
+                <div>
+                  <label class="block text-xs font-bold text-white uppercase tracking-wider mb-1">Grupo Privado 🔒</label>
+                  <p class="text-[9px] text-text-muted leading-tight">Novos membros precisarão de aprovação para entrar</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="chk-grupo-privado" onchange="alterarPrivacidadeGrupoReal()" class="sr-only peer">
+                  <div class="w-9 h-5 bg-zinc-850 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-green"></div>
+                </label>
+              </div>
+
+              <!-- Ícone do Grupo -->
+              <div class="border-t border-zinc-800 pt-4">
+                <label id="btn-upload-label" class="block cursor-pointer bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 hover:border-brand-green transition-all relative overflow-hidden active:scale-[0.98]">
+                    <span id="txt-upload-label" class="text-sm font-bold flex items-center justify-center gap-2">
+                        <svg id="icon-upload-normal" class="w-5 h-5 text-brand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Alterar Ícone do Grupo
+                    </span>
+                    <input type="file" id="upload-icone" accept="image/*" class="hidden" onchange="uploadIcone(event)">
+                    <div id="upload-spinner" class="absolute inset-0 bg-brand-green text-black flex items-center justify-center font-bold text-sm hidden transition-all">
+                      <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                      Enviando...
+                    </div>
+                </label>
+              </div>
+
+              <!-- Desafios do Mago (Ativar/Desativar) -->
+              <div class="border-t border-zinc-800 pt-4 flex items-center justify-between">
+                <div>
+                  <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Desafios do Mago ⚡</label>
+                  <p class="text-[9px] text-text-muted leading-tight">Exibir aba de desafios quantitativos para os membros</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="chk-desafios-enabled" onchange="alterarStatusDesafios()" class="sr-only peer" checked>
+                  <div class="w-9 h-5 bg-zinc-850 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção: ZONA DE PERIGO (Visível apenas para o dono do grupo) -->
+      <div id="admin-settings-section" class="hidden">
+        <p class="text-[10px] text-red-500/80 font-black uppercase tracking-widest mb-3 ml-1">Zona de Perigo</p>
+        <div class="bg-[#150a0a] border border-red-500/20 rounded-2xl overflow-hidden mb-6">
+          <button onclick="excluirGrupoReal()" class="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors active:bg-red-500/20 w-full text-left">
+            <div class="flex items-center gap-3">
+              <div class="text-red-500 text-lg">🗑️</div>
+              <span class="text-red-500 font-bold text-sm">Excluir grupo</span>
+            </div>
+            <span class="text-red-500 font-bold text-lg">›</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Conta & Suporte -->
+      <div>
+        <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Suporte & Conta</p>
+        <div class="bg-[#151518] border border2 rounded-2xl overflow-hidden flex flex-col mb-8">
+          <button onclick="abrirSuporteWhatsapp()" class="flex items-center justify-between p-4 border-b border2 hover:bg-white/5 transition-colors active:bg-white/10 w-full text-left">
+            <div class="flex items-center gap-3 text-[#25D366]">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.858.002-2.634-1.013-5.11-2.861-6.958C16.626 1.94 14.154.925 11.522.925 6.082.925 1.66 5.347 1.656 10.785c-.001 1.708.47 3.327 1.365 4.79l-1.002 3.655 3.748-.982zM17.65 14.86c-.303-.151-1.793-.884-2.072-.985-.278-.102-.48-.152-.68.151-.2.303-.775.985-.95 1.185-.175.202-.35.227-.653.076-1.51-.758-2.673-1.397-3.729-2.311-.277-.24-.424-.49-.24-.757.147-.22.303-.429.454-.58.151-.152.202-.253.303-.454.101-.202.05-.379-.025-.53-.076-.152-.68-1.642-.93-2.248-.244-.587-.492-.507-.68-.507-.175-.008-.378-.008-.58-.008-.202 0-.53.076-.808.379-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.085 2.931 1.237 3.133.152.202 2.137 3.262 5.176 4.57.722.311 1.285.498 1.724.638.725.23 1.385.197 1.907.12.582-.087 1.793-.733 2.046-1.44.252-.708.252-1.314.177-1.44-.076-.127-.278-.203-.581-.354z"/>
+              </svg>
+              <span class="font-bold text-sm">Suporte no WhatsApp</span>
+            </div>
+            <span class="text-zinc-500 font-bold text-lg">›</span>
+          </button>
+          
+          <button onclick="deslogar()" class="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors active:bg-red-500/20 w-full text-left text-red-400">
+            <div class="flex items-center gap-3">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+              <span class="font-bold text-sm">Sair da conta</span>
+            </div>
+            <span class="text-red-450 font-bold text-lg">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View: Desafios do GM (Histórico e Ativos) -->
+    <div id="view-desafios" class="fade-in hidden px-4 pb-28 pt-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div class="flex items-center justify-between mb-6 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Desafios do Mago
+          </h1>
+        </div>
+        <span class="badge-fichas text-[12px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full">🎫 ...</span>
+      </div>
+
+      <!-- Tab Controller Interno -->
+      <div class="flex border-b border2 mb-6">
+        <button id="btn-tab-desafios-ativos" onclick="alternarAbaDesafios('ativos')" class="flex-1 py-3 border-b-2 border-brand-green font-bold text-brand transition-all text-xs uppercase tracking-wider">Disponíveis</button>
+        <button id="btn-tab-desafios-historico" onclick="alternarAbaDesafios('historico')" class="flex-1 py-3 text-text-muted hover:text-white transition-all text-xs uppercase tracking-wider font-bold">Meus Palpites</button>
+      </div>
+
+      <!-- Tab Content: Desafios Disponíveis -->
+      <div id="tab-desafios-ativos" class="block fade-in space-y-4">
+        <div id="lista-desafios-ativos-usuario" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
+        </div>
+      </div>
+
+      <!-- Tab Content: Histórico de Desafios -->
+      <div id="tab-desafios-historico" class="hidden fade-in space-y-4">
+        <div id="lista-desafios-historico-usuario" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-regras" class="fade-in hidden p-4 pb-28">
+      <div class="flex items-center justify-between mb-6 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight">Pontuação</h1>
+        </div>
+      </div>
+
+      <!-- Card Gamificado: Motor de Pontuação da Copa -->
+      <div class="bg-gradient-to-br from-[#0d1f17] to-[#0e1015] border border-[#10b981]/35 rounded-2xl p-5 mb-5 relative overflow-hidden">
+        <div class="absolute right-[-30px] top-[-30px] w-48 h-48 bg-[#10b981]/6 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex items-center gap-2 mb-0.5">
+          <span class="text-base">⚙️</span>
+          <h2 class="text-[#10b981] font-black text-[11px] uppercase tracking-widest">Motor de Pontuação</h2>
+        </div>
+        <p class="text-gray-500 text-[10px] mb-4">A fórmula que define quem é o Mago do seu bolão.</p>
+
+        <!-- A Equação -->
+        <div class="bg-black/50 rounded-xl p-3 mb-4 border border2">
+          <p class="text-[9px] text-gray-600 uppercase tracking-widest mb-2.5 text-center">Pontuação Final</p>
+          <div class="flex items-center justify-center gap-1.5 flex-wrap">
+            <div class="text-center">
+              <div class="bg-[#10b981]/15 border border-[#10b981]/30 rounded-lg px-2.5 py-1.5">
+                <span class="text-[#10b981] font-black text-[11px]">Pontos Base</span>
+              </div>
+              <p class="text-[8px] text-gray-600 mt-1">3 – 12 pts</p>
+            </div>
+            <span class="text-gray-600 font-black text-base pb-3">×</span>
+            <div class="text-center">
+              <div class="bg-orange-500/10 border border-orange-500/25 rounded-lg px-2.5 py-1.5">
+                <span class="text-orange-400 font-black text-[11px]">🔥 Fase</span>
+              </div>
+              <p class="text-[8px] text-gray-600 mt-1">x1 / x2 / x3</p>
+            </div>
+            <span class="text-gray-600 font-black text-base pb-3">×</span>
+            <div class="text-center">
+              <div class="bg-yellow-500/10 border border-yellow-500/25 rounded-lg px-2.5 py-1.5">
+                <span class="text-yellow-400 font-black text-[11px]">🦓 Zebra</span>
+              </div>
+              <p class="text-[8px] text-gray-600 mt-1">x1 / x2</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Módulos Premium Explicados -->
+        <div class="space-y-2">
+          <div class="flex items-start gap-3 p-2.5 bg-black/30 rounded-xl border border-yellow-500/15">
+            <span class="text-lg leading-none mt-0.5">🦓</span>
+            <div>
+              <p class="text-yellow-300 text-[11px] font-bold">Zebra Dinâmica</p>
+              <p class="text-gray-500 text-[10px] leading-snug mt-0.5">Apostou no azarão e menos de 15% do grupo apostou igual? Se o time ganhar → sua pontuação é <span class="text-yellow-300 font-bold">DOBRADA</span>.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-2.5 bg-black/30 rounded-xl border border-orange-500/15">
+            <span class="text-lg leading-none mt-0.5">🔥</span>
+            <div>
+              <p class="text-orange-300 text-[11px] font-bold">Multiplicador Mata-Mata</p>
+              <p class="text-gray-500 text-[10px] leading-snug mt-0.5">Oitavas, Quartas, Semis e Final valem <span class="text-orange-300 font-bold">2× ou 3×</span>. Ninguém descola no ranking até o apito da Final.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Neon Explicativo de Regras Premium (Zebra Dinâmica e Mata-Mata) -->
+      <div id="card-neon-premium" class="hidden bg-[#10b981]/10 border border-[#10b981]/30 rounded-2xl p-5 mb-6 relative overflow-hidden shadow-[0_0_25px_rgba(16,185,129,0.12)]">
+        <div class="absolute right-[-20px] top-[-20px] w-24 h-24 bg-brand-green/20 rounded-full blur-2xl"></div>
+        <h3 class="text-[#10b981] font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <span>⚡</span> Módulos Premium Ativos
+        </h3>
+        <p class="text-gray-400 text-[11px] leading-relaxed mb-4">Este bolão utiliza regras profissionais baseadas em Risco x Retorno e demanda do mercado.</p>
+        
+        <div class="space-y-3" id="premium-rules-active-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <div class="bg-brand-green/10 border border-brand-green/20 rounded-xl p-4 mb-6">
+        <h2 class="text-[13px] font-bold text-brand mb-1 flex items-center gap-2">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Desempate
+        </h2>
+        <p class="text-xs text-text-muted leading-relaxed">Empatou na pontuação? Vence quem tiver mais acertos na regra de maior valor. Se continuar, vai pra próxima regra da cascata.</p>
+      </div>
+
+      <!-- Lista Dinâmica de Regras Base -->
+      <div class="space-y-3" id="lista-regras-base-container">
+        <!-- Carregado via JS -->
+      </div>
+    </div>
+
+    <!-- View: Painel do Game Master (GM) -->
+    <div id="view-gm-panel" class="fade-in hidden p-4 pb-28">
+      <div class="flex items-center gap-4 mb-6 mt-2">
+        <button onclick="switchView('view-inicio')" class="w-9 h-9 flex items-center justify-center rounded-xl surface text-brand border border2">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-xl font-black tracking-tight uppercase text-purple-400">Painel do GM 👑</h1>
+      </div>
+
+      <!-- SEÇÃO 1: DESAFIOS (Ativa por padrão) -->
+      <div id="gm-section-desafios" class="space-y-6">
+        <!-- Card: Criar Desafio -->
+        <div class="surface rounded-2xl p-5 border border-purple-500/20 mb-6 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+          <h3 class="font-bold mb-4 text-[13px] text-purple-400 uppercase tracking-wider">Lançar Novo Desafio</h3>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Selecione a Liga</label>
+              <select id="select-gm-liga" onchange="carregarJogosLigaGM()" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                <option value="1">Copa do Mundo 2026</option>
+                <option value="71">Brasileirão Série A 2026</option>
+                <option value="13">Libertadores 2026</option>
+                <option value="325">Copa do Nordeste 2026</option>
+                <option value="10">Amistosos Internacionais</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Selecione a Partida</label>
+              <select id="select-gm-jogo" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                <option value="">Selecione uma partida...</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Regra do Desafio</label>
+                <select id="select-gm-evento" onchange="ajustarCamposDesafioGM()" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold outline-none focus:border-purple-500 transition-colors">
+                  <option value="Goal">Fazer Gol ⚽</option>
+                  <option value="Assist">Dar Assistência 🎯</option>
+                  <option value="CornersOver8.5">Mais de 8.5 Escanteios 🚩</option>
+                  <option value="CornersOver9.5">Mais de 9.5 Escanteios 🚩</option>
+                  <option value="CornersOver10.5">Mais de 10.5 Escanteios 🚩</option>
+                  <option value="CornersOver11.5">Mais de 11.5 Escanteios 🚩</option>
+                  <option value="CardsOver3.5">Mais de 3.5 Cartões 🟨🟥</option>
+                  <option value="CardsOver4.5">Mais de 4.5 Cartões 🟨🟥</option>
+                  <option value="CardsOver5.5">Mais de 5.5 Cartões 🟨🟥</option>
+                  <option value="BTTS">Ambos Marcam (Sim/Não) ⚽</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Pontos Extras</label>
+                <input type="number" id="input-gm-pontos" value="50" min="5" max="200" class="w-full bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-purple-500 transition-colors">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-amber-500/80 uppercase tracking-wider mb-1.5">🎫 Custo em Fichas (0 = grátis)</label>
+              <input type="number" id="input-gm-fichas" value="0" min="0" max="20" class="w-full bg-zinc-900 text-amber-300 rounded-xl border border-amber-500/30 px-3.5 py-3 text-xs font-bold text-center outline-none focus:border-amber-500 transition-colors">
+            </div>
+
+            <div class="flex items-center gap-2 mt-1">
+              <input type="checkbox" id="checkbox-gm-penalty" class="w-4 h-4 rounded bg-zinc-900 border-zinc-800 text-purple-650 focus:ring-purple-500 focus:ring-opacity-25 accent-purple-600">
+              <label for="checkbox-gm-penalty" class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider cursor-pointer">
+                Perder pontos se errar (Penalidade ⚠️)
+              </label>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Opções de Jogadores (Mínimo 2)</label>
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="input-gm-player-1" placeholder="Jogador 1" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-2" placeholder="Jogador 2" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-3" placeholder="Jogador 3 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+                <input type="text" id="input-gm-player-4" placeholder="Jogador 4 (Opcional)" class="bg-zinc-900 text-white rounded-xl border border-zinc-800 px-3 py-2.5 text-[11px] outline-none focus:border-purple-500 transition-colors font-semibold">
+              </div>
+            </div>
+
+            <button onclick="criarDesafioReal()" id="btn-gm-criar-desafio" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 rounded-xl active:scale-95 transition-all uppercase tracking-wider shadow-lg shadow-purple-600/20">
+              Lançar Desafio
+            </button>
+          </div>
+        </div>
+
+        <!-- Card: Alertas da Partida -->
+        <div class="surface rounded-2xl p-5 border border-zinc-800/80 mb-6 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+          <h3 class="font-bold mb-3 text-[13px] text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>📢</span> Alertas dos Jogos
+          </h3>
+          <p class="text-[10px] text-zinc-400 mb-4 font-medium">Notifique a galera do grupo no celular sobre a partida selecionada acima.</p>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="alertarInicioJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-yellow-500 border border-yellow-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">⏰</span> Aquecimento
+            </button>
+            <button onclick="alertarGolJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-emerald-400 border border-emerald-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">⚽</span> Grito de Gol
+            </button>
+            <button onclick="alertarFimJogo()" class="bg-zinc-900/60 hover:bg-zinc-900 text-red-500 border border-red-500/30 font-black text-[9px] py-3 rounded-xl active:scale-95 transition-all uppercase tracking-wider flex flex-col items-center justify-center gap-1">
+              <span class="text-base">🏁</span> Apito Final
+            </button>
+          </div>
+        </div>
+
+        <!-- Seção: Gerenciar Desafios -->
+        <h3 class="font-bold mb-3 text-sm text-text-muted uppercase tracking-wider">Histórico de Desafios</h3>
+        <div id="lista-desafios-gm" class="space-y-3 pb-8">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </div>
+
+      <!-- SEÇÃO 2: ACOMPANHAR GRUPOS -->
+      <div id="gm-section-grupos" class="space-y-4 hidden">
+        <h3 class="font-bold mb-3 text-sm text-purple-400 uppercase tracking-wider">Grupos Criados</h3>
+        <div id="lista-grupos-gm" class="space-y-3 pb-8">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </div>
+
+      <!-- SEÇÃO 4: ESTRATÉGIA DO MAGO (apoio à decisão de palpites) -->
+      <div id="gm-section-estrategia" class="space-y-4 hidden">
+        <h3 class="font-bold text-sm text-purple-400 uppercase tracking-wider">🎩 Estratégia do Mago</h3>
+        <p class="text-[11px] text-text-muted -mt-2 leading-relaxed">Sugestão de placares pras duas contas (🎩 Você + 💜 Gaby) usando as estatísticas da API (probabilidades, odds e leitura da partida). É só apoio — a decisão final é sua.</p>
+        <div id="estrategia-jogos" class="space-y-3 pb-8">
+          <p class="text-text-muted text-[12px] text-center py-6">Carregando próximos jogos...</p>
+        </div>
+      </div>
+
+      <!-- SEÇÃO 3: METRICAS E STATS -->
+      <div id="gm-section-stats" class="space-y-4 hidden">
+        <h3 class="font-bold mb-3 text-sm text-purple-400 uppercase tracking-wider">Métricas da Plataforma</h3>
+        
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="surface border border2 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Grupos</span>
+            <span id="stat-total-grupos" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="surface border border2 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Membros em Grupos</span>
+            <span id="stat-total-membros" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="surface border border2 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Usuários</span>
+            <span id="stat-total-perfis" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+          <div class="surface border border2 rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total de Palpites</span>
+            <span id="stat-total-palpites" class="text-2xl font-black text-white mt-1">-</span>
+          </div>
+        </div>
+
+        <div class="surface border border2 rounded-2xl p-5 relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-purple-500/20"></div>
+          <h4 class="font-bold text-[13px] text-purple-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <span>👤</span> Últimos Perfis Registrados
+          </h4>
+          <div id="lista-perfis-gm" class="space-y-3">
+            <!-- Listagem dinâmica de usuários -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL TESOURARIA DO GM ================= -->
+    <div id="modal-tesouraria" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] hidden items-center justify-center p-4 animate-fade-in" onclick="fecharTesouraria()">
+      <div class="surface border border-brand-green/30 rounded-2xl w-full max-w-md shadow-[0_0_50px_rgba(0,255,100,0.15)] overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+        
+        <!-- Cabeçalho -->
+        <div class="bg-gradient-to-br from-brand-green/20 to-black p-5 border-b border2 relative flex-shrink-0">
+          <button onclick="fecharTesouraria()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✖</button>
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">💰</span>
+            <div>
+              <h2 class="text-white font-black text-xl uppercase tracking-widest">Tesouraria</h2>
+              <p class="text-brand text-xs font-bold">Gestão Financeira do Grupo</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo Dinâmico (Criar ou Gerenciar) -->
+        <div class="p-5 overflow-y-auto" id="tesouraria-content">
+          <!-- O JavaScript vai injetar os campos aqui dentro -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Modal: Criar Grupo -->
+    <div id="modal-criar-grupo" class="hidden fixed inset-0 bg-black/70 z-[100] flex items-end justify-center" onclick="fecharModal('modal-criar-grupo')">
+      <div class="surface rounded-t-3xl w-full max-w-md p-6 border-t border2" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-black mb-1">Criar Grupo</h3>
+        <p class="text-[13px] text-text-muted mb-5">Dê um nome pro seu bolão. O código de acesso será gerado automaticamente.</p>
+        <input type="text" id="input-nome-grupo" placeholder="Ex: Bolão da Firma" maxlength="40" class="w-full bg-app-bg text-white text-[15px] font-bold rounded-2xl border border2 focus:border-brand-green outline-none py-4 px-4 mb-4 transition-colors placeholder-[#2a2a35]">
+        
+        <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Selecione a Liga</label>
+        <select id="select-liga-grupo" class="w-full bg-app-bg text-white text-[15px] font-bold rounded-2xl border border2 focus:border-brand-green outline-none py-4 px-4 mb-5 transition-colors">
+          <option value="1">Copa do Mundo 2026</option>
+          <option value="71">Brasileirão Série A 2026</option>
+          <option value="13">Libertadores 2026</option>
+          <option value="325">Copa do Nordeste 2026</option>
+          <option value="10">Amistosos Internacionais</option>
+        </select>
+
+        <!-- AVISO DE PLANO (Substitui o antigo Slider) -->
+        <div class="mt-5 mb-6">
+          <label class="text-[10px] text-text-muted font-black tracking-widest uppercase mb-2 block">Plano Atual</label>
+          
+          <div class="p-3 bg-brand-green/10 border border-brand-green/20 rounded-xl flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-white text-sm font-bold">Várzea (Grátis)</span>
+              <span class="text-brand text-xs">Até 3 participantes</span>
+            </div>
+            <div class="w-8 h-8 bg-black/30 rounded-full flex items-center justify-center border border2">
+              <span class="text-sm">⚡</span>
+            </div>
+          </div>
+          
+          <p class="text-[11px] text-gray-400 mt-2 text-center">
+            Você poderá aumentar o limite e desbloquear os Desafios do Mago após criar o grupo.
+          </p>
+        </div>
+
+        <button onclick="criarGrupoReal()" id="btn-criar-grupo" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">
+          Criar
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Entrar em Grupo -->
+    <div id="modal-entrar-grupo" class="hidden fixed inset-0 bg-black/70 z-[100] flex items-end justify-center" onclick="fecharModal('modal-entrar-grupo')">
+      <div class="surface rounded-t-3xl w-full max-w-md p-6 border-t border2" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-black mb-1">Entrar em Grupo</h3>
+        <p class="text-[13px] text-text-muted mb-5">Insira o código do bolão que você recebeu.</p>
+        <input type="text" id="input-codigo-entrar" placeholder="ABC1234" maxlength="7" class="w-full bg-app-bg text-white text-4xl font-black text-center tracking-[0.25em] rounded-2xl border border2 focus:border-brand-green outline-none py-5 mb-4 transition-colors placeholder-[#2a2a35]">
+        <div id="entrar-grupo-error" class="hidden mb-4 bg-red-500/10 border border-red-500/30 text-red-400 text-[13px] font-bold text-center py-3 rounded-xl">Código não encontrado. Verifique e tente novamente.</div>
+        <button onclick="entrarPorCodigoApp()" id="btn-entrar-grupo" class="w-full bg-brand-green text-black font-black text-[14px] py-4 rounded-2xl shadow-lg shadow-brand-green/20 active:scale-95 transition-all uppercase tracking-wide">
+          Buscar Grupo
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Histórico do Jogador -->
+    <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-[10000] flex items-end justify-center backdrop-blur-sm" onclick="fecharModal('modal-historico')">
+      <div class="surface rounded-t-3xl w-full max-w-md p-6 border-t border2 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border2">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-[#2a2a35] flex-shrink-0">
+              <img id="hist-usuario-foto" src="" class="w-full h-full object-cover">
+            </div>
+            <div>
+              <h3 id="hist-usuario-nome" class="text-base font-black text-white leading-tight">—</h3>
+              <p id="hist-usuario-resumo" class="text-[11px] text-text-muted mt-0.5">—</p>
+            </div>
+          </div>
+          <button onclick="fecharModal('modal-historico')" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <!-- Conteúdo Scrollable -->
+        <div id="hist-usuario-lista" class="overflow-y-auto py-4 flex-1 space-y-3 scrollbar-thin">
+          <!-- Linhas dinâmicas injetadas por JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Como Instalar App -->
+    <div id="modal-instalar-app" class="hidden fixed inset-0 bg-black/70 z-[100] flex items-end justify-center" onclick="fecharModal('modal-instalar-app')">
+      <div class="surface rounded-t-3xl w-full max-w-md p-6 border-t border2 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-black uppercase tracking-tight">Instalar no Celular</h3>
+          <button onclick="fecharModal('modal-instalar-app')" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        
+        <p class="text-[13px] text-text-muted mb-5">Adicione o <b>Bolão Pro</b> à tela inicial para abrir em tela cheia como se fosse um app instalado!</p>
+
+        <!-- Aba iPhone -->
+        <div class="bg-zinc-900/60 p-4 rounded-2xl border border2 mb-4">
+          <h4 class="text-xs font-black text-brand uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <span>🍎</span> no iPhone (Navegador Safari)
+          </h4>
+          <ol class="text-[13px] space-y-2.5 text-zinc-300 list-decimal pl-4 leading-relaxed font-semibold">
+            <li>Abra o site no navegador <span class="text-white font-bold">Safari</span>.</li>
+            <li>Toque no botão de <span class="text-white font-bold">Compartilhar</span> (ícone de quadrado com uma seta para cima <svg class="inline-block w-4 h-4 -mt-1 mx-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg> no rodapé).</li>
+            <li>Role as opções para baixo e toque em <span class="text-white font-bold">"Adicionar à Tela de Início"</span>.</li>
+            <li>Confirme tocando em <span class="text-brand font-bold">"Adicionar"</span> no canto superior direito.</li>
+          </ol>
+        </div>
+
+        <!-- Aba Android -->
+        <div class="bg-zinc-900/60 p-4 rounded-2xl border border2">
+          <h4 class="text-xs font-black text-brand uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <span>🤖</span> no Android (Navegador Chrome)
+          </h4>
+          <ol class="text-[13px] space-y-2.5 text-zinc-300 list-decimal pl-4 leading-relaxed font-semibold">
+            <li>Abra o site no navegador <span class="text-white font-bold">Chrome</span>.</li>
+            <li>Toque nos <span class="text-white font-bold">três pontinhos</span> no canto superior direito.</li>
+            <li>Selecione <span class="text-white font-bold">"Adicionar à tela inicial"</span> ou <span class="text-white font-bold">"Instalar aplicativo"</span>.</li>
+            <li>Confirme e o app será adicionado à sua tela de aplicativos.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL EDITOR DE REGRAS V2 (RISCO X RETORNO) ================= -->
+    <div id="modal-regras-pontuacao" class="fixed inset-0 bg-[#09090b] z-[6000] hidden flex-col animate-fade-in">
+      <!-- Cabeçalho -->
+      <div class="flex items-center gap-4 p-5 bg-[#09090b] border-b border2 flex-shrink-0">
+        <button onclick="fecharEditorRegras()" class="w-8 h-8 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <div>
+          <h1 class="text-white font-black text-xl tracking-wide">Motor de Pontuação</h1>
+          <p class="text-[#10b981] text-xs font-bold">Escala Risco x Retorno</p>
+        </div>
+      </div>
+
+      <!-- Conteúdo Rolável -->
+      <div class="flex-1 overflow-y-auto p-5 pb-28 space-y-6">
+        <!-- Bloco 1: A Escala Base -->
+        <div>
+          <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3 ml-1">Pontuação Base (Fase de Grupos)</p>
+          <div class="bg-[#151518] border border2 rounded-2xl overflow-hidden flex flex-col p-2 space-y-2">
+            <!-- Placar Exato -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border2">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Na Mosca (Placar Exato)</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Alto risco. Cravou o vencedor e os gols.</p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-[#10b981]/50">
+                <input type="number" id="regra-pt-placar-exato" value="12" class="w-10 bg-transparent text-[#10b981] font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Vencedor e Saldo -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border2">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Vencedor e Saldo</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Ex: Apostou 3x1, deu 2x0 (+2 de saldo).</p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border2">
+                <input type="number" id="regra-pt-saldo" value="7" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Empate -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border2">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Empate</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Cravou o empate, mas errou a quantia de gols.</p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border2">
+                <input type="number" id="regra-pt-empate" value="6" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Apenas Vencedor -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border2">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Apenas o Vencedor</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">O prêmio de consolação por acertar quem passou.</p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border2">
+                <input type="number" id="regra-pt-apenas-vencedor" value="3" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Inputs Ocultos/Fallbacks para compatibilidade com o banco de dados -->
+            <input type="hidden" id="regra-pt-vencedor-gols" value="0">
+            <input type="hidden" id="regra-pt-vencedor-gols-perdedor" value="0">
+            <input type="hidden" id="regra-pt-gols-um-time" value="0">
+          </div>
+        </div>
+
+        <!-- Bloco 2: Módulos Premium de Engajamento -->
+        <div>
+          <p class="text-[10px] text-[#10b981] font-black uppercase tracking-widest mb-3 ml-1">Módulos Premium de Disputa</p>
+          <div class="bg-[#151518] border border-[#10b981]/30 rounded-2xl p-2 space-y-2">
+            <!-- Toggle: Zebra Dinâmica -->
+            <label class="flex items-center justify-between p-3 bg-[#10b981]/10 rounded-xl border border-[#10b981]/20 cursor-pointer">
+              <div class="pr-4">
+                <p class="text-[#10b981] font-bold text-sm flex items-center gap-2">Zebra Dinâmica 🦓</p>
+                <p class="text-gray-400 text-[10px] leading-tight mt-0.5">Dobra a pontuação se você acertar a vitória de um time que teve menos de 15% das apostas no grupo.</p>
+              </div>
+              <div class="relative">
+                <input type="checkbox" id="toggle-zebra" class="peer sr-only">
+                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[#09090b] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#09090b] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10b981]"></div>
+              </div>
+            </label>
+
+            <!-- Seletor: Multiplicador Mata-Mata -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border2">
+              <div class="pr-4">
+                <p class="text-white font-bold text-sm">Multiplicador Mata-Mata</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Pontos multiplicados nas fases finais (oitavas, quartas, semis e final) para manter a emoção viva!</p>
+              </div>
+              <select id="select-mult-fase" class="bg-[#222226] border border-white/10 rounded-lg p-2 text-white outline-none focus:border-[#10b981] text-xs font-bold">
+                <option value="1">Desligado (x1)</option>
+                <option value="2">Dobrar (x2)</option>
+                <option value="3">Triplicar (x3)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rodapé Fixo -->
+      <div class="absolute bottom-0 w-full bg-[#09090b] border-t border2 p-5 z-20">
+        <button onclick="salvarNovasRegras()" class="w-full bg-[#10b981] hover:bg-[#059669] text-black font-black py-4 rounded-xl transition-all active:scale-95 uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+          Atualizar Motor
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODAL PERGUNTAS BÔNUS ================= -->
+    <!-- ================= MODAL PERGUNTAS BÔNUS ================= -->
+    <div id="modal-perguntas-bonus" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+      
+      <!-- Cabeçalho -->
+      <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] flex-shrink-0">
+        <button onclick="fecharPerguntasBonus()" class="w-8 h-8 bg-brand-green/20 text-brand rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-white font-black text-xl tracking-wide">Perguntas Bônus</h1>
+      </div>
+
+      <div class="px-5 mb-4 flex-shrink-0">
+        <p class="text-gray-400 text-sm">Selecione as perguntas e defina a pontuação para cada uma.</p>
+      </div>
+
+      <!-- Conteúdo Rolável -->
+      <div class="flex-1 overflow-y-auto px-5 space-y-4">
+        
+        <!-- Status Box -->
+        <div class="bg-[#12221c] border border-brand-green/30 rounded-xl p-4 flex items-center gap-4 transition-all">
+          <div class="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center text-brand">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </div>
+          <div>
+            <p id="contador-ativas-topo" class="text-brand font-bold text-sm uppercase tracking-widest">0/5 ATIVAS</p>
+            <p id="contador-pontos-topo" class="text-gray-400 text-[11px]">+0 pts totais possíveis</p>
+          </div>
+        </div>
+
+        <!-- Prazo -->
+        <div>
+          <h3 class="text-white font-bold text-lg mb-3">Prazo para respostas</h3>
+          <div class="bg-[#222226] border border2 rounded-xl p-4 flex justify-between items-center text-gray-400 relative">
+            <span class="font-bold absolute pointer-events-none" id="label-prazo">Definir prazo</span>
+            <!-- Input de data e hora invisível mas clicável sobre o texto -->
+            <input type="datetime-local" id="prazo-bonus-input" onchange="atualizarTextoPrazo()" class="w-full bg-transparent text-transparent focus:outline-none z-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:left-0">
+            <svg class="w-5 h-5 relative z-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          </div>
+        </div>
+
+        <!-- Pergunta 1 -->
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border2 rounded-xl p-4 transition-colors">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" name="q1" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus mt-1 w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">⚽</div>
+            <div class="flex-1">
+              <p class="text-gray-300 font-bold text-sm leading-snug">Quantos gols o campeão fará no campeonato?</p>
+              <div class="flex flex-wrap gap-2 mt-3">
+                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">&lt; 10</span>
+                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">10-30</span>
+                <span class="bg-[#222226] text-gray-400 text-[10px] px-3 py-1.5 rounded-md font-bold">30-50</span>
+              </div>
+            </div>
+          </div>
+        </label>
+
+        <!-- Pergunta 2 -->
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border2 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" name="q2" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">📊</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o último colocado (rebaixado)?</p>
+          </div>
+        </label>
+
+        <!-- Pergunta 3 -->
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border2 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" name="q3" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥉</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o terceiro colocado?</p>
+          </div>
+        </label>
+
+        <!-- Pergunta 4 -->
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border2 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" name="q4" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🥈</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o vice-campeão?</p>
+          </div>
+        </label>
+
+        <!-- Pergunta 5 -->
+        <label class="card-pergunta block cursor-pointer bg-[#151518] border border2 rounded-xl p-4 transition-colors">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" name="q5" onchange="atualizarContadorBonus()" class="chk-pergunta-bonus w-4 h-4 accent-brand-green bg-black/50 border-gray-600 rounded">
+            <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">🏆</div>
+            <p class="text-gray-300 font-bold text-sm">Quem será o campeão?</p>
+          </div>
+        </label>
+
+      </div>
+
+      <!-- Rodapé Fixo (Sticky Bottom) -->
+      <div class="bg-[#0d0d12] border-t border2 p-5 z-20 flex-shrink-0">
+        <div class="flex justify-between items-center mb-4">
+          <p class="text-brand font-black flex items-baseline gap-1">
+            <span id="contador-ativas-rodape" class="text-lg">0</span> 
+            <span class="text-xs text-gray-400 uppercase tracking-widest font-bold">ativas</span>
+          </p>
+          <p id="contador-pontos-rodape" class="text-gray-400 text-xs font-bold">+0 pts</p>
+        </div>
+        <button onclick="salvarPerguntasBonus()" class="w-full bg-brand-green hover:bg-emerald-500 text-black font-bold py-3.5 rounded-xl transition-colors active:scale-95 shadow-[0_0_20px_rgba(0,255,163,0.2)]">
+          Salvar Configurações
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODAL RESPONDER PERGUNTAS BÔNUS (JOGADOR) ================= -->
+    <div id="modal-responder-bonus" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+      <!-- Cabeçalho -->
+      <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border2 flex-shrink-0">
+        <button onclick="fecharResponderBonus()" class="w-8 h-8 bg-brand-green/20 text-brand rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <div>
+          <h1 class="text-white font-black text-xl tracking-wide">Perguntas Bônus</h1>
+          <p id="player-bonus-prazo" class="text-brand text-[11px] font-bold uppercase tracking-widest">Calculando prazo...</p>
+        </div>
+      </div>
+
+      <!-- Conteúdo Rolável -->
+      <div class="flex-1 overflow-y-auto p-5 pb-28">
+        <p class="text-gray-400 text-sm mb-6">Valendo pontos preciosos pro ranking! Preencha suas respostas abaixo:</p>
+        <div id="container-perguntas-jogador" class="space-y-4"></div>
+      </div>
+
+      <!-- Rodapé Fixo -->
+      <div class="absolute bottom-0 w-full bg-[#0d0d12] border-t border2 p-5 z-20">
+        <button onclick="enviarRespostasBonus()" class="w-full bg-brand-green hover:opacity-90 text-black font-black py-4 rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] uppercase tracking-widest">
+          Enviar Minhas Respostas
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODAL HISTÓRICO DE PONTUAÇÃO ================= -->
+    <div id="modal-historico-pontos" class="fixed inset-0 bg-[#0a0a0c] z-[6000] hidden flex-col animate-fade-in">
+      <!-- Cabeçalho -->
+      <div class="flex items-center gap-4 p-5 bg-[#0a0a0c] border-b border2 flex-shrink-0">
+        <button onclick="fecharHistoricoPontos()" class="w-8 h-8 bg-brand-green/20 text-brand rounded-full flex items-center justify-center hover:bg-brand-green hover:text-black transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-white font-black text-xl tracking-wide">Histórico de pontuação</h1>
+      </div>
+
+      <!-- Conteúdo Rolável -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-5 pb-10">
+        <!-- Card de Histórico 1 -->
+        <div class="bg-[#151518] border border2 rounded-2xl p-5">
+          <!-- Info do Usuário -->
+          <div class="flex items-center gap-3 border-b border2 pb-4 mb-4">
+            <img src="https://ui-avatars.com/api/?name=Kevin+Schwanke&background=random" class="w-10 h-10 rounded-full object-cover">
+            <div>
+              <p class="text-white font-bold text-sm">Kevin Schwanke</p>
+              <p class="text-gray-500 text-[11px] font-medium">26/05/2026 21:41</p>
+            </div>
+          </div>
+          
+          <!-- Lista de Alterações -->
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Placar Exato</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+30 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Vencedor e gols</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+18 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Vencedor e saldo de gols</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+15 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Empate</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+18 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Vencedor e gols do perdedor</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+12 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Vencedor</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+4 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Placar de algum time</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+3 pts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card de Histórico 2 -->
+        <div class="bg-[#151518] border border2 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border2 pb-4 mb-4">
+            <img src="https://ui-avatars.com/api/?name=Kevin+Schwanke&background=random" class="w-10 h-10 rounded-full object-cover">
+            <div>
+              <p class="text-white font-bold text-sm">Kevin Schwanke</p>
+              <p class="text-gray-500 text-[11px] font-medium">26/05/2026 21:39</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Placar Exato</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+25 pts</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-300 text-sm font-bold">Vencedor e gols</span>
+              <span class="bg-green-900/20 text-green-500 border border-green-500/20 px-2 py-0.5 rounded text-[11px] font-black">+18 pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="bottom-nav" class="nav-fixed hidden bg-app-bg/95 backdrop-blur-md border-t border2 pt-3 pb-6 px-2 flex justify-between items-center z-50">
+      <button onclick="switchView('view-grupo-home')" id="nav-view-grupo-home" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-[10px] font-bold">Painel</span>
+      </button>
+      <button onclick="switchView('view-jogos')" id="nav-view-jogos" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="text-[10px] font-bold">Jogos</span>
+      </button>
+      <button onclick="switchView('view-ranking')" id="nav-view-ranking" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-2.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="text-[10px] font-bold">Ranking</span>
+      </button>
+      <button onclick="switchView('view-desafios')" id="nav-view-desafios" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span class="text-[10px] font-bold">Desafios</span>
+      </button>
+      <button onclick="switchView('view-painel')" id="nav-view-painel" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white w-[20%] transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        <span class="text-[10px] font-bold">Ajustes</span>
+      </button>
+    </div>
+
+    <!-- Menu inferior exclusivo do GM (Painel Administrativo) -->
+    <div id="gm-bottom-nav" class="nav-fixed hidden bg-app-bg/95 backdrop-blur-md border-t border-purple-500/10 pt-3 pb-6 px-4 flex justify-around items-center z-50">
+      <button onclick="switchGMTab('desafios')" id="nav-gm-desafios" class="flex flex-col items-center justify-center gap-1 text-purple-400 bg-purple-500/10 px-4 py-2 rounded-xl transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span class="text-[10px] font-bold font-black">Desafios</span>
+      </button>
+      <button onclick="switchGMTab('grupos')" id="nav-gm-grupos" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+        <span class="text-[10px] font-bold">Grupos</span>
+      </button>
+      <button onclick="switchGMTab('stats')" id="nav-gm-stats" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[10px] font-bold">Métricas</span>
+      </button>
+      <button onclick="switchGMTab('estrategia')" id="nav-gm-estrategia" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white transition-all">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg>
+        <span class="text-[10px] font-bold">Estratégia</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ════════════════ SALA DO EVENTO TELÃO (overlay isolado) ════════════════ -->
+  <!-- Controlado 100% por js/evento.js. Não interfere nas views do bolão. -->
+  <div id="view-evento" class="hidden fixed inset-0 z-[12000] bg-app-bg overflow-y-auto">
+    <div class="max-w-md mx-auto px-4 pb-12" style="padding-top: calc(16px + env(safe-area-inset-top));">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-5 mt-1">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2.5 w-2.5">
+            <span id="evento-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+          </span>
+          <h1 class="text-lg font-black tracking-tight">Sala do Evento</h1>
+        </div>
+        <button onclick="sairDaSalaEvento()" class="text-text-muted hover:text-white text-[12px] font-bold flex items-center gap-1.5 surface border border2 px-3 py-1.5 rounded-xl active:scale-95 transition-all">
+          Sair
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Seu palpite + seu número (só você vê) -->
+      <div id="evento-meu-numero-card" class="hidden surface border border-gold/30 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3 shadow-[0_0_20px_rgba(251,191,36,0.08)]">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase tracking-widest text-gold mb-1">Seu palpite</p>
+          <p class="text-[17px] font-black text-white truncate" id="evento-meu-palpite">—</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="text-[9px] font-bold uppercase tracking-widest text-text-muted mb-0.5">Nº da sorte</p>
+          <span id="evento-meu-numero" class="text-2xl font-black text-gold tracking-widest">0000</span>
+        </div>
+      </div>
+
+      <!-- Placar ao vivo -->
+      <div id="evento-placar-card" class="hidden bg-gradient-to-r from-brand-green/15 to-transparent border border-brand-green/25 rounded-2xl p-5 mb-5">
+        <div class="flex items-center justify-between mb-4">
+          <span id="evento-status" class="text-[10px] font-black uppercase tracking-widest text-brand">—</span>
+          <span id="evento-minuto" class="text-[10px] font-bold text-text-muted"></span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-col items-center gap-2 w-2/5">
+            <img id="evento-home-logo" class="w-12 h-12 object-contain" alt="">
+            <span id="evento-home-nome" class="text-[12px] font-bold text-center leading-tight">Casa</span>
+          </div>
+          <span id="evento-placar" class="text-3xl font-black flex-shrink-0">0 - 0</span>
+          <div class="flex flex-col items-center gap-2 w-2/5">
+            <img id="evento-away-logo" class="w-12 h-12 object-contain" alt="">
+            <span id="evento-away-nome" class="text-[12px] font-bold text-center leading-tight">Fora</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de participantes -->
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest">Palpites da galera (<span id="evento-total">0</span>)</h2>
+        <button onclick="recarregarParticipantesEvento()" class="text-brand text-[11px] font-bold active:scale-95 transition-all">Atualizar</button>
+      </div>
+      <p id="evento-legenda-acerto" class="hidden text-[10px] text-text-muted mb-3">🟢 = placar que está acontecendo agora</p>
+      <div id="evento-lista-participantes" class="space-y-2">
+        <p class="text-text-muted text-[13px] text-center py-8">Carregando participantes...</p>
+      </div>
+
+      <!-- Overlay de Vencedor do Sorteio -->
+      <div id="evento-vencedor-overlay" class="hidden fixed inset-0 z-[13000] bg-black/80 backdrop-blur-md items-center justify-center px-6">
+        <div id="evento-vencedor-modal" class="relative surface border border-white/10 rounded-3xl p-8 w-full max-w-[320px] shadow-2xl flex flex-col items-center">
+          <button onclick="fecharVencedorEvento()" class="absolute top-4 right-4 text-text-muted hover:text-white">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          
+          <div class="w-20 h-20 rounded-full bg-gold/10 flex items-center justify-center mb-6 border border-gold/20">
+            <svg width="40" height="40" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 15l-2 5L9 9l11 1-5 2 4 4-4 4-2-5z"/>
+            </svg>
+          </div>
+
+          <h3 id="evento-vencedor-titulo" class="text-xl font-black text-white mb-2 text-center">Temos um ganhador!</h3>
+          <p id="evento-vencedor-nome" class="text-2xl font-black text-brand mb-1 text-center truncate w-full">Nome do Sortudo</p>
+          <p id="evento-vencedor-numero" class="text-lg font-black text-gold mb-6 tracking-widest text-center">Nº 0000</p>
+          
+          <p id="evento-vencedor-msg" class="text-[13px] text-text-muted text-center mb-6">Fique atento, o próximo pode ser você!</p>
+          
+          <div id="evento-vencedor-aviso-ganhador" class="hidden bg-gold/10 border border-gold/30 rounded-2xl p-4 mb-8 text-center">
+            <p class="text-[11px] font-black text-gold uppercase tracking-widest mb-1">Atenção Ganhador!</p>
+            <p class="text-[10px] text-white/80 leading-relaxed">Não feche esta tela! Apresente este celular ao Mago agora mesmo para retirar seu prêmio.</p>
+          </div>
+
+          <button onclick="fecharVencedorEvento()" class="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all uppercase tracking-wide">
+            Continuar acompanhando
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════ EVENTO FINALIZADO (overlay pós-encerramento) ════════════ -->
+  <div id="evento-finalizado" class="hidden fixed inset-0 z-[12001] bg-app-bg overflow-y-auto">
+    <div class="max-w-md mx-auto px-6 min-h-screen flex flex-col items-center justify-center text-center" style="padding-top: env(safe-area-inset-top); padding-bottom: 24px;">
+      <div class="w-20 h-20 rounded-full bg-brand-green/15 text-brand flex items-center justify-center mb-6 text-4xl">🏁</div>
+      <h1 class="text-2xl font-black mb-2">Evento encerrado!</h1>
+      <p class="text-[14px] text-text-muted mb-8 px-2">Valeu por participar do nosso evento ao vivo. 🎉 Esperamos que tenha curtido!</p>
+
+      <div class="w-full surface border border-brand-green/25 rounded-2xl p-5 mb-4 shadow-[0_0_25px_rgba(16,185,129,0.08)]">
+        <p class="text-[11px] font-black uppercase tracking-widest text-brand mb-2">E agora?</p>
+        <h3 class="font-black text-white text-lg mb-1">Crie seu grupo para a Copa! 🏆</h3>
+        <p class="text-[12px] text-text-muted mb-4 leading-relaxed">Chame os amigos, dê seus palpites em todos os jogos do torneio e dispute o ranking até a final.</p>
+        <button onclick="finalizadoCriarGrupo()" class="w-full bg-brand-green text-black font-black py-3.5 rounded-xl uppercase tracking-wide text-sm active:scale-95 transition-all">
+          Criar meu grupo grátis
+        </button>
+      </div>
+
+      <button onclick="finalizadoIrHome()" class="text-text-muted text-[12px] font-bold underline mt-2">Ir para o app</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="js/config.js?v=31"></script>
+  <script src="js/auth.js?v=32"></script>
+  <script src="js/api.js?v=31"></script>
+  <script src="js/groups.js?v=33"></script>
+  <script src="js/ui.js?v=36"></script>
+  <script src="js/gm.js?v=32"></script>
+  <script src="js/aovivo.js?v=33"></script>
+  <script src="js/evento.js?v=42"></script>
+
+  <!-- Registro do Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registrado:', reg.scope))
+          .catch(err => console.error('Erro ao registrar SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
