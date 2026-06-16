@@ -1892,16 +1892,16 @@
           <!-- 🦓 RADAR DE ZEBRA DO GRUPO (quem cravou cada resultado + jogadas) -->
           <div x-show="oraculo.zebraRadar" class="bg-zinc-900 border border-fuchsia-500/20 rounded-2xl p-6 shadow-xl">
             <!-- Sem palpites ainda -->
-            <div x-show="!oraculo.zebraRadar.total">
+            <div x-show="!oraculo.zebraRadar?.total">
               <h4 class="text-[10px] text-fuchsia-300 uppercase tracking-widest font-black mb-1">🦓 Radar de Zebra — grupo <span x-text="grupoFoco.nome"></span></h4>
               <p class="text-[10px] text-zinc-500 mb-2">Sem palpites registrados para esta partida ainda.</p>
               <p class="text-[9px] text-zinc-600 italic">Quando os participantes começarem a palpitar, você vê quem cravou cada resultado e se dá pra ativar a <b class="text-fuchsia-300">Zebra 2x</b>.</p>
             </div>
             <!-- Com dados -->
-            <div x-show="oraculo.zebraRadar.total > 0">
+            <div x-show="oraculo.zebraRadar?.total > 0">
               <h4 class="text-[10px] text-fuchsia-300 uppercase tracking-widest font-black mb-1">🦓 Radar de Zebra — grupo <span x-text="grupoFoco.nome"></span></h4>
               <p class="text-[10px] text-zinc-500 mb-4">Quem cravou cada resultado no SEU bolão. Menos de 15% dos palpites num resultado = zebra (2x). <span class="text-zinc-400 font-mono" x-text="(oraculo.zebraRadar?.total || 0) + ' palpites até agora'"></span>.</p>
-            <div class="space-y-2">
+            </div>
               <template x-for="r in (oraculo.zebraRadar?.resultados || [])" :key="r.key">
                 <div class="rounded-xl border p-3" :class="r.isZebra ? 'border-fuchsia-500/30 bg-fuchsia-950/15' : 'border-zinc-800 bg-zinc-950/40'">
                   <div class="flex items-center justify-between gap-2">
@@ -2580,6 +2580,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=1"></script>
-  <script src="/gm/js/admin.js?v=36"></script>
+  <script src="/gm/js/admin.js?v=38"></script>
 </body>
 </html>
