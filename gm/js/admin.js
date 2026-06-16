@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, quantData: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, quantData: null, modo: 'zebra', erro: null },
 
     // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
     grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
