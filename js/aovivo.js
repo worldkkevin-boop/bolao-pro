@@ -191,8 +191,9 @@ async function atualizarTVAoVivo() {
         : '';
 
       htmlJogos += `
-        <div class="bg-card-bg p-4 rounded-2xl border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.05)] relative overflow-hidden">
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+        <div class="bg-zinc-900/90 p-5 rounded-2xl border border-red-500/25 shadow-[0_0_22px_rgba(239,68,68,0.07)] relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-b from-red-500/10 via-transparent to-transparent pointer-events-none"></div>
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-red-600 shadow-[0_0_10px_rgba(239,68,68,0.6)]"></div>
 
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3 w-[40%]">
@@ -531,15 +532,18 @@ async function atualizarTVAoVivo() {
       }
 
       htmlPalpitesGeral += `
-        <div class="bg-card-bg p-4 rounded-2xl border border-white/5 mb-3 relative overflow-hidden">
-          <div class="border-b border-white/5 pb-2 mb-3">
-            <h4 class="font-black text-[12px] text-purple-400 uppercase tracking-wider flex items-center justify-between">
-              <span>${jogo.teams.home.name} vs ${jogo.teams.away.name}</span>
-              <span class="text-[10px] text-red-500 animate-pulse">${jogo.fixture.status.elapsed}' ao vivo</span>
-            </h4>
-          </div>
-          <div class="space-y-1">
-            ${htmlGuessesList}
+        <div class="bg-zinc-900/85 p-5 rounded-2xl border border-purple-500/20 shadow-[0_0_18px_rgba(168,85,247,0.08)] mb-3 relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-b from-purple-500/10 via-transparent to-transparent pointer-events-none"></div>
+          <div class="relative">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-white/5">
+              <h4 class="font-black text-[12px] text-purple-300 uppercase tracking-wider flex items-center gap-2">
+                <span>${jogo.teams.home.name} vs ${jogo.teams.away.name}</span>
+              </h4>
+              <span class="text-[10px] text-red-400 animate-pulse font-black bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">${jogo.fixture.status.elapsed}' AO VIVO</span>
+            </div>
+            <div class="space-y-2">
+              ${htmlGuessesList}
+            </div>
           </div>
         </div>
       `;
