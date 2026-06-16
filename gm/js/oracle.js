@@ -4,52 +4,19 @@
    ========================================================= */
 const ORACLE = (() => {
   const HOST = 'v3.football.api-sports.io';
-  let KEY = null;
-  let keyPromise = null;
-
-  async function key() {
-    if (KEY) return KEY;
-    if (!keyPromise) keyPromise = (async () => {
-      try {
-        const r = await fetch('/js/config.js?v=20'); // força download
-        const txt = await r.text();
-        const m = txt.match(/REACT_APP_API_FOOTBALL_KEY:\s*['"]([^'"]+)['"]/);
-        if (m) KEY = m[1];
-      } catch (_) {}
-      KEY = KEY || (function () {
-        try {
-          // Tenta vindo de window.__ env se app expuser (opcional)
-          return '';
-        } catch (_) { return ''; }
-      })();
-      return KEY;
-    })();
-    return keyPromise;
-  }
 
   async function hdrs() {
-    const k = await key();
     return {
       'x-rapidapi-host': HOST,
-      'x-rapidapi-key': k
+      'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
     };
   }
 
-  // ---------------------------------------------------------
-  // /fixtures H2H (para comparison + últimos jogos)
-  // ---------------------------------------------------------
   async function h2h(fixtureId) {
     const j = await fetchJson(`/fixtures/headtohead?h2h=${fixtureId}`);
     return (j.response || []).slice(0, 8);
   }
 
-  // ---------------------------------------------------------
-  // /fixtures/statistics (para placares e gols, com fallback
-  // ---------------------------------------------------------
-
-  // ---------------------------------------------------------
-  // Actually: predictions
-  // ---------------------------------------------------------
   async function predictions(fixtureId) {
     const j = await fetchJson(`/predictions?fixture=${fixtureId}`);
     if (!j.response || !j.response.length) throw new Error('Sem predições para esta partida.');
@@ -84,7 +51,6 @@ const ORACLE = (() => {
   }
 
   return {
-    predictions,
-    hero
+    predictions
   };
 })();
