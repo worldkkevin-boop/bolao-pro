@@ -1937,25 +1937,26 @@
           </div>
 
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
-          <div class="relative overflow-hidden bg-zinc-900 border rounded-2xl p-6 shadow-xl" :class="oraculo.distorcao?.zebraAlert ? 'border-amber-500/30' : 'border-zinc-800'">
+          <div x-data="{ desafioAberto: false }" class="relative overflow-hidden bg-zinc-900 border rounded-2xl shadow-xl" :class="oraculo.distorcao?.zebraAlert ? 'border-amber-500/30' : 'border-zinc-800'">
             <div class="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl pointer-events-none" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/8' : 'bg-purple-500/5'"></div>
 
-            <div class="flex items-center justify-between mb-5">
+            <button @click="desafioAberto = !desafioAberto" class="w-full flex items-center justify-between px-6 py-4 relative z-10">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-purple-500/10 border border-purple-500/20'">
-                  <span class="text-base">⚡</span>
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-purple-500/10 border border-purple-500/20'">
+                  <span class="text-sm">⚡</span>
                 </div>
-                <div>
-                  <h3 class="text-sm font-black text-white uppercase tracking-wider">Lançar Desafio</h3>
-                  <p class="text-[9px] text-zinc-500 mt-0.5" x-text="desafioRapido.motivo || 'Parâmetros sugeridos pelo Oráculo'"></p>
+                <div class="text-left">
+                  <h3 class="text-xs font-black text-zinc-400 uppercase tracking-wider">Lançar Desafio</h3>
+                  <p class="text-[9px] text-zinc-600 mt-0.5" x-text="desafioRapido.motivo || 'Parâmetros sugeridos pelo Oráculo'"></p>
                 </div>
               </div>
-              <span
-                class="text-[9px] font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border"
-                :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' : 'bg-zinc-800 text-zinc-400 border-zinc-700'"
-                x-text="oraculo.distorcao?.zebraAlert ? '🦓 Zebra Ativa' : '⚡ Pronto para lançar'"
-              ></span>
-            </div>
+              <div class="flex items-center gap-3">
+                <span x-show="oraculo.distorcao?.zebraAlert" class="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">🦓 Zebra Ativa</span>
+                <span class="text-zinc-600 transition-transform duration-200" :class="desafioAberto ? 'rotate-180' : ''" style="font-size:10px">▼</span>
+              </div>
+            </button>
+
+            <div x-show="desafioAberto" x-transition x-cloak class="px-6 pb-6 pt-1">
 
             <!-- 3 parâmetros editáveis -->
             <div class="grid grid-cols-3 gap-3 mb-5">
@@ -2042,6 +2043,7 @@
                 Lançando...
               </span>
             </button>
+            </div><!-- fecha desafioAberto -->
           </div>
         </div> <!-- FECHA MODO ZEBRA -->
 
@@ -2590,6 +2592,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=38"></script>
+  <script src="/gm/js/admin.js?v=39"></script>
 </body>
 </html>
