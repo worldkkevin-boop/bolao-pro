@@ -1728,45 +1728,10 @@ function adminApp() {
     // esperados (Goals Over/Under). Retorna { placares, gols }.
     async _fetchOddsOraculo(fixtureId) {
       try {
-        const resp = await fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}`, {
-          headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
-        });
-        if (!resp.ok) return { placares: null, gols: null };
-        const json = await resp.json();
-        const bks = (json && json.response && json.response[0] && json.response[0].bookmakers) ? json.response[0].bookmakers : [];
-        // --- Placar exato (Exact Score) ---
-        const acc = {};
-        bks.forEach(bk => {
-          const bet = (bk.bets || []).find(b => b.name === 'Exact Score');
-          if (!bet) return;
-          (bet.values || []).forEach(v => {
-            const m = String(v.value).match(/^(\d+):(\d+)$/);
-            if (!m) return;
-            const odd = parseFloat(v.odd);
-            if (!odd || odd <= 1) return;
-            const key = `${m[1]}-${m[2]}`;
-            if (!acc[key]) acc[key] = { soma: 0, n: 0, home: +m[1], away: +m[2] };
-            acc[key].soma += odd; acc[key].n += 1;
-          });
-        });
-        let placares = Object.keys(acc).map(k => {
-          const a = acc[k];
-          const oddMedia = a.soma / a.n;
-          return {
-            placar: k, home: a.home, away: a.away, oddMedia, prob: 1 / oddMedia,
-            winner: a.home > a.away ? 'home' : (a.home < a.away ? 'away' : 'empate')
-          };
-        });
-        if (placares.length === 0) {
-          placares = null;
-        } else {
-          const s = placares.reduce((t, x) => t + x.prob, 0) || 1;
-          placares.forEach(x => { x.probNorm = x.prob / s; });
-          placares.sort((a, b) => b.prob - a.prob);
-        }
-        const gols = this._calcGolsEsperados(bks);
-        return { placares, gols };
-      } catch (e) { return { placares: null, gols: null }; }
+        return await ORACLE.oddsFull(fixtureId);
+      } catch (_) {
+        return { placares: null, gols: null };
+      }
     },
 
     // Estima gols esperados e total mais provável a partir do mercado Over/Under.
@@ -2456,37 +2421,7 @@ function adminApp() {
 // ============================================================
 
 async function analisarDistorcaoPalpites(fixtureId) {
-  const resp = await fetch(`https://v3.football.api-sports.io/predictions?fixture=${fixtureId}`, {
-    headers: {
-      'x-rapidapi-host': 'v3.football.api-sports.io',
-      'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
-    }
-  });
-  if (!resp.ok) throw new Error(`API-Football ${resp.status}`);
-  const json = await resp.json();
-  if (!json.response || json.response.length === 0) throw new Error('Sem predições para esta partida.');
-  const pred = json.response[0];
-  const pct = pred.predictions.percent;
-  return {
-    teams: pred.teams,
-    winner: pred.predictions.winner,
-    advice: pred.predictions.advice,
-    under_over: pred.predictions.under_over || null,
-    win_or_draw: pred.predictions.win_or_draw || false,
-    percent: {
-      home: parseFloat(pct.home) || 0,
-      draw: parseFloat(pct.draw) || 0,
-      away: parseFloat(pct.away) || 0
-    },
-    goals: pred.predictions.goals,
-    comparison: pred.comparison || null,
-    h2h: pred.h2h ? pred.h2h.slice(0, 5) : [],
-    homeLast5: pred.teams?.home?.last_5 || null,
-    awayLast5: pred.teams?.away?.last_5 || null,
-    homeFixtures: pred.teams?.home?.fixtures || null,
-    awayFixtures: pred.teams?.away?.fixtures || null,
-    league: pred.league || null
-  };
+  return ORACLE.predictions(fixtureId);
 }
 
 function traduzirAdviceOraculoAPI(texto) {
