@@ -2027,113 +2027,158 @@
         </div> <!-- FECHA MODO ZEBRA -->
 
         <!-- MODO QUANTITATIVO -->
-        <div x-show="oraculo.modo === 'quant'" class="space-y-6" x-transition x-cloak>
-          
-          <div class="flex flex-col items-center justify-center py-6">
-            <!-- MOBILE-FIRST QUANT CARD -->
-            <div class="w-full max-w-[380px] bg-[#0a0a0a] rounded-[2.5rem] border border-zinc-800/80 p-6 shadow-2xl shadow-[#10b981]/5 relative overflow-hidden" x-init="if (typeof initQuantChart === 'function') setTimeout(initQuantChart, 100)">
-              
-              <!-- Glow background -->
-              <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#10b981]/10 blur-[50px] rounded-full pointer-events-none"></div>
+        <div x-show="oraculo.modo === 'quant'" class="space-y-4" x-transition x-cloak>
 
-              <!-- 1. Header do Confronto -->
-              <div class="flex items-center justify-between mb-8 relative z-10">
-                <div class="flex items-center gap-3">
-                  <div class="flex -space-x-3">
-                    <!-- Fictional logos -->
-                    <img src="https://media.api-sports.io/football/teams/774.png" class="w-10 h-10 rounded-full border-[3px] border-[#0a0a0a] bg-zinc-900 object-contain p-1 relative z-10" alt="Home">
-                    <img src="https://media.api-sports.io/football/teams/773.png" class="w-10 h-10 rounded-full border-[3px] border-[#0a0a0a] bg-zinc-900 object-contain p-1 relative z-0" alt="Away">
+          <!-- Sem dados -->
+          <div x-show="!oraculo.quantData && !oraculo.loading" class="flex flex-col items-center justify-center py-14 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl">
+            <span class="text-3xl mb-3">📈</span>
+            <p class="text-zinc-500 text-[10px] font-bold uppercase tracking-widest text-center px-4">Analise uma partida no Radar de Zebra para ver os dados quant</p>
+          </div>
+
+          <!-- Carregando -->
+          <div x-show="oraculo.loading" class="flex items-center justify-center py-14">
+            <div class="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+            <span class="text-emerald-400 text-xs font-black uppercase tracking-widest">Carregando análise...</span>
+          </div>
+
+          <!-- Dados carregados -->
+          <div x-show="oraculo.quantData && !oraculo.loading" class="space-y-4">
+
+            <!-- 1. FORMA RECENTE + GOLS POR JOGO -->
+            <div class="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">📊 Forma Recente — Últimas 5</h4>
+              <div class="grid grid-cols-2 gap-5">
+                <!-- Casa -->
+                <div>
+                  <p class="text-[10px] font-black text-emerald-400 mb-2 truncate" x-text="oraculo.quantData?.teams?.home?.name"></p>
+                  <div class="flex gap-1 flex-wrap">
+                    <template x-for="(fc, fi) in (oraculo.quantData?.homeLast5?.form || '').split('')" :key="fi">
+                      <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black"
+                        :class="fc === 'W' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : fc === 'L' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'"
+                        x-text="fc"></span>
+                    </template>
+                    <span x-show="!(oraculo.quantData?.homeLast5?.form)" class="text-zinc-600 text-[10px]">—</span>
                   </div>
-                  <div>
-                    <h3 class="text-white font-extrabold text-sm leading-tight max-w-[120px] truncate">Turquia vs Macedônia do Norte</h3>
-                    <p class="text-zinc-500 text-[9px] font-semibold mt-0.5">Macedônia do Norte</p>
+                  <div class="mt-3 flex gap-3 text-xs">
+                    <span class="text-zinc-500">⚽ <span class="text-emerald-400 font-black font-mono" x-text="oraculo.quantData?.homeLast5?.goals?.for?.average?.total || '—'"></span></span>
+                    <span class="text-zinc-600">|</span>
+                    <span class="text-zinc-500">🥅 <span class="text-red-400/80 font-mono" x-text="oraculo.quantData?.homeLast5?.goals?.against?.average?.total || '—'"></span></span>
                   </div>
                 </div>
-                
-                <div class="flex items-center gap-3">
-                  <!-- Grade Badge -->
-                  <div class="flex flex-col items-center justify-center relative top-1">
-                    <span class="text-[6px] text-zinc-500 uppercase font-black tracking-widest mb-1 absolute -top-3">Grade</span>
-                    <div class="w-7 h-7 rounded-full border-2 border-[#10b981] bg-[#10b981]/10 text-[#10b981] font-black text-xs flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                      B
-                    </div>
+                <!-- Fora -->
+                <div>
+                  <p class="text-[10px] font-black text-purple-400 mb-2 truncate" x-text="oraculo.quantData?.teams?.away?.name"></p>
+                  <div class="flex gap-1 flex-wrap">
+                    <template x-for="(ac, ai) in (oraculo.quantData?.awayLast5?.form || '').split('')" :key="ai">
+                      <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black"
+                        :class="ac === 'W' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : ac === 'L' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'"
+                        x-text="ac"></span>
+                    </template>
+                    <span x-show="!(oraculo.quantData?.awayLast5?.form)" class="text-zinc-600 text-[10px]">—</span>
                   </div>
-                  
-                  <!-- SVG Progress Confiança -->
-                  <div class="relative w-11 h-11 flex items-center justify-center">
-                    <span class="absolute -top-3 text-[6px] text-zinc-500 uppercase font-black tracking-widest whitespace-nowrap">Confiança</span>
-                    <svg class="transform -rotate-90 w-11 h-11">
-                      <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="2" fill="transparent" class="text-zinc-800" />
-                      <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="2" fill="transparent" :stroke-dasharray="2 * Math.PI * 18" :stroke-dashoffset="(2 * Math.PI * 18) - ((72 / 100) * (2 * Math.PI * 18))" class="text-[#10b981] transition-all duration-1000 ease-out" stroke-linecap="round" />
-                    </svg>
-                    <div class="absolute flex flex-col items-center justify-center">
-                      <span class="text-[10px] text-[#10b981] font-black leading-none tracking-tighter">72%</span>
-                    </div>
+                  <div class="mt-3 flex gap-3 text-xs">
+                    <span class="text-zinc-500">⚽ <span class="text-purple-400 font-black font-mono" x-text="oraculo.quantData?.awayLast5?.goals?.for?.average?.total || '—'"></span></span>
+                    <span class="text-zinc-600">|</span>
+                    <span class="text-zinc-500">🥅 <span class="text-red-400/80 font-mono" x-text="oraculo.quantData?.awayLast5?.goals?.against?.average?.total || '—'"></span></span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- 2. A Linha Analisada -->
-              <div class="bg-gradient-to-b from-zinc-900/90 to-zinc-950/50 rounded-3xl border border-zinc-800/80 p-4 mb-6 shadow-inner relative z-10">
-                
-                <div class="bg-[#0a0a0a]/80 rounded-xl px-4 py-3 border border-[#10b981]/20 flex items-center justify-between mb-4 shadow-sm shadow-[#10b981]/5">
+            <!-- 2. COMPARAÇÃO DE ATRIBUTOS -->
+            <div x-show="oraculo.quantData?.comparison" class="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">⚡ Comparação de Atributos</h4>
+              <div class="flex items-center justify-between text-[9px] font-black uppercase tracking-widest mb-3">
+                <span class="text-emerald-400 truncate max-w-[90px]" x-text="oraculo.quantData?.teams?.home?.name"></span>
+                <span></span>
+                <span class="text-purple-400 truncate max-w-[90px] text-right" x-text="oraculo.quantData?.teams?.away?.name"></span>
+              </div>
+              <div class="space-y-2.5">
+                <template x-for="qattr in [
+                  { label: 'Ataque', key: 'att' },
+                  { label: 'Defesa', key: 'def' },
+                  { label: 'Forma', key: 'form' },
+                  { label: 'H2H', key: 'h2h' },
+                  { label: 'Gols', key: 'goals' },
+                  { label: 'Total', key: 'total' }
+                ]" :key="qattr.key">
                   <div class="flex items-center gap-2">
-                    <span class="text-[#10b981] font-black text-sm">O</span>
-                    <span class="text-zinc-200 font-bold text-[13px] tracking-wide">1.5 Cartões Visitante</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-amber-400 font-black text-sm">@1.52</span>
-                    <span class="text-amber-400/50 text-xs">↗</span>
-                    <span class="text-zinc-600 text-xs text-right">⇄</span>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 text-center divide-x divide-zinc-800/60">
-                  <div class="pt-1">
-                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5">Projeção</p>
-                    <p class="text-[#10b981] font-black text-xl flex items-center justify-center gap-0.5 tracking-tighter">2.6 <span class="text-xs">↗</span></p>
-                  </div>
-                  <div class="pt-1">
-                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5">Média L10</p>
-                    <p class="text-white font-black text-xl tracking-tighter">2.6</p>
-                  </div>
-                  <div class="pt-1">
-                    <p class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-2.5">Streak L5</p>
-                    <div class="flex items-center justify-center gap-1">
-                      <template x-for="s in [1, 1, 1, 0, 1]">
-                        <div class="w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[7px]" :class="s === 1 ? 'bg-[#10b981] text-zinc-950' : 'bg-red-500 text-white'">
-                          <span x-text="s === 1 ? '✓' : '✕'"></span>
-                        </div>
-                      </template>
+                    <span class="text-[10px] font-black font-mono text-emerald-400 w-8 text-right"
+                      x-text="parseFloat(oraculo.quantData.comparison[qattr.key]?.home || 0).toFixed(0) + '%'"></span>
+                    <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                        :style="'width: ' + parseFloat(oraculo.quantData.comparison[qattr.key]?.home || 0) + '%'"></div>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. O Gráfico -->
-              <div class="mb-4 relative -mx-4 z-10 h-[220px]">
-                <div id="quantChart" class="w-full h-full"></div>
-              </div>
-
-              <!-- 4. Footer de Tendências -->
-              <div class="grid grid-cols-5 gap-1 pt-4 relative z-10">
-                <template x-for="t in [
-                  { label: 'Tend.', val: '98%', hl: true },
-                  { label: 'L5', val: '100%', hl: true },
-                  { label: 'L10', val: '90%', hl: true },
-                  { label: 'H2H', val: '60%', hl: false },
-                  { label: 'Temp.', val: '90%', hl: true }
-                ]">
-                  <div class="text-center relative">
-                    <p class="text-[8px] text-zinc-600 font-bold uppercase tracking-widest mb-1" x-text="t.label"></p>
-                    <p class="font-bold text-xs" :class="t.hl ? 'text-[#10b981]' : 'text-[#10b981]/50'" x-text="t.val"></p>
-                    <div x-show="t.label === 'L10'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-[2px] bg-[#10b981] rounded-full"></div>
+                    <span class="text-[8px] text-zinc-500 font-black uppercase tracking-widest w-10 text-center" x-text="qattr.label"></span>
+                    <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden flex justify-end">
+                      <div class="h-full bg-purple-500 rounded-full transition-all duration-700"
+                        :style="'width: ' + parseFloat(oraculo.quantData.comparison[qattr.key]?.away || 0) + '%'"></div>
+                    </div>
+                    <span class="text-[10px] font-black font-mono text-purple-400 w-8"
+                      x-text="parseFloat(oraculo.quantData.comparison[qattr.key]?.away || 0).toFixed(0) + '%'"></span>
                   </div>
                 </template>
               </div>
-
             </div>
-          </div>
+
+            <!-- 3. UNDER/OVER + TEMPORADA -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-4">
+                <h4 class="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-3">🎯 Prev. Gols API</h4>
+                <div x-show="oraculo.quantData?.under_over">
+                  <p class="text-xl font-black text-white font-mono" x-text="oraculo.quantData?.under_over"></p>
+                  <p class="text-[9px] text-zinc-500 mt-1 leading-relaxed"
+                    x-text="(oraculo.quantData?.under_over || '').startsWith('+') ? 'Mais de ' + Math.abs(parseFloat(oraculo.quantData.under_over)) + ' gols' : 'Menos de ' + Math.abs(parseFloat(oraculo.quantData.under_over)) + ' gols'"></p>
+                </div>
+                <p x-show="!oraculo.quantData?.under_over" class="text-zinc-600 text-[10px]">Sem previsão</p>
+                <div x-show="oraculo.quantData?.win_or_draw" class="mt-3 pt-2 border-t border-zinc-800/60">
+                  <span class="text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">Casa não perde</span>
+                </div>
+              </div>
+              <div class="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-4">
+                <h4 class="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-3">🏆 Temporada 2026</h4>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[9px] text-emerald-400 font-bold truncate" x-text="oraculo.quantData?.teams?.home?.name?.split(' ')[0]"></span>
+                    <span class="text-[9px] font-mono text-zinc-300 flex-shrink-0"
+                      x-text="(oraculo.quantData?.homeFixtures?.wins?.total || 0) + 'V ' + (oraculo.quantData?.homeFixtures?.draws?.total || 0) + 'E ' + (oraculo.quantData?.homeFixtures?.loses?.total || 0) + 'D'"></span>
+                  </div>
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[9px] text-purple-400 font-bold truncate" x-text="oraculo.quantData?.teams?.away?.name?.split(' ')[0]"></span>
+                    <span class="text-[9px] font-mono text-zinc-300 flex-shrink-0"
+                      x-text="(oraculo.quantData?.awayFixtures?.wins?.total || 0) + 'V ' + (oraculo.quantData?.awayFixtures?.draws?.total || 0) + 'E ' + (oraculo.quantData?.awayFixtures?.loses?.total || 0) + 'D'"></span>
+                  </div>
+                </div>
+                <p class="text-[8px] text-zinc-600 mt-2 font-bold uppercase tracking-widest" x-text="oraculo.quantData?.league?.name || 'Copa do Mundo 2026'"></p>
+              </div>
+            </div>
+
+            <!-- 4. H2H -->
+            <div class="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">🔄 Histórico Cara a Cara</h4>
+              <div x-show="oraculo.quantData?.h2h && oraculo.quantData.h2h.length > 0" class="space-y-0">
+                <template x-for="hm in (oraculo.quantData?.h2h || [])" :key="hm.fixture.id">
+                  <div class="flex items-center gap-2 py-2.5 border-b border-zinc-800/50 last:border-0">
+                    <span class="text-[9px] text-zinc-600 font-mono w-14 flex-shrink-0"
+                      x-text="new Date(hm.fixture.date).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'})"></span>
+                    <span class="text-[10px] font-bold flex-1 truncate"
+                      :class="hm.teams.home.winner ? 'text-white' : 'text-zinc-500'"
+                      x-text="hm.teams.home.name"></span>
+                    <span class="font-black text-xs text-white bg-zinc-800 px-2 py-0.5 rounded-lg font-mono flex-shrink-0"
+                      x-text="hm.goals.home + '-' + hm.goals.away"></span>
+                    <span class="text-[10px] font-bold flex-1 truncate text-right"
+                      :class="hm.teams.away.winner ? 'text-white' : 'text-zinc-500'"
+                      x-text="hm.teams.away.name"></span>
+                    <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
+                      :class="hm.teams.home.winner ? 'bg-emerald-500/20 text-emerald-400' : hm.teams.away.winner ? 'bg-purple-500/20 text-purple-400' : 'bg-zinc-800 text-zinc-500'"
+                      x-text="hm.teams.home.winner ? 'Casa' : hm.teams.away.winner ? 'Fora' : 'EMP'"></span>
+                  </div>
+                </template>
+              </div>
+              <p x-show="!oraculo.quantData?.h2h || oraculo.quantData.h2h.length === 0" class="text-zinc-600 text-xs">Sem histórico disponível entre estes times.</p>
+            </div>
+
+          </div><!-- fim dados carregados -->
         </div>
         </div>
       </div>
@@ -2524,6 +2569,6 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/admin.js?v=32"></script>
+  <script src="/gm/js/admin.js?v=33"></script>
 </body>
 </html>
