@@ -191,12 +191,12 @@ async function atualizarTVAoVivo() {
         : '';
 
       htmlJogos += `
-        <div class="surface p-4 rounded-2xl border border-red-500/25 shadow-[0_0_20px_rgba(239,68,68,0.08)] relative overflow-hidden">
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500/90"></div>
+        <div class="bg-card-bg p-4 rounded-2xl border border-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.05)] relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
 
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3 w-[40%]">
-              <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover border border-white/10">
+              <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover">
               <span class="font-bold text-[12px] text-white truncate">${jogo.teams.home.name}</span>
               ${zJogo.homeZebra ? zebraTagTV : ''}
             </div>
@@ -209,7 +209,7 @@ async function atualizarTVAoVivo() {
             <div class="flex items-center justify-end gap-3 w-[40%] text-right">
               ${zJogo.awayZebra ? zebraTagTV : ''}
               <span class="font-bold text-[12px] text-white truncate">${jogo.teams.away.name}</span>
-              <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover border border-white/10">
+              <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover">
             </div>
           </div>
           ${footerLive}
@@ -312,7 +312,7 @@ async function atualizarTVAoVivo() {
   // Atualização Seletiva do DOM para o Ranking (Flicker-Reduction)
   rankingSorted.forEach((user, index) => {
     const posicao = index + 1;
-    let cardClasses = ['surface', 'p-3.5', 'flex', 'items-center', 'justify-between', 'relative', 'overflow-hidden', 'border', 'border2', 'rounded-2xl', 'transition-all'];
+    let cardClasses = ['bg-card-bg', 'p-3.5', 'flex', 'items-center', 'justify-between', 'relative', 'overflow-hidden', 'border', 'rounded-2xl', 'transition-all'];
     let rankClasses = ['w-5', 'text-center', 'font-black'];
     let glowBgClass = '';
 
@@ -518,7 +518,7 @@ async function atualizarTVAoVivo() {
             <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
               <div class="flex items-center gap-2 min-w-0">
                 <img src="${fotoUrl}" class="w-6 h-6 rounded-full border border-white/10 object-cover flex-shrink-0">
-                <span class="text-[12px] font-bold text-white truncate">${perfil?.full_name || 'Participante'}</span>
+                <span class="text-[12px] font-bold text-zinc-300 truncate">${perfil?.full_name || 'Participante'}</span>
                 ${zebraPlayerTag}
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
@@ -531,11 +531,11 @@ async function atualizarTVAoVivo() {
       }
 
       htmlPalpitesGeral += `
-        <div class="surface p-4 rounded-2xl border border-red-500/25 shadow-[0_0_18px_rgba(239,68,68,0.06)] mb-3 relative overflow-hidden">
+        <div class="bg-card-bg p-4 rounded-2xl border border-white/5 mb-3 relative overflow-hidden">
           <div class="border-b border-white/5 pb-2 mb-3">
-            <h4 class="font-black text-[12px] text-purple-300 uppercase tracking-wider flex items-center justify-between">
+            <h4 class="font-black text-[12px] text-purple-400 uppercase tracking-wider flex items-center justify-between">
               <span>${jogo.teams.home.name} vs ${jogo.teams.away.name}</span>
-              <span class="text-[10px] text-red-400 animate-pulse">${jogo.fixture.status.elapsed}' ao vivo</span>
+              <span class="text-[10px] text-red-500 animate-pulse">${jogo.fixture.status.elapsed}' ao vivo</span>
             </h4>
           </div>
           <div class="space-y-1">

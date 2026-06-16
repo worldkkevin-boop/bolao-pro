@@ -144,7 +144,7 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, quantData: null, erro: null },
 
     // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
     grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
@@ -1686,6 +1686,7 @@ function adminApp() {
       this.oraculo.tabelaPlacares = null;
       this.oraculo.golsInfo = null;
       this.oraculo.zebraRadar = null;
+      this.oraculo.quantData = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
       const t = Date.now();
@@ -1696,6 +1697,7 @@ function adminApp() {
           this._fetchOddsOraculo(fId)
         ]);
         this.oraculo.predicoes = pred;
+        this.oraculo.quantData = pred;
         this.oraculo.distribuicao = dist;
         const placares = odds.placares;
         if (placares) this._calcEVPlacares(placares, dist);
@@ -2469,12 +2471,21 @@ async function analisarDistorcaoPalpites(fixtureId) {
     teams: pred.teams,
     winner: pred.predictions.winner,
     advice: pred.predictions.advice,
+    under_over: pred.predictions.under_over || null,
+    win_or_draw: pred.predictions.win_or_draw || false,
     percent: {
       home: parseFloat(pct.home) || 0,
       draw: parseFloat(pct.draw) || 0,
       away: parseFloat(pct.away) || 0
     },
-    goals: pred.predictions.goals
+    goals: pred.predictions.goals,
+    comparison: pred.comparison || null,
+    h2h: pred.h2h ? pred.h2h.slice(0, 5) : [],
+    homeLast5: pred.teams?.home?.last_5 || null,
+    awayLast5: pred.teams?.away?.last_5 || null,
+    homeFixtures: pred.teams?.home?.fixtures || null,
+    awayFixtures: pred.teams?.away?.fixtures || null,
+    league: pred.league || null
   };
 }
 
