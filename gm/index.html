@@ -1705,9 +1705,19 @@
             </div>
           </div>
 
+          <!-- Aviso: jogo sem predição real da API (33/33/33 placeholder) -->
+          <div x-show="oraculo.predicoes && oraculo.predicoes.predReal === false"
+            class="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl p-4 flex items-start gap-3">
+            <span class="text-lg flex-shrink-0">⚠️</span>
+            <div>
+              <p class="text-zinc-300 text-xs font-black uppercase tracking-wider">Sem predição real da API</p>
+              <p class="text-zinc-500 text-[10px] mt-1 leading-relaxed">A API-Football não tem modelo estatístico para este jogo (amistoso ou liga sem cobertura). As probabilidades 33/33/33 são um placeholder — o Desvio de Sentimento não é confiável aqui.</p>
+            </div>
+          </div>
+
           <!-- Alerta de Zebra Dinâmica -->
-          <div 
-            x-show="oraculo.distorcao?.zebraAlert" 
+          <div
+            x-show="oraculo.distorcao?.zebraAlert"
             class="relative overflow-hidden bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 rounded-2xl p-5 shadow-lg shadow-amber-950/5"
           >
             <div class="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl"></div>
@@ -2579,7 +2589,7 @@
 
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
-  <script src="/gm/js/oracle.js?v=1"></script>
+  <script src="/gm/js/oracle.js?v=2"></script>
   <script src="/gm/js/admin.js?v=38"></script>
 </body>
 </html>
