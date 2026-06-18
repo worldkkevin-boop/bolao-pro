@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=36`, `gm v=32`, `aovivo v=33`, `evento v=42`. (gm/index.html: `admin v=27`)
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=31`, `auth v=32`, `api v=31`, `groups v=33`, `ui v=37`, `gm v=32`, `aovivo v=35`, `evento v=42`. (gm/index.html: `admin v=41`)
 
 ---
 
@@ -178,8 +178,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 - Definição: o **resultado vencedor** recebeu **menos de 15%** dos palpites do grupo naquele jogo → dobra os pontos de quem acertou.
 - A % é sobre **quem palpitou naquele jogo** (não sobre o total de membros). Ex.: 17 palpitando → time com ≤2 palpites (≤11,8%) é zebra; com 3 (17,6%) não é.
 - **`distribuicaoPalpitesGrupo[matchId] = { home, away, empate, total }`** (porcentagens 0–100) é calculado em [js/api.js](js/api.js) no load do grupo.
-- **Marcação visual (feita nesta sessão):** selo 🦓 no time zebra + rodapé "Casa/Emp/Fora %" + selo "Zebra Ativa / Sem Zebra", nos cards de Jogos e no Ao Vivo; e 🦓 nos players que foram na zebra (Ao Vivo).
-- ⚠️ **Inconsistência conhecida:** na *pontuação*, o **empate** também pode ser zebra (se <15% cravaram empate e o jogo empatou → 2x). Mas a *marcação visual* hoje só sinaliza zebra de **time** (Casa/Fora), não de empate. (Ver Backlog.)
+- **Marcação visual:** selo 🦓 no time zebra + rodapé "Casa/Emp/Fora %" + selo "Zebra Ativa / Sem Zebra" (considera Casa/Empate/Fora <15%, igual à pontuação), nos cards de Jogos e no Ao Vivo; e 🦓 nos players que foram na zebra, incluindo quem cravou empate em zebra (Ao Vivo).
 
 ---
 
@@ -203,6 +202,7 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
+- **2026-06-18** — **Fix: selo "Zebra Ativa" não considerava o empate** (`renderDistribuicaoZebra` em js/ui.js, `calcularZebrasTV` + tag de jogador em js/aovivo.js). A pontuação já dobrava pontos quando o empate tinha <15% dos palpites, mas o selo visual só olhava Casa/Fora — então um jogo podia estar "Zebra Ativa" pra pontuação e mostrar "Sem Zebra" na tela. Agora `renderDistribuicaoZebra` também entra em "Zebra Ativa" se `empatePct < 15` e mostra 🦓 ao lado de "Emp. X%" no rodapé do card (Jogos e Ao Vivo). No Ao Vivo, `calcularZebrasTV` retorna `empateZebra` e o selo 🦓 nos jogadores que cravaram empate em zebra agora aparece (antes só pegava quem foi no time vencedor zebra). Bump ui v=37, aovivo v=35. Resolve o item do Backlog sobre alinhar zebra de empate.
 - **2026-06-18** — **Fix: exclusão nuclear de grupo rejeitava código digitado certo** (`deletarGrupoNuclear` em gm/js/admin.js). A comparação do código de confirmação era estritamente case/whitespace-sensitive (`===`), então autocapitalize do teclado mobile ou um espaço a mais no `prompt()` fazia o GM digitar a frase certa e ainda ver "Código nuclear incorreto". Agora compara com `.trim().toUpperCase()`. Bump admin v=41.
 - **2026-06-18** — **Editor rápido de palpite no GM** (gm/index.html + gm/js/admin.js). Na aba "Controle da Matriz" → grupo → "Habitantes da Matriz", novo botão "✏️ Palpite" por membro abre modal listando os jogos que ele já palpitou (com nomes dos times via tabela `matches`) e permite editar `score_home`/`score_away` direto (upsert em `guesses`, `onConflict: 'user_id,group_id,match_id'`). Loga em `audit_logs` (`EDIT_GUESS`). Estado `editorPalpite` + funções `abrirEditorPalpite`/`salvarPalpiteEditado`/`fecharEditorPalpite`. Bump admin v=40.
 - **2026-06-16** — **Análise Quant do Oráculo — dados reais da API** (gm/index.html + gm/js/admin.js). A aba "Análise Quant" era um mockup hardcoded. Agora exibe dados reais do `/predictions` já chamado: (1) Forma recente (badges W/D/L + gols/jogo); (2) Comparação de atributos (barras duplas de att/def/form/h2h/goals/total); (3) Under/Over + temporada 2026; (4) H2H cara a cara. Zero requests extras. `analisarDistorcaoPalpites` agora retorna `comparison`, `h2h`, `homeLast5/awayLast5`, `homeFixtures/awayFixtures`, `under_over`, `win_or_draw`. Estado `oraculo.quantData` adicionado. Bump admin v=33.
@@ -228,7 +228,6 @@ Pega o **maior** que se aplica (valores padrão; o GM customiza por grupo):
 
 - [ ] **Odds 1X2 nos jogos** (PESQUISADO, pronto pra fazer). Plano recomendado: guardar odds na tabela `matches` (colunas `odd_home/odd_draw/odd_away/odds_updated_at`) via agendamento `pg_cron` (1x/hora) e **média das casas**; exibir do lado da distribuição de palpites. Plano alternativo: buscar na hora que abre o jogo. API já confirmada (ex.: USA x Paraguai → 1.91 / 3.30 / 4.20, 14 casas).
 - [ ] **Modo estratégico por posição no ranking** (Oráculo): olhar o ranking do grupo do Kevin (gap pro líder, jogos restantes) e ajustar a sugestão pra "Segurar" (na frente, jogar com a manada) ou "Atacar" (atrás, ir na zebra/diferencial). Precisa focar num grupo específico (hoje o Oráculo olha geral). Refinos extras pesquisados: forma recente + H2H (já vêm no predictions), Over/Under e Ambas Marcam pra calibrar nº de gols, lesões/escalações (~1h antes).
-- [ ] **Alinhar zebra de empate**: fazer o selo "Zebra Ativa" considerar também o empate <15% (pra bater com a pontuação), marcando "Emp. 🦓 8%". (Pergunta aberta com o Kevin: marcar empate OU mudar a pontuação pra não dar 2x em empate.)
 - [ ] **Barra de Perguntas Bônus**: sumir sozinha quando não dá mais pra responder (depende de definir como o app sabe que "fechou").
 - [ ] **% de palpites antes da trava?**: hoje as %/selo só aparecem depois do palpite travar (pra não influenciar). Decidir se mostra o tempo todo.
 

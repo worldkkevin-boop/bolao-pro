@@ -269,9 +269,10 @@ function formatarData(dateStr) {
 function renderDistribuicaoZebra(homePct, empatePct, awayPct, total, regraZebraOn) {
   if (!total || total <= 0) return '';
   const h = Math.round(homePct), e = Math.round(empatePct), a = Math.round(awayPct);
+  const empateZebra = empatePct < 15;
   let statusPill = '';
   if (regraZebraOn) {
-    const temZebra = (homePct < 15 || awayPct < 15);
+    const temZebra = (homePct < 15 || empateZebra || awayPct < 15);
     statusPill = temZebra
       ? `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white whitespace-nowrap">🦓 Zebra Ativa</span>`
       : `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/5 whitespace-nowrap">Sem Zebra</span>`;
@@ -281,7 +282,7 @@ function renderDistribuicaoZebra(homePct, empatePct, awayPct, total, regraZebraO
       <div class="flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
         <span>Casa <span class="text-white/80">${h}%</span></span>
         <span class="text-white/20">·</span>
-        <span>Emp. <span class="text-white/80">${e}%</span></span>
+        <span>Emp. <span class="text-white/80">${e}%</span></span>${regraZebraOn && empateZebra ? ' <span title="Empate é zebra">🦓</span>' : ''}
         <span class="text-white/20">·</span>
         <span>Fora <span class="text-white/80">${a}%</span></span>
       </div>

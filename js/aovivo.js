@@ -117,7 +117,8 @@ function calcularZebrasTV() {
       mapa[mId] = {
         homePct, empatePct, awayPct, total: c.total,
         homeZebra: regraOn && homePct < 15,
-        awayZebra: regraOn && awayPct < 15
+        awayZebra: regraOn && awayPct < 15,
+        empateZebra: regraOn && empatePct < 15
       };
     }
   }
@@ -496,7 +497,7 @@ async function atualizarTVAoVivo() {
           const perfil = tvDados.perfis.find(p => p.id === g.user_id);
           const fotoUrl = perfil?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(perfil?.full_name || 'U') + '&background=random&color=fff';
 
-          const foiNaZebra = (g.score_home > g.score_away && zJogoP.homeZebra) || (g.score_away > g.score_home && zJogoP.awayZebra);
+          const foiNaZebra = (g.score_home > g.score_away && zJogoP.homeZebra) || (g.score_away > g.score_home && zJogoP.awayZebra) || (g.score_home === g.score_away && zJogoP.empateZebra);
           const zebraPlayerTag = foiNaZebra ? '<span class="text-[11px] flex-shrink-0" title="Foi na zebra! Coragem.">🦓</span>' : '';
 
           const liveHome = jogo.goals.home ?? 0;
