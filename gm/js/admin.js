@@ -52,6 +52,7 @@ function adminApp() {
     pinInput: '',
     pinErro: false,
     abaAtiva: 'dashboard',
+    sidebarMobileAberta: false,
 
     // ===== MÓDULO ISOLADO: EVENTO TELÃO (lê só leads_evento_telao) =====
     telaoLoading: false,

@@ -125,11 +125,16 @@
 
   <!-- 5. PAINEL DO GM PRINCIPAL (Se tudo desbloqueado) -->
   <div x-show="!loading && usuario && acessoAutorizado && pinDesbloqueado" class="flex-1 flex overflow-hidden relative z-10" x-cloak>
-    
-    <!-- Sidebar fixa à esquerda -->
-    <aside class="w-64 bg-[#0a0a0a]/60 backdrop-blur-2xl border-r border-zinc-800/60 flex flex-col justify-between flex-shrink-0 z-20">
+
+    <!-- Backdrop do menu mobile -->
+    <div x-show="sidebarMobileAberta" x-cloak @click="sidebarMobileAberta = false"
+         class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 md:hidden"></div>
+
+    <!-- Sidebar: fixa no desktop, drawer deslizante no mobile -->
+    <aside class="w-64 bg-[#0a0a0a]/90 md:bg-[#0a0a0a]/60 backdrop-blur-2xl border-r border-zinc-800/60 flex flex-col justify-between flex-shrink-0 z-40 fixed inset-y-0 left-0 transform transition-transform duration-200 md:relative md:translate-x-0 overflow-y-auto"
+           :class="sidebarMobileAberta ? 'translate-x-0' : '-translate-x-full'">
       <!-- Logo Area -->
-      <div class="h-20 flex items-center px-6 border-b border-zinc-800/50">
+      <div class="h-20 flex items-center justify-between px-6 border-b border-zinc-800/50 flex-shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-[0_0_20px_rgba(168,85,247,0.4)]">
             GM
@@ -139,10 +144,11 @@
             <span class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">Sistema Quantitativo</span>
           </div>
         </div>
+        <button @click="sidebarMobileAberta = false" class="md:hidden text-zinc-400 hover:text-white text-xl leading-none px-2">✕</button>
       </div>
 
       <div class="p-6">
-        <nav class="space-y-1">
+        <nav class="space-y-1" @click="sidebarMobileAberta = false">
           <!-- DASHBOARD -->
           <button @click="abaAtiva = 'dashboard'" :class="abaAtiva === 'dashboard' ? 'bg-zinc-800/80 text-white font-bold border border-zinc-700 shadow-lg shadow-black/50' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all text-left">
             <span class="text-lg">📊</span> Home (Dashboard)
@@ -209,15 +215,19 @@
     <!-- Área de Conteúdo Central -->
     <main class="flex-1 flex flex-col overflow-hidden bg-transparent relative z-10">
       <!-- Top header -->
-      <header class="h-16 border-b border-zinc-800/50 px-8 flex items-center justify-between bg-black/20 backdrop-blur-xl">
-        <h1 class="text-base font-bold uppercase tracking-wider" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria e Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : (abaAtiva === 'telao' ? '🏟️ Evento Telão (Leads & Sorteio)' : 'Painel')))))))"></h1>
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
+      <header class="h-16 border-b border-zinc-800/50 px-3 md:px-8 flex items-center justify-between gap-2 bg-black/20 backdrop-blur-xl">
+        <div class="flex items-center gap-2 min-w-0">
+          <button @click="sidebarMobileAberta = true" class="md:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800/60 border border-zinc-700/60 text-white text-lg">☰</button>
+          <h1 class="text-[11px] md:text-base font-bold uppercase tracking-wider truncate" x-text="abaAtiva === 'dashboard' ? 'Métricas e Logs' : (abaAtiva === 'grupos' || abaAtiva === 'grupo-detalhe' ? '👥 Controle da Matriz (Grupos)' : (abaAtiva === 'usuarios' ? '👤 Dossiê de Jogadores' : (abaAtiva === 'tesouraria' ? '💸 Tesouraria e Pix' : (abaAtiva === 'auditoria' ? '📝 Auditoria (Big Brother)' : (abaAtiva === 'desafios' || abaAtiva === 'novo-desafio' ? '⚡ Desafios do Mago' : (abaAtiva === 'oraculo' ? '◉ Oráculo Quantitativo' : (abaAtiva === 'telao' ? '🏟️ Evento Telão (Leads & Sorteio)' : 'Painel')))))))"></h1>
+        </div>
+        <div class="flex items-center gap-4 flex-shrink-0">
+          <span class="hidden sm:inline text-xs text-zinc-500 font-medium">Status do Servidor: <strong class="text-emerald-400 animate-pulse">● ONLINE</strong></span>
+          <span class="sm:hidden text-emerald-400 animate-pulse text-xs">●</span>
         </div>
       </header>
 
       <!-- Conteúdo da Aba -->
-      <div class="flex-1 overflow-y-auto p-8">
+      <div class="flex-1 overflow-y-auto p-4 md:p-8">
         
         <!-- ABA: DASHBOARD -->
         <div x-show="abaAtiva === 'dashboard'" class="space-y-8" x-cloak>
@@ -593,7 +603,7 @@
               <span>Habitantes da Matriz (<span x-text="grupoSelecionado ? grupoSelecionado._membros : '0'"></span>)</span>
             </h3>
             
-            <div class="overflow-hidden border border-zinc-800/60 rounded-2xl bg-black/40">
+            <div class="overflow-x-auto border border-zinc-800/60 rounded-2xl bg-black/40">
               <table class="w-full text-left text-xs">
                 <thead>
                   <tr class="border-b border-zinc-800/60 text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
@@ -881,6 +891,7 @@
               </h3>
 
               <div class="glass-panel border border-emerald-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(16,185,129,0.05)] overflow-hidden">
+                <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                   <thead>
                     <tr class="border-b border-emerald-500/10 text-[10px] text-emerald-500/60 font-bold uppercase tracking-wider">
@@ -918,6 +929,7 @@
                     </template>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
 
@@ -2647,6 +2659,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=41"></script>
+  <script src="/gm/js/admin.js?v=42"></script>
 </body>
 </html>
