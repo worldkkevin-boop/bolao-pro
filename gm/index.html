@@ -627,8 +627,12 @@
                               x-text="membro.role === 'admin' ? '👑 Dono' : 'Membro'"></span>
                       </td>
                       <td class="py-4 px-6 text-right">
-                        <button x-show="membro.role !== 'admin'" 
-                                @click="transferirDono(grupoSelecionado.id, membro.user_id, membro.profiles?.full_name)" 
+                        <button @click="abrirEditorPalpite(membro)"
+                                class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all uppercase tracking-wider mr-2">
+                          ✏️ Palpite
+                        </button>
+                        <button x-show="membro.role !== 'admin'"
+                                @click="transferirDono(grupoSelecionado.id, membro.user_id, membro.profiles?.full_name)"
                                 class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-all uppercase tracking-wider">
                           Tornar Dono
                         </button>
@@ -2589,9 +2593,60 @@
     </div>
   </div>
 
+  <!-- Modal: Editor Rápido de Palpite (Habitantes da Matriz) -->
+  <div x-show="editorPalpite.aberto" x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-6"
+       @keydown.escape.window="fecharEditorPalpite()">
+    <div class="bg-zinc-900 border border-emerald-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-emerald-950/20 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">✏️</span>
+          <h3 class="text-sm font-black text-white uppercase tracking-wider">Editar Palpite</h3>
+        </div>
+        <button @click="fecharEditorPalpite()" class="text-zinc-500 hover:text-white text-lg leading-none">✕</button>
+      </div>
+      <p class="text-[10px] text-zinc-500 mb-5" x-text="'Jogador: ' + (editorPalpite.membro?.profiles?.full_name || '')"></p>
+
+      <template x-if="editorPalpite.loading">
+        <p class="text-center text-zinc-500 font-bold uppercase tracking-widest text-[10px] py-10 animate-pulse">Carregando palpites...</p>
+      </template>
+
+      <template x-if="!editorPalpite.loading && editorPalpite.palpites.length === 0">
+        <p class="text-center text-zinc-600 font-medium py-10">Este jogador ainda não palpitou em nenhum jogo.</p>
+      </template>
+
+      <div class="space-y-3">
+        <template x-for="palpite in editorPalpite.palpites" :key="palpite.id">
+          <div class="bg-black/40 border border-zinc-800/60 rounded-xl p-4">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span class="text-xs font-bold text-white truncate" x-text="(palpite.jogo ? (palpite.jogo.home_team + ' x ' + palpite.jogo.away_team) : ('Jogo #' + palpite.match_id))"></span>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+              <input type="number" min="0" x-model="palpite._novoHome"
+                     class="w-16 bg-zinc-950 border border-zinc-700 rounded-lg text-center text-white font-black py-2 text-sm focus:border-emerald-500 outline-none">
+              <span class="text-zinc-500 font-black">x</span>
+              <input type="number" min="0" x-model="palpite._novoAway"
+                     class="w-16 bg-zinc-950 border border-zinc-700 rounded-lg text-center text-white font-black py-2 text-sm focus:border-emerald-500 outline-none">
+              <button @click="salvarPalpiteEditado(palpite)"
+                      :disabled="editorPalpite.salvandoId === palpite.id"
+                      class="ml-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold px-3 py-2 rounded-lg text-[10px] uppercase tracking-wider transition-all disabled:opacity-40">
+                <span x-show="editorPalpite.salvandoId !== palpite.id">Salvar</span>
+                <span x-show="editorPalpite.salvandoId === palpite.id">...</span>
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <button @click="fecharEditorPalpite()" class="mt-5 w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all">
+        Fechar
+      </button>
+    </div>
+  </div>
+
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=39"></script>
+  <script src="/gm/js/admin.js?v=40"></script>
 </body>
 </html>

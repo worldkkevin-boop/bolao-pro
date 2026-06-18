@@ -83,6 +83,9 @@ function adminApp() {
     grupoSelecionadoMembros: [],
     grupoMembrosLoading: false,
 
+    // Editor rápido de palpite (Habitantes da Matriz)
+    editorPalpite: { aberto: false, membro: null, loading: false, salvandoId: null, palpites: [] },
+
     // Tesouraria
     tesourariaLoading: false,
     transacoesTesouraria: [],
@@ -527,6 +530,93 @@ function adminApp() {
         console.error('Erro ao carregar membros:', err);
       } finally {
         this.grupoMembrosLoading = false;
+      }
+    },
+
+    // ============ EDITOR RÁPIDO DE PALPITE ============
+
+    async abrirEditorPalpite(membro) {
+      this.editorPalpite = { aberto: true, membro, loading: true, salvandoId: null, palpites: [] };
+      const grupoId = this.grupoSelecionado.id;
+      const t = Date.now();
+      try {
+        const { data: palpites, error } = await sbClient
+          .from('guesses')
+          .select('id, match_id, score_home, score_away')
+          .eq('group_id', grupoId)
+          .eq('user_id', membro.user_id);
+        if (error) throw error;
+
+        const matchIds = (palpites || []).map(p => p.match_id);
+        let matchesMap = {};
+        if (matchIds.length > 0) {
+          const { data: jogos } = await sbClient
+            .from('matches')
+            .select('id, home_team, away_team, home_logo, away_logo, kickoff')
+            .in('id', matchIds);
+          if (jogos) jogos.forEach(j => { matchesMap[j.id] = j; });
+        }
+
+        const lista = (palpites || []).map(p => ({
+          ...p,
+          _novoHome: p.score_home,
+          _novoAway: p.score_away,
+          jogo: matchesMap[p.match_id] || null
+        })).sort((a, b) => new Date(a.jogo?.kickoff || 0) - new Date(b.jogo?.kickoff || 0));
+
+        this.editorPalpite.palpites = lista;
+        this.adicionarLog('Supabase', 'SELECT guesses (editor)', 'SUCCESS', Date.now() - t, `${lista.length} palpites de ${membro.profiles?.full_name}`);
+      } catch (err) {
+        console.error('Erro ao carregar palpites do membro:', err);
+        showToast('Erro ao carregar palpites: ' + err.message, 'error');
+      } finally {
+        this.editorPalpite.loading = false;
+      }
+    },
+
+    fecharEditorPalpite() {
+      this.editorPalpite = { aberto: false, membro: null, loading: false, salvandoId: null, palpites: [] };
+    },
+
+    async salvarPalpiteEditado(palpite) {
+      const novoHome = parseInt(palpite._novoHome);
+      const novoAway = parseInt(palpite._novoAway);
+      if (isNaN(novoHome) || isNaN(novoAway) || novoHome < 0 || novoAway < 0) {
+        showToast('Placar inválido.', 'error');
+        return;
+      }
+      const membro = this.editorPalpite.membro;
+      const grupoId = this.grupoSelecionado.id;
+      this.editorPalpite.salvandoId = palpite.id;
+      const t = Date.now();
+      try {
+        const { error } = await sbClient
+          .from('guesses')
+          .upsert([{
+            user_id: membro.user_id,
+            group_id: grupoId,
+            match_id: palpite.match_id,
+            score_home: novoHome,
+            score_away: novoAway
+          }], { onConflict: 'user_id,group_id,match_id' });
+        if (error) throw error;
+
+        const oldHome = palpite.score_home, oldAway = palpite.score_away;
+        palpite.score_home = novoHome;
+        palpite.score_away = novoAway;
+
+        this.adicionarLog('Supabase', 'UPSERT guesses', 'SUCCESS', Date.now() - t, `Palpite alterado para ${membro.profiles?.full_name}`);
+        await this._registrarAuditoria('EDIT_GUESS', 'guesses', palpite.id, {
+          match_id: palpite.match_id,
+          user_id: membro.user_id,
+          old: { home: oldHome, away: oldAway },
+          new: { home: novoHome, away: novoAway }
+        });
+        showToast('Palpite atualizado com sucesso!', 'success');
+      } catch (err) {
+        showToast('Erro ao salvar palpite: ' + err.message, 'error');
+      } finally {
+        this.editorPalpite.salvandoId = null;
       }
     },
 
