@@ -919,8 +919,8 @@ function adminApp() {
     async deletarGrupoNuclear(grupoId, grupoNome) {
       const confirmText = `DELETAR-${grupoNome.substring(0, 4).toUpperCase()}`;
       const digito = prompt(`⚠️ ATENÇÃO! EXTERMÍNIO NUCLEAR.\nIsso vai apagar DEFINITIVAMENTE o grupo "${grupoNome}", e arrancar todos os jogadores dele.\n\nPara prosseguir, digite exatamente: ${confirmText}`);
-      
-      if (digito !== confirmText) {
+
+      if ((digito || '').trim().toUpperCase() !== confirmText) {
         showToast("Código nuclear incorreto. Abortando operação.", "error");
         return;
       }
