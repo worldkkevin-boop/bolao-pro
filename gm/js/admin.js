@@ -2230,7 +2230,7 @@ function adminApp() {
             nome: 'TRAVADO'
           });
           this.palpitesTravados = true;
-          showToast('🔒 Palpites TRAVADOS. Ninguém mais consegue cadastrar.', 'info');
+          showToast('🔒 Palpites TRAVADOS. Quem abrir o link agora entra só no sorteio (sem palpite).', 'info');
         }
       } catch (e) {
         showToast('Erro ao travar/liberar palpites.', 'error');

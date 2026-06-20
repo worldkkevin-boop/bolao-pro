@@ -2289,7 +2289,7 @@
                      <span x-show="!palpitesTravados">🔒 Travar Palpites (jogo começou)</span>
                      <span x-show="palpitesTravados">🔓 Liberar Palpites de novo</span>
                    </button>
-                   <p class="text-[9px] text-zinc-500 text-center mt-1.5 font-bold uppercase tracking-widest" x-text="palpitesTravados ? 'Cadastro FECHADO — ninguém consegue palpitar' : 'Cadastro aberto — aceitando palpites'"></p>
+                   <p class="text-[9px] text-zinc-500 text-center mt-1.5 font-bold uppercase tracking-widest" x-text="palpitesTravados ? 'Palpites FECHADOS — quem abrir o link concorre só no sorteio' : 'Cadastro aberto — aceitando palpites'"></p>
                 </div>
 
                 <p class="text-[10px] text-zinc-500 mt-2" x-text="'Início: ' + new Date(telaoFixture.date).toLocaleString('pt-BR')"></p>
@@ -2659,6 +2659,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=42"></script>
+  <script src="/gm/js/admin.js?v=43"></script>
 </body>
 </html>

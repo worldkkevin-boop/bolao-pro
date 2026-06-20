@@ -86,7 +86,7 @@
         <button onclick="irPara('step-welcome')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
         </button>
-        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 1 de 3</p>
+        <p id="passo-nome" class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 1 de 3</p>
         <h2 class="text-2xl font-black mb-1">Qual é o seu nome?</h2>
         <p class="text-[13px] text-text-muted mb-6">É como vamos te chamar se você ganhar. 😉</p>
         <input id="in-nome" type="text" autocomplete="name" placeholder="Seu nome"
@@ -100,7 +100,7 @@
         <button onclick="irPara('step-nome')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
         </button>
-        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 2 de 3</p>
+        <p id="passo-whats" class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 2 de 3</p>
         <h2 class="text-2xl font-black mb-1">Seu WhatsApp</h2>
         <p class="text-[13px] text-text-muted mb-6">Usamos só para avisar se você for o sortudo. 📲</p>
         <input id="in-whats" type="tel" inputmode="tel" autocomplete="tel" placeholder="(96) 9 9999-9999"
@@ -114,11 +114,11 @@
         <button onclick="irPara('step-whats')" class="mb-5 text-text-muted hover:text-white flex items-center gap-1.5 text-[13px] font-bold">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg> Voltar
         </button>
-        <p class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 3 de 3</p>
-        <h2 class="text-2xl font-black mb-1">Seu palpite no jogo</h2>
-        <p class="text-[13px] text-text-muted mb-6">Quanto vai ser o placar final? ⚽</p>
+        <p id="passo-palpite" class="text-[11px] font-black uppercase tracking-widest text-brand-green mb-1">Passo 3 de 3</p>
+        <h2 id="palpite-titulo" class="text-2xl font-black mb-1">Seu palpite no jogo</h2>
+        <p id="palpite-sub" class="text-[13px] text-text-muted mb-6">Quanto vai ser o placar final? ⚽</p>
 
-        <div class="bg-card-bg p-5 rounded-3xl border border-white/5 mb-4">
+        <div id="palpite-card" class="bg-card-bg p-5 rounded-3xl border border-white/5 mb-4">
           <div class="flex justify-between items-center gap-2">
             <!-- Casa -->
             <div class="flex flex-col items-center w-2/5">
@@ -155,7 +155,7 @@
         <div class="w-16 h-16 rounded-full bg-brand-green/15 text-brand-green mx-auto flex items-center justify-center mb-5 fade-up">
           <svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
         </div>
-        <h2 class="text-2xl font-black mb-2 fade-up">Palpite confirmado! 🎉</h2>
+        <h2 id="sucesso-titulo" class="text-2xl font-black mb-2 fade-up">Palpite confirmado! 🎉</h2>
         <p class="text-[14px] text-text-muted mb-6 fade-up">Boa sorte, <span id="sucesso-nome" class="text-white font-bold">amigo</span>! Guarde seu número:</p>
 
         <div class="bg-card-bg border border-gold/30 rounded-3xl p-6 mb-6 shadow-[0_0_25px_rgba(251,191,36,0.10)] fade-up">
@@ -234,7 +234,8 @@
     await verificarTravaPalpites();
   }
 
-  // Se o GM travou os palpites (jogo começou), bloqueia novos cadastros
+  // Se o GM travou os palpites (jogo começou), entra no MODO SORTEIO:
+  // sem palpite, mas a pessoa ainda garante o número da sorte (só nome + WhatsApp).
   async function verificarTravaPalpites() {
     if (jaParticipou) return; // quem já palpitou continua vendo seu número
     try {
@@ -242,14 +243,35 @@
         .select('id').eq('evento', 'CONFIG_TRAVADO_' + eventoSlug).limit(1);
       if (data && data.length > 0) {
         palpitesTravados = true;
-        const h1 = document.querySelector('#step-welcome h1');
-        if (h1) h1.innerHTML = 'Palpites <span class="text-amber-400">encerrados!</span> 🔒';
-        document.getElementById('welcome-sub').textContent =
-          'O jogo já começou e os palpites foram fechados. Fique de olho no telão para o sorteio! 🍀';
-        const btn = document.querySelector('#step-welcome button');
-        if (btn) { btn.textContent = 'Conhecer o Bolão completo 🏆'; btn.setAttribute('onclick', "window.location.href='/'"); }
+        aplicarModoSorteio();
       }
     } catch (_) {}
+  }
+
+  // Reconfigura a tela pro "modo sorteio" (jogo rolando): mantém o convite,
+  // mas o fluxo vira nome → WhatsApp → número (sem a etapa de palpite).
+  function aplicarModoSorteio() {
+    // Boas-vindas
+    const h1 = document.querySelector('#step-welcome h1');
+    if (h1) h1.innerHTML = 'O jogo já começou — <span class="text-amber-400">concorra ao sorteio!</span> 🎟️';
+    document.getElementById('welcome-sub').textContent =
+      'Os palpites fecharam, mas você ainda garante seu número da sorte e concorre ao prêmio no telão. Leva menos de 15 segundos.';
+    const btn = document.querySelector('#step-welcome button');
+    if (btn) { btn.textContent = 'Quero meu número 🎟️'; btn.setAttribute('onclick', "irPara('step-nome')"); }
+
+    // Agora são 2 etapas de dados + confirmação
+    document.getElementById('passo-nome').textContent = 'Passo 1 de 2';
+    document.getElementById('passo-whats').textContent = 'Passo 2 de 2';
+    document.getElementById('passo-palpite').textContent = 'Confirmação';
+
+    // Etapa "palpite" vira a confirmação do sorteio (sem placar)
+    document.getElementById('palpite-titulo').textContent = 'Confirme e concorra 🎟️';
+    document.getElementById('palpite-sub').textContent =
+      'O jogo já começou, então é só garantir seu número da sorte.';
+    const card = document.getElementById('palpite-card');
+    if (card) card.classList.add('hidden');
+    const btnEnviar = document.getElementById('btn-enviar');
+    if (btnEnviar) btnEnviar.textContent = 'Garantir meu número 🎟️';
   }
 
   function aplicarEvento() {
@@ -360,20 +382,27 @@
 
     const nome     = document.getElementById('in-nome').value.trim();
     const whatsapp = document.getElementById('in-whats').value.replace(/\D/g, ''); // só dígitos (dedupe confiável)
-    const palpite  = `${eventoCfg.casa} ${placar.casa} x ${placar.fora} ${eventoCfg.fora}`;
+    // Modo sorteio (jogo rolando): sem palpite, só concorre ao número.
+    const palpite  = palpitesTravados ? null : `${eventoCfg.casa} ${placar.casa} x ${placar.fora} ${eventoCfg.fora}`;
     const numero   = gerarNumeroSorte();
 
     try {
-      // Re-checa a trava: pode ter travado enquanto a pessoa preenchia
-      const { data: lock } = await sb.from('evento_sorteio_telao')
-        .select('id').eq('evento', 'CONFIG_TRAVADO_' + eventoSlug).limit(1);
-      if (lock && lock.length > 0) {
-        err.textContent = '🔒 Os palpites foram encerrados (o jogo começou).';
-        err.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = 'Enviar palpite e concorrer 🎁';
-        enviando = false;
-        return;
+      // Re-checa a trava SÓ no modo palpite: pode ter travado enquanto a pessoa
+      // preenchia. No modo sorteio a trava é esperada, então não aborta.
+      if (!palpitesTravados) {
+        const { data: lock } = await sb.from('evento_sorteio_telao')
+          .select('id').eq('evento', 'CONFIG_TRAVADO_' + eventoSlug).limit(1);
+        if (lock && lock.length > 0) {
+          // Acabou de travar: migra pro modo sorteio em vez de barrar a pessoa.
+          palpitesTravados = true;
+          aplicarModoSorteio();
+          err.textContent = '🔒 Os palpites fecharam agora — mas toque de novo pra garantir só o número do sorteio!';
+          err.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Garantir meu número 🎟️';
+          enviando = false;
+          return;
+        }
       }
 
       const leadId = _uuid();   // id gerado no cliente (anon não consegue ler de volta)
@@ -406,6 +435,9 @@
       } catch (_) { /* localStorage indisponível: segue sem persistir */ }
 
       // Sucesso
+      if (palpitesTravados) {
+        document.getElementById('sucesso-titulo').textContent = 'Você está no sorteio! 🎟️';
+      }
       document.getElementById('sucesso-nome').textContent = nome.split(' ')[0] || 'amigo';
       document.getElementById('numero-sorte').textContent = numero;
       irPara('step-sucesso');
@@ -418,7 +450,7 @@
         : 'Não foi possível salvar. Tente novamente.';
       err.classList.remove('hidden');
       btn.disabled = false;
-      btn.textContent = 'Enviar palpite e concorrer 🎁';
+      btn.textContent = palpitesTravados ? 'Garantir meu número 🎟️' : 'Enviar palpite e concorrer 🎁';
     } finally {
       enviando = false;
     }
