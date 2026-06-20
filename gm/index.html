@@ -31,6 +31,11 @@
       font-family: 'Outfit', sans-serif;
       background-color: #050505; /* Preto Abissal - Estilo Prop Firm */
       color: #e4e4e7;
+      /* App-shell: altura fixa pra o scroll viver no container interno.
+         100vh é o fallback garantido; 100dvh (quando suportado) respeita a
+         barra do navegador no celular pra não esconder o fim do conteúdo. */
+      height: 100vh;
+      height: 100dvh;
     }
     [x-cloak] { display: none !important; }
     
@@ -54,7 +59,7 @@
     }
   </style>
 </head>
-<body class="antialiased h-[100dvh] flex overflow-hidden" x-data="adminApp()" x-init="init()">
+<body class="antialiased flex overflow-hidden" x-data="adminApp()" x-init="init()">
 
   <!-- Background decorative glows -->
   <div class="bg-glow top-[-200px] left-[-200px] pointer-events-none"></div>
