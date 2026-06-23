@@ -227,13 +227,48 @@ function _copaMapaGrupos(grupos) {
 
 function _copaResolverSlot(slot, mapa) {
   if (slot.t === 'third') {
-    return { team: null, label: '3º [' + slot.pool.join('/') + ']', sub: 'Melhor 3º lugar' };
+    return { team: null, third: true, pool: slot.pool, label: '3º [' + slot.pool.join('/') + ']', sub: 'Melhor 3º lugar' };
   }
   const arr = mapa[slot.g] || [];
   const idx = slot.t === 'winner' ? 0 : 1;
   const reg = arr[idx] || null;
   const pos = slot.t === 'winner' ? '1º' : '2º';
   return { team: reg ? reg.team : null, label: pos + ' Grupo ' + slot.g, sub: pos + ' do Grupo ' + slot.g };
+}
+
+// Ranking dos 3º colocados (critérios FIFA: pts, saldo, gols pró). Top 8 classificam.
+function _copaMelhores3(grupos) {
+  const lista = [];
+  (grupos || []).forEach(g => {
+    if (!g || g.length < 3) return;
+    const letra = (g[0].group || '').replace(/group/i, '').trim().toUpperCase();
+    const reg = g[2]; // 3º colocado (rank 3)
+    if (!reg) return;
+    lista.push({
+      letra, team: reg.team,
+      pts: reg.points, gd: reg.goalsDiff,
+      gf: (reg.all && reg.all.goals && reg.all.goals.for) || 0,
+      jogos: (reg.all && reg.all.played) || 0
+    });
+  });
+  lista.sort((a, b) => (b.pts - a.pts) || (b.gd - a.gd) || (b.gf - a.gf));
+  const qualifSet = new Set(lista.slice(0, 8).map(t => t.letra));
+  return { ranked: lista, qualifSet };
+}
+
+function _copaThirdSlotHTML(pool, qualifSet, alignRight) {
+  // Mostra o bolsão de 3º, destacando os grupos que estão classificando agora.
+  const chips = pool.map(letra => {
+    const on = qualifSet.has(letra);
+    return `<span class="text-[10px] font-black px-1 rounded ${on ? 'bg-brand-green/20 text-brand-green' : 'text-zinc-600 line-through'}">${letra}</span>`;
+  }).join('');
+  const align = alignRight ? 'justify-end text-right' : '';
+  return `<div class="flex-1 min-w-0">
+      <div class="flex items-center gap-1 ${align}">
+        <span class="text-[11px] font-semibold text-zinc-400">3º lugar</span>
+      </div>
+      <div class="flex items-center gap-0.5 flex-wrap mt-0.5 ${align}">${chips}</div>
+    </div>`;
 }
 
 function _copaSlotProjHTML(s, alignRight) {
@@ -258,12 +293,40 @@ function _copaRenderProjecao(grupos) {
     return '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold">Classificação ainda não disponível pra projetar o chaveamento.</div>';
   }
 
+  const m3 = _copaMelhores3(grupos);
+
   let html = `
     <div class="bg-indigo-500/[0.07] border border-indigo-500/20 rounded-2xl p-4 mb-4">
       <p class="text-[12px] text-indigo-300 font-bold">📐 Projeção (parcial)</p>
-      <p class="text-[11px] text-indigo-200/70 mt-1">Confrontos das <b>16-avos</b> montados pela classificação de agora. Muda conforme os grupos mexem. Os jogos contra "melhor 3º lugar" só fecham quando a fase de grupos terminar.</p>
-    </div>
-    <div class="mb-4">
+      <p class="text-[11px] text-indigo-200/70 mt-1">Confrontos das <b>16-avos</b> montados pela classificação de agora. Muda conforme os grupos mexem. Nos jogos contra 3º lugar, os grupos <span class="text-brand-green font-bold">em verde</span> são os que estão classificando o 3º; qual deles cai em cada jogo só fecha no fim da fase de grupos.</p>
+    </div>`;
+
+  // Tabela dos melhores 3º lugares (dados reais, critérios FIFA)
+  if (m3.ranked.length) {
+    html += `<div class="mb-4">
+      <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-green"></span> Melhores 3º lugares (8 classificam)
+      </h3>
+      <div class="bg-card-bg rounded-2xl border border-white/5 overflow-hidden">
+        <table class="w-full">
+          <thead><tr class="text-[9px] uppercase tracking-wider text-zinc-500 font-bold">
+            <th class="py-1.5 pl-3 pr-1 text-left">#</th><th class="py-1.5 px-1 text-left">Seleção</th>
+            <th class="py-1.5 px-1 text-center">Gr</th><th class="py-1.5 px-1 text-center">SG</th><th class="py-1.5 pr-3 pl-1 text-center">P</th>
+          </tr></thead><tbody>`;
+    m3.ranked.forEach((t, i) => {
+      const classif = i < 8;
+      html += `<tr class="border-t border-white/5 ${classif ? 'bg-brand-green/[0.04]' : 'opacity-50'}">
+          <td class="py-2 pl-3 pr-1"><span class="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-black ${classif ? 'bg-brand-green text-black' : 'bg-zinc-800 text-zinc-400'}">${i + 1}</span></td>
+          <td class="py-2 px-1"><div class="flex items-center gap-2 min-w-0"><img src="${_copaLogoTime(t.team)}" class="w-5 h-5 rounded-sm object-cover flex-shrink-0" onerror="this.style.display='none'"><span class="text-[12px] font-bold text-white truncate">${t.team.name}</span></div></td>
+          <td class="py-2 px-1 text-center text-[11px] text-text-muted">${t.letra}</td>
+          <td class="py-2 px-1 text-center text-[11px] text-text-muted">${t.gd > 0 ? '+' : ''}${t.gd}</td>
+          <td class="py-2 pr-3 pl-1 text-center text-[12px] font-black text-white">${t.pts}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+
+  html += `<div class="mb-4">
       <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
         <span class="w-1.5 h-1.5 rounded-full bg-brand-green"></span> 16-avos de Final (Round of 32)
       </h3>`;
@@ -271,12 +334,14 @@ function _copaRenderProjecao(grupos) {
   COPA_R32_TEMPLATE.forEach(m => {
     const A = _copaResolverSlot(m.a, mapa);
     const B = _copaResolverSlot(m.b, mapa);
+    const aHTML = A.third ? _copaThirdSlotHTML(A.pool, m3.qualifSet, false) : _copaSlotProjHTML(A, false);
+    const bHTML = B.third ? _copaThirdSlotHTML(B.pool, m3.qualifSet, true) : _copaSlotProjHTML(B, true);
     html += `
       <div class="bg-card-bg border border-white/5 rounded-xl px-3 py-2.5 mb-2">
         <div class="flex items-center justify-between gap-2">
-          ${_copaSlotProjHTML(A, false)}
+          ${aHTML}
           <span class="text-[12px] font-black text-zinc-600 px-1 flex-shrink-0">×</span>
-          ${_copaSlotProjHTML(B, true)}
+          ${bHTML}
         </div>
       </div>`;
   });
