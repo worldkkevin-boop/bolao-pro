@@ -16,6 +16,15 @@
 -- Rodar no SQL Editor do Supabase (deploy de código NÃO roda migração).
 -- ============================================================
 
+-- 0. Garante que o GM tem a flag is_gm = true.
+--    IMPORTANTE: o dashboard libera acesso por EMAIL, não por is_gm — então
+--    o perfil do Kevin podia estar com is_gm = false/null, fazendo TODAS as
+--    policies "God Mode" (guesses, transactions, audit_logs) falharem em
+--    silêncio. Esta linha sincroniza a flag com o email autorizado.
+UPDATE public.profiles
+   SET is_gm = true
+ WHERE id = (SELECT id FROM auth.users WHERE email = 'worldkkevin@gmail.com');
+
 ALTER TABLE public.guesses ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "GM gerencia todos os palpites" ON public.guesses;
