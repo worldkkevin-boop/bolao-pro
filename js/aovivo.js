@@ -9,6 +9,44 @@ let tvDados = {
 };
 let tvUltimoEstadoJogos = null;
 
+// Classificação (posição no grupo) — cache por liga, 5 min.
+let tvStandings = { leagueId: null, mapa: {}, ts: 0 };
+
+async function _tvCarregarStandings(leagueId) {
+  // Reusa cache recente da mesma liga.
+  if (tvStandings.leagueId === leagueId && Object.keys(tvStandings.mapa).length && (Date.now() - tvStandings.ts < 5 * 60 * 1000)) {
+    return tvStandings.mapa;
+  }
+  try {
+    const resp = await fetch(`https://v3.football.api-sports.io/standings?league=${leagueId}&season=2026`, {
+      headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+    });
+    const json = await resp.json();
+    const mapa = {};
+    const liga = json.response && json.response[0] && json.response[0].league;
+    if (liga && Array.isArray(liga.standings)) {
+      liga.standings.forEach(grupo => {
+        (grupo || []).forEach(reg => {
+          const letra = (reg.group || '').replace(/group/i, '').trim().toUpperCase();
+          mapa[reg.team.id] = { rank: reg.rank, grupo: letra };
+        });
+      });
+    }
+    tvStandings = { leagueId, mapa, ts: Date.now() };
+    return mapa;
+  } catch (e) {
+    console.error('[TV] Erro ao buscar classificação:', e);
+    return tvStandings.mapa || {};
+  }
+}
+
+function _tvPosChip(teamId) {
+  const p = tvStandings.mapa[teamId];
+  if (!p || !p.rank) return '';
+  const label = p.grupo ? ('Grupo ' + p.grupo + ' · ' + p.rank + 'º') : (p.rank + 'º');
+  return `<span class="block text-[9px] text-zinc-400 font-semibold truncate mt-0.5">${label}</span>`;
+}
+
 async function abrirTVAoVivo() {
   // Trava do Plano Free (limite <= 3)
   if (grupoAtual && grupoAtual.max_participants <= 3) {
@@ -164,6 +202,9 @@ async function atualizarTVAoVivo() {
     return j.league.id === leagueId && statusAoVivo.includes(j.fixture.status.short);
   });
 
+  // Classificação (posição no grupo) das seleções — pra exibir no card ao vivo
+  await _tvCarregarStandings(leagueId);
+
   // Mapa de zebras do grupo (time com <15% dos palpites de vitória)
   const zebrasTV = calcularZebrasTV();
   const zebraTagTV = `<span class="bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full tracking-wide flex-shrink-0" title="Time zebra — vale o dobro se vencer">🦓</span>`;
@@ -198,8 +239,11 @@ async function atualizarTVAoVivo() {
 
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3 w-[40%]">
-              <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover">
-              <span class="font-bold text-[12px] text-white truncate">${jogo.teams.home.name}</span>
+              <img src="${homeLogo}" onerror="this.src='${homeFallback}'" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+              <div class="min-w-0">
+                <span class="font-bold text-[12px] text-white truncate block">${jogo.teams.home.name}</span>
+                ${_tvPosChip(jogo.teams.home.id)}
+              </div>
               ${zJogo.homeZebra ? zebraTagTV : ''}
             </div>
 
@@ -210,8 +254,11 @@ async function atualizarTVAoVivo() {
 
             <div class="flex items-center justify-end gap-3 w-[40%] text-right">
               ${zJogo.awayZebra ? zebraTagTV : ''}
-              <span class="font-bold text-[12px] text-white truncate">${jogo.teams.away.name}</span>
-              <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover">
+              <div class="min-w-0">
+                <span class="font-bold text-[12px] text-white truncate block">${jogo.teams.away.name}</span>
+                ${_tvPosChip(jogo.teams.away.id)}
+              </div>
+              <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
             </div>
           </div>
           ${footerLive}
