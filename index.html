@@ -906,10 +906,11 @@
         <button onclick="carregarViewCopa(true)" class="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-3 py-2 rounded-xl uppercase tracking-wider active:scale-95">🔄 Atualizar</button>
       </div>
 
-      <!-- Abas: Grupos x Chaveamento -->
-      <div class="flex gap-2 mb-5 bg-card-bg p-1 rounded-2xl border border-white/5">
-        <button id="copa-tab-grupos" onclick="switchCopaTab('grupos')" class="flex-1 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all bg-brand-green text-black">Grupos</button>
-        <button id="copa-tab-chave" onclick="switchCopaTab('chave')" class="flex-1 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all text-text-muted">Chaveamento</button>
+      <!-- Abas: Grupos x Chaveamento x Artilheiros -->
+      <div class="flex gap-1.5 mb-5 bg-card-bg p-1 rounded-2xl border border-white/5">
+        <button id="copa-tab-grupos" onclick="switchCopaTab('grupos')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all bg-brand-green text-black">Grupos</button>
+        <button id="copa-tab-chave" onclick="switchCopaTab('chave')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all text-text-muted">Chave</button>
+        <button id="copa-tab-art" onclick="switchCopaTab('art')" class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all text-text-muted">Artilheiros</button>
       </div>
 
       <div id="copa-pane-grupos">
@@ -918,6 +919,10 @@
 
       <div id="copa-pane-chave" class="hidden">
         <div id="copa-bracket"></div>
+      </div>
+
+      <div id="copa-pane-art" class="hidden">
+        <div id="copa-artilheiros"></div>
       </div>
     </div>
 
@@ -2063,7 +2068,7 @@
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=37"></script>
   <script src="js/evento.js?v=42"></script>
-  <script src="js/copa.js?v=7"></script>
+  <script src="js/copa.js?v=8"></script>
 
   <!-- Registro do Service Worker -->
   <script>

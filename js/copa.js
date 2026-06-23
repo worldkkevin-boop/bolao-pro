@@ -83,26 +83,120 @@ function _copaLogoTime(team) {
 }
 
 function switchCopaTab(tab) {
-  const paneGrupos = document.getElementById('copa-pane-grupos');
-  const paneChave = document.getElementById('copa-pane-chave');
-  const tabGrupos = document.getElementById('copa-tab-grupos');
-  const tabChave = document.getElementById('copa-tab-chave');
-  if (!paneGrupos || !paneChave) return;
+  const tabs = ['grupos', 'chave', 'art'];
+  tabs.forEach(t => {
+    const pane = document.getElementById('copa-pane-' + t);
+    const btn = document.getElementById('copa-tab-' + t);
+    if (!pane || !btn) return;
+    const on = (t === tab);
+    pane.classList.toggle('hidden', !on);
+    if (on) { btn.classList.add('bg-brand-green', 'text-black'); btn.classList.remove('text-text-muted'); }
+    else { btn.classList.remove('bg-brand-green', 'text-black'); btn.classList.add('text-text-muted'); }
+  });
+  if (tab === 'art') carregarArtilheiros();
+}
 
-  const ativo = ['bg-brand-green', 'text-black'];
-  const inativo = ['text-text-muted'];
+// Maiores artilheiros da história das Copas (dado fixo; valores pré-Copa 2026).
+const COPA_ARTILHEIROS_HISTORIA = [
+  { nome: 'Miroslav Klose', flag: '🇩🇪', gols: 16, copas: '2002–2014' },
+  { nome: 'Ronaldo', flag: '🇧🇷', gols: 15, copas: '1998–2006' },
+  { nome: 'Gerd Müller', flag: '🇩🇪', gols: 14, copas: '1970–1974' },
+  { nome: 'Just Fontaine', flag: '🇫🇷', gols: 13, copas: '1958' },
+  { nome: 'Pelé', flag: '🇧🇷', gols: 12, copas: '1958–1970' },
+  { nome: 'Kylian Mbappé', flag: '🇫🇷', gols: 12, copas: '2018–2022' }
+];
 
-  if (tab === 'chave') {
-    paneGrupos.classList.add('hidden');
-    paneChave.classList.remove('hidden');
-    tabChave.classList.add(...ativo); tabChave.classList.remove(...inativo);
-    tabGrupos.classList.remove(...ativo); tabGrupos.classList.add(...inativo);
-  } else {
-    paneChave.classList.add('hidden');
-    paneGrupos.classList.remove('hidden');
-    tabGrupos.classList.add(...ativo); tabGrupos.classList.remove(...inativo);
-    tabChave.classList.remove(...ativo); tabChave.classList.add(...inativo);
+let _copaArt = { leagueId: null, lista: null, ts: 0 };
+
+async function carregarArtilheiros(forcar = false) {
+  const el = document.getElementById('copa-artilheiros');
+  if (!el) return;
+  const ligaId = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
+
+  const cacheOk = !forcar && _copaArt.lista && _copaArt.leagueId === ligaId && (Date.now() - _copaArt.ts < 5 * 60 * 1000);
+  if (cacheOk) { renderArtilheiros(_copaArt.lista); return; }
+
+  el.innerHTML = '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold animate-pulse">Carregando artilheiros...</div>';
+  try {
+    const json = await _copaFetch(`players/topscorers?league=${ligaId}&season=${COPA_SEASON}`);
+    const lista = json.response || [];
+    _copaArt = { leagueId: ligaId, lista, ts: Date.now() };
+    renderArtilheiros(lista);
+  } catch (err) {
+    console.error('Erro ao carregar artilheiros:', err);
+    el.innerHTML = '<div class="bg-card-bg p-6 rounded-2xl border border-red-500/20 text-center text-red-400 text-[12px] font-semibold">Erro ao carregar artilheiros. Tente atualizar.</div>';
   }
+}
+
+function renderArtilheiros(lista) {
+  const el = document.getElementById('copa-artilheiros');
+  if (!el) return;
+
+  let html = '';
+
+  // ---- Artilharia da Copa atual (dado ao vivo) ----
+  html += `<h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-brand-green"></span> Artilharia da Copa
+    </h3>`;
+
+  if (!lista || lista.length === 0) {
+    html += '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold mb-6">Ainda sem goleadores nesta competição.</div>';
+  } else {
+    html += '<div class="space-y-2 mb-6">';
+    lista.slice(0, 15).forEach((item, i) => {
+      const p = item.player || {};
+      const st = (item.statistics && item.statistics[0]) || {};
+      const time = st.team || {};
+      const gols = (st.goals && st.goals.total) || 0;
+      const assist = (st.goals && st.goals.assists) || 0;
+      const pos = i + 1;
+      const corPos = pos === 1 ? 'bg-amber-400 text-black' : (pos <= 3 ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400');
+      const fotoTime = _copaLogoTime(time);
+      html += `
+        <div class="bg-card-bg rounded-2xl border ${pos === 1 ? 'border-amber-400/40' : 'border-white/5'} p-2.5 flex items-center gap-3">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-black ${corPos} flex-shrink-0">${pos}</span>
+          <img src="${p.photo}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || 'J')}&background=222&color=fff'" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-bold text-white truncate">${p.name || '—'}</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <img src="${fotoTime}" onerror="this.style.display='none'" class="w-4 h-4 rounded-sm object-cover">
+              <span class="text-[10px] text-text-muted truncate">${time.name || ''}</span>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-[16px] font-black text-brand-green leading-none">${gols}</span>
+            <span class="block text-[9px] text-text-muted font-bold uppercase">gols</span>
+            ${assist ? `<span class="block text-[9px] text-zinc-500 mt-0.5">${assist} assist.</span>` : ''}
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  }
+
+  // ---- Maiores artilheiros de todas as Copas (fixo) ----
+  html += `<h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Maiores de todas as Copas
+    </h3>
+    <div class="bg-gradient-to-br from-amber-500/[0.08] to-transparent rounded-2xl border border-amber-500/20 p-2.5 space-y-1.5">`;
+  COPA_ARTILHEIROS_HISTORIA.forEach((a, i) => {
+    html += `
+      <div class="flex items-center gap-3 py-1.5 ${i < COPA_ARTILHEIROS_HISTORIA.length - 1 ? 'border-b border-white/5' : ''}">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-black ${i === 0 ? 'bg-amber-400 text-black' : 'bg-zinc-800 text-zinc-400'} flex-shrink-0">${i + 1}</span>
+        <span class="text-[16px] flex-shrink-0">${a.flag}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-bold text-white truncate">${a.nome}</p>
+          <span class="text-[10px] text-text-muted">${a.copas}</span>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <span class="text-[15px] font-black text-amber-400 leading-none">${a.gols}</span>
+          <span class="block text-[9px] text-text-muted font-bold uppercase">gols</span>
+        </div>
+      </div>`;
+  });
+  html += `</div>
+    <p class="text-[10px] text-zinc-600 text-center px-4 mt-2">Recorde histórico: <b>Miroslav Klose (16)</b>. Valores até antes da Copa 2026.</p>`;
+
+  el.innerHTML = html;
 }
 
 async function carregarViewCopa(forcar = false) {
@@ -111,6 +205,8 @@ async function carregarViewCopa(forcar = false) {
   if (!elStandings || !elBracket) return;
 
   const ligaId = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
+
+  if (forcar) { _copaArt.lista = null; if (document.getElementById('copa-artilheiros') && !document.getElementById('copa-pane-art').classList.contains('hidden')) carregarArtilheiros(true); }
 
   // Usa cache se for a mesma liga e tiver < 5 min (a não ser que forcem refresh).
   const cacheValido = !forcar && _copaCache.standings && _copaCache.leagueId === ligaId && (Date.now() - _copaCache.ts < 5 * 60 * 1000);
