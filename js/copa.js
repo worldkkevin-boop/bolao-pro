@@ -12,8 +12,18 @@ const COPA_SEASON = 2026;
 // Cache simples por sessão pra não bater na API toda hora.
 let _copaCache = { leagueId: null, standings: null, knockout: null, ts: 0 };
 
-// Modo da aba Chaveamento: 'projecao' (parcial, da classificação) ou 'reais' (fixtures da API).
-let _copaBracketModo = 'projecao';
+// Modo da aba Chaveamento: 'chave' (bracket visual), 'lista' (lista por round) ou 'reais' (fixtures da API).
+let _copaBracketModo = 'chave';
+// Lado do bracket visível no mobile: 'A' (esquerda), 'final' (centro) ou 'B' (direita).
+let _copaLado = 'A';
+
+// Progressão do mata-mata (quem alimenta cada jogo). <=88 = Round of 32 (folhas).
+const COPA_FEED = {
+  89: [74, 77], 90: [73, 75], 91: [76, 78], 92: [79, 80],
+  93: [83, 84], 94: [81, 82], 95: [86, 88], 96: [85, 87],
+  97: [89, 90], 98: [93, 94], 99: [91, 92], 100: [95, 96],
+  101: [97, 98], 102: [99, 100], 104: [101, 102], 103: [101, 102]
+};
 
 // Template OFICIAL do Round of 32 da Copa 2026 (cruzamentos por posição no grupo).
 // t: 'winner'=1º, 'runner'=2º, 'third'=melhor 3º (bolsão de grupos possíveis).
@@ -203,6 +213,16 @@ function setCopaBracketModo(modo) {
   renderCopaBracket();
 }
 
+function setCopaLado(dir) {
+  const ordem = ['A', 'final', 'B'];
+  let i = ordem.indexOf(_copaLado);
+  if (dir === 'next') i = Math.min(ordem.length - 1, i + 1);
+  else if (dir === 'prev') i = Math.max(0, i - 1);
+  else i = ordem.indexOf(dir);
+  _copaLado = ordem[i];
+  renderCopaBracket();
+}
+
 function renderCopaBracket() {
   const el = document.getElementById('copa-bracket');
   if (!el) return;
@@ -210,19 +230,105 @@ function renderCopaBracket() {
   const fixtures = _copaCache.knockout || [];
   const grupos = _copaCache.standings || [];
   const temReais = fixtures.length > 0;
-  // Sem confrontos reais ainda → força projeção.
-  const modo = temReais ? _copaBracketModo : 'projecao';
+  const modo = _copaBracketModo;
 
-  let html = '';
+  // Seletor de modo: Chave (bracket) / Lista / Confrontos reais (se existirem)
+  const btn = (m, txt) => `<button onclick="setCopaBracketModo('${m}')" class="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${modo === m ? 'bg-brand-green text-black' : 'text-text-muted'}">${txt}</button>`;
+  let html = `<div class="flex gap-2 mb-4 bg-card-bg p-1 rounded-xl border border-white/5">${btn('chave', '🗂 Chave')}${btn('lista', '📋 Lista')}${temReais ? btn('reais', '✅ Reais') : ''}</div>`;
 
-  // Toggle Projeção / Confrontos reais (só quando já existem jogos reais)
-  if (temReais) {
-    const btn = (m, txt) => `<button onclick="setCopaBracketModo('${m}')" class="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${modo === m ? 'bg-brand-green text-black' : 'text-text-muted'}">${txt}</button>`;
-    html += `<div class="flex gap-2 mb-4 bg-card-bg p-1 rounded-xl border border-white/5">${btn('projecao', 'Projeção')}${btn('reais', 'Confrontos reais')}</div>`;
+  if (modo === 'reais' && temReais) html += _copaRenderReais(fixtures);
+  else if (modo === 'lista') html += _copaRenderProjecao(grupos);
+  else html += _copaRenderChave(grupos);
+
+  el.innerHTML = html;
+}
+
+// --------- Modo CHAVE (bracket visual com navegação por lado) ---------
+
+function _copaTree(n) {
+  const kids = COPA_FEED[n];
+  if (!kids) return { n, leaf: true };
+  return { n, children: [_copaTree(kids[0]), _copaTree(kids[1])] };
+}
+
+function _copaBoxRow(slot, qualif) {
+  if (slot.team) {
+    return `<div class="bkt-row"><img src="${_copaLogoTime(slot.team)}" onerror="this.style.display='none'"><span>${slot.team.name}</span></div>`;
+  }
+  if (slot.third) {
+    const cand = slot.pool.filter(g => qualif && qualif.has(g));
+    const txt = cand.length ? ('3º ' + cand.join('/')) : '3º lugar';
+    return `<div class="bkt-row"><span class="bkt-ph text-emerald-400/80">${txt}</span></div>`;
+  }
+  return `<div class="bkt-row"><span class="bkt-ph">${slot.label}</span></div>`;
+}
+
+function _copaBracketBox(n, mapa, qualif) {
+  const tpl = COPA_R32_TEMPLATE.find(m => m.n === n);
+  if (tpl) {
+    const A = _copaResolverSlot(tpl.a, mapa), B = _copaResolverSlot(tpl.b, mapa);
+    return `<div class="bkt-match">${_copaBoxRow(A, qualif)}${_copaBoxRow(B, qualif)}</div>`;
+  }
+  const f = COPA_FEED[n] || [];
+  const pre = (n === 103) ? 'Perd.' : 'Venc.';
+  return `<div class="bkt-match bkt-ph-box">
+      <div class="bkt-row"><span class="bkt-ph">${pre} #${f[0] || ''}</span></div>
+      <div class="bkt-row"><span class="bkt-ph">${pre} #${f[1] || ''}</span></div>
+    </div>`;
+}
+
+function _copaRenderNode(node, mapa, qualif) {
+  const box = _copaBracketBox(node.n, mapa, qualif);
+  if (node.leaf) return `<div class="bkt-cell">${box}</div>`;
+  return `<div class="bkt-cell"><div class="bkt-node">
+      <div class="bkt-kids">${_copaRenderNode(node.children[0], mapa, qualif)}${_copaRenderNode(node.children[1], mapa, qualif)}</div>
+      <div class="bkt-conn"></div>
+      ${box}
+    </div></div>`;
+}
+
+function _copaRenderChave(grupos) {
+  const mapa = _copaMapaGrupos(grupos);
+  if (Object.keys(mapa).length === 0) {
+    return '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold">Classificação ainda não disponível pra montar o chaveamento.</div>';
+  }
+  const qualif = _copaMelhores3(grupos).qualifSet;
+
+  const labels = { A: 'Chave Esquerda', final: 'Final', B: 'Chave Direita' };
+  const ordem = ['A', 'final', 'B'];
+  const idx = ordem.indexOf(_copaLado);
+
+  // Navegação por lado (setas + bolinhas)
+  const dots = ordem.map(l => `<span class="w-1.5 h-1.5 rounded-full ${l === _copaLado ? 'bg-brand-green' : 'bg-zinc-700'}"></span>`).join('');
+  let html = `
+    <div class="flex items-center justify-between mb-3">
+      <button onclick="setCopaLado('prev')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg border border-white/5 text-white ${idx === 0 ? 'opacity-30 pointer-events-none' : ''}">‹</button>
+      <div class="flex flex-col items-center gap-1.5">
+        <span class="text-[12px] font-black uppercase tracking-wider text-white">${labels[_copaLado]}</span>
+        <div class="flex items-center gap-1.5">${dots}</div>
+      </div>
+      <button onclick="setCopaLado('next')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg border border-white/5 text-white ${idx === ordem.length - 1 ? 'opacity-30 pointer-events-none' : ''}">›</button>
+    </div>`;
+
+  if (_copaLado === 'final') {
+    html += `<div class="space-y-4 pt-2">
+        <div>
+          <h3 class="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-2 text-center">🏆 Final</h3>
+          ${_copaBracketBox(104, mapa, qualif)}
+        </div>
+        <div>
+          <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 text-center">3º Lugar</h3>
+          ${_copaBracketBox(103, mapa, qualif)}
+        </div>
+        <p class="text-[10px] text-zinc-600 text-center px-4">Os finalistas saem das semifinais (lados Esquerda e Direita).</p>
+      </div>`;
+  } else {
+    const raiz = _copaTree(_copaLado === 'A' ? 101 : 102);
+    html += `<div class="bkt-scroll"><div class="bkt-tree">${_copaRenderNode(raiz, mapa, qualif)}</div></div>
+      <p class="text-[10px] text-zinc-600 text-center px-4 mt-2">Arraste pro lado pra ver o bracket. Use as setas pra trocar de lado / ver a final.</p>`;
   }
 
-  html += (modo === 'reais') ? _copaRenderReais(fixtures) : _copaRenderProjecao(grupos);
-  el.innerHTML = html;
+  return html;
 }
 
 // --------- Modo PROJEÇÃO (parcial, da classificação atual) ---------
