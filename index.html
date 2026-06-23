@@ -631,6 +631,18 @@
         <span class="text-zinc-500 text-[10px] font-black uppercase tracking-widest bg-zinc-800 px-2.5 py-1.5 rounded-xl border border-zinc-700/50">OFF</span>
       </div>
 
+      <!-- Banner Copa (Classificação + Chaveamento) -->
+      <div onclick="switchView('view-copa')" class="bg-card-bg p-5 rounded-2xl border border-white/5 mb-6 transition-all hover:border-white/10 cursor-pointer flex items-center justify-between active:scale-[0.98]">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🏆</span>
+          <div>
+            <h3 class="font-black text-[13px] text-white uppercase tracking-wide">Copa</h3>
+            <p class="text-[10px] text-zinc-300 mt-0.5">Classificação dos grupos e chaveamento do mata-mata.</p>
+          </div>
+        </div>
+        <span class="text-zinc-500 text-[10px] font-black">›</span>
+      </div>
+
       <!-- Container Desafios Ativos do GM -->
       <div id="container-desafios-ativos-gm" class="hidden space-y-3 mb-6">
         <!-- Renderizado dinamicamente -->
@@ -839,6 +851,33 @@
       <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
         <span>📲</span> COMPARTILHAR RANKING
       </button>
+    </div>
+
+    <!-- View: Copa (Classificação dos grupos + Chaveamento) -->
+    <div id="view-copa" class="fade-in hidden p-4 pb-24">
+      <div class="flex items-center justify-between mb-4 mt-2">
+        <div class="flex items-center gap-4">
+          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-xl font-black tracking-tight flex items-center gap-2"><span>🏆</span> Copa</h1>
+        </div>
+        <button onclick="carregarViewCopa(true)" class="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-3 py-2 rounded-xl uppercase tracking-wider active:scale-95">🔄 Atualizar</button>
+      </div>
+
+      <!-- Abas: Grupos x Chaveamento -->
+      <div class="flex gap-2 mb-5 bg-card-bg p-1 rounded-2xl border border-white/5">
+        <button id="copa-tab-grupos" onclick="switchCopaTab('grupos')" class="flex-1 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all bg-brand-green text-black">Grupos</button>
+        <button id="copa-tab-chave" onclick="switchCopaTab('chave')" class="flex-1 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all text-text-muted">Chaveamento</button>
+      </div>
+
+      <div id="copa-pane-grupos">
+        <div id="copa-standings" class="grid grid-cols-1 gap-3"></div>
+      </div>
+
+      <div id="copa-pane-chave" class="hidden">
+        <div id="copa-bracket"></div>
+      </div>
     </div>
 
     <div id="view-painel" class="fade-in hidden">
@@ -1976,10 +2015,11 @@
   <script src="js/auth.js?v=32"></script>
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=33"></script>
-  <script src="js/ui.js?v=37"></script>
+  <script src="js/ui.js?v=38"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=35"></script>
   <script src="js/evento.js?v=42"></script>
+  <script src="js/copa.js?v=1"></script>
 
   <!-- Registro do Service Worker -->
   <script>
