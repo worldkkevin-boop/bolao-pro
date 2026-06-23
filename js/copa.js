@@ -311,13 +311,13 @@ function _copaRenderChave(grupos) {
     </div>`;
 
   if (_copaLado === 'final') {
-    html += `<div class="space-y-4 pt-2">
-        <div>
-          <h3 class="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-2 text-center">🏆 Final</h3>
-          ${_copaBracketBox(104, mapa, qualif)}
+    html += `<div class="flex flex-col items-center gap-5 pt-4">
+        <div class="w-full flex flex-col items-center">
+          <h3 class="text-[12px] font-black uppercase tracking-widest text-amber-400 mb-2">🏆 Final</h3>
+          <div class="bkt-final">${_copaBracketBox(104, mapa, qualif)}</div>
         </div>
-        <div>
-          <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 text-center">3º Lugar</h3>
+        <div class="w-full flex flex-col items-center">
+          <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2">3º Lugar</h3>
           ${_copaBracketBox(103, mapa, qualif)}
         </div>
         <p class="text-[10px] text-zinc-600 text-center px-4">Os finalistas saem das semifinais (lados Esquerda e Direita).</p>
