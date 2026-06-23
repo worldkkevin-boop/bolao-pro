@@ -659,6 +659,112 @@
               </table>
             </div>
           </div>
+
+          <!-- PLACAR DA GALERA POR JOGO (rolando + futuros) -->
+          <div class="glass-panel rounded-3xl p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-6 gap-3">
+              <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                  <span class="text-base">📋</span> Placar da Galera por Jogo
+                </h3>
+                <p class="text-[10px] text-zinc-500 mt-1">Jogos rolando e que vão rolar. Veja o palpite de todo mundo, quem não palpitou, e edite como GM.</p>
+              </div>
+              <button @click="carregarPlacarJogos()" :disabled="placarJogos.loading"
+                      class="shrink-0 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50">
+                <span x-show="!placarJogos.loading" x-text="placarJogos.carregado ? '🔄 Atualizar' : 'Carregar jogos'"></span>
+                <span x-show="placarJogos.loading">Carregando...</span>
+              </button>
+            </div>
+
+            <!-- Loading -->
+            <div x-show="placarJogos.loading" class="py-12 flex flex-col items-center justify-center gap-2">
+              <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Buscando jogos e palpites...</span>
+            </div>
+
+            <!-- Estado inicial -->
+            <template x-if="!placarJogos.carregado && !placarJogos.loading">
+              <p class="py-8 text-center text-zinc-600 text-xs font-medium">Clique em "Carregar jogos" pra ver os palpites da galera.</p>
+            </template>
+
+            <!-- Sem jogos -->
+            <template x-if="placarJogos.carregado && !placarJogos.loading && placarJogos.jogos.length === 0">
+              <p class="py-8 text-center text-zinc-600 text-xs font-medium">Nenhum jogo rolando ou agendado pra essa liga nos próximos 30 dias.</p>
+            </template>
+
+            <!-- Lista de jogos -->
+            <div x-show="placarJogos.carregado && !placarJogos.loading && placarJogos.jogos.length > 0" class="space-y-3">
+              <template x-for="jogo in placarJogos.jogos" :key="jogo.fixture_id">
+                <div class="border border-zinc-800/60 rounded-2xl bg-black/40 overflow-hidden">
+                  <!-- Cabeçalho do jogo (clicável) -->
+                  <button @click="togglePlacarJogo(jogo)" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left">
+                    <span x-show="jogo.aoVivo" class="shrink-0 text-[9px] font-black px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider animate-pulse">● Ao vivo</span>
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                      <img :src="jogo.homeLogo" class="w-5 h-5 object-contain shrink-0" onerror="this.style.display='none'">
+                      <span class="text-sm font-bold text-white truncate" x-text="jogo.home"></span>
+                      <span class="text-xs font-black text-zinc-500 px-1" x-text="jogo.aoVivo && jogo.golsHome !== null ? (jogo.golsHome + 'x' + jogo.golsAway) : 'x'"></span>
+                      <span class="text-sm font-bold text-white truncate" x-text="jogo.away"></span>
+                      <img :src="jogo.awayLogo" class="w-5 h-5 object-contain shrink-0" onerror="this.style.display='none'">
+                    </div>
+                    <div class="shrink-0 text-right">
+                      <span class="block text-[10px] text-zinc-500 font-medium" x-text="new Date(jogo.kickoff).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })"></span>
+                      <span class="text-[10px] font-bold" :class="jogo.semPalpite > 0 ? 'text-amber-400' : 'text-emerald-400'"
+                            x-text="jogo.semPalpite > 0 ? (jogo.semPalpite + ' sem palpite') : 'todos palpitaram'"></span>
+                    </div>
+                    <span class="shrink-0 text-zinc-500 text-xs transition-transform" :class="jogo.aberto ? 'rotate-180' : ''">▼</span>
+                  </button>
+
+                  <!-- Tabela de palpites (expandida) -->
+                  <div x-show="jogo.aberto">
+                    <div class="border-t border-zinc-800/60 overflow-x-auto">
+                      <table class="w-full text-left text-xs">
+                        <thead>
+                          <tr class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-800/40">
+                            <th class="py-2.5 px-4">Jogador</th>
+                            <th class="py-2.5 px-2 text-center">Placar</th>
+                            <th class="py-2.5 px-4 text-right">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <template x-for="linha in jogo.linhas" :key="linha.user_id">
+                            <tr class="border-b border-zinc-800/20 hover:bg-white/[0.02] transition-colors" :class="!linha.palpitou ? 'bg-amber-500/[0.04]' : ''">
+                              <td class="py-2.5 px-4">
+                                <div class="flex items-center gap-2">
+                                  <img :src="linha.avatar || 'https://ui-avatars.com/api/?name=' + (linha.nome || 'U') + '&background=random'" class="w-6 h-6 rounded-full border border-zinc-700 shrink-0">
+                                  <span class="font-bold text-white truncate" x-text="linha.nome"></span>
+                                  <span x-show="!linha.palpitou" class="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase">sem palpite</span>
+                                </div>
+                              </td>
+                              <td class="py-2.5 px-2">
+                                <div class="flex items-center justify-center gap-1.5">
+                                  <input type="number" min="0" x-model="linha._novoHome" placeholder="-"
+                                         class="w-11 bg-black/50 border border-zinc-700 rounded-lg px-1 py-1.5 text-center text-sm text-white font-black focus:border-indigo-500 outline-none">
+                                  <span class="text-zinc-600 font-black">x</span>
+                                  <input type="number" min="0" x-model="linha._novoAway" placeholder="-"
+                                         class="w-11 bg-black/50 border border-zinc-700 rounded-lg px-1 py-1.5 text-center text-sm text-white font-black focus:border-indigo-500 outline-none">
+                                </div>
+                              </td>
+                              <td class="py-2.5 px-4 text-right">
+                                <button @click="salvarPalpiteGM(jogo, linha)"
+                                        :disabled="placarJogos.salvandoKey === (jogo.fixture_id + '_' + linha.user_id)"
+                                        class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all uppercase tracking-wider disabled:opacity-50">
+                                  <span x-show="placarJogos.salvandoKey !== (jogo.fixture_id + '_' + linha.user_id)" x-text="linha.palpitou ? 'Salvar' : 'Criar'"></span>
+                                  <span x-show="placarJogos.salvandoKey === (jogo.fixture_id + '_' + linha.user_id)">...</span>
+                                </button>
+                              </td>
+                            </tr>
+                          </template>
+                          <template x-if="jogo.linhas.length === 0">
+                            <tr><td colspan="3" class="py-6 text-center text-zinc-600 text-[11px]">Grupo sem membros.</td></tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
 
         <!-- =================== DEPARTAMENTO 1: DOSSIÊ =================== -->
@@ -2664,6 +2770,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=43"></script>
+  <script src="/gm/js/admin.js?v=44"></script>
 </body>
 </html>

@@ -87,6 +87,9 @@ function adminApp() {
     // Editor rápido de palpite (Habitantes da Matriz)
     editorPalpite: { aberto: false, membro: null, loading: false, salvandoId: null, palpites: [] },
 
+    // Placar da Galera por Jogo (rolando + futuros)
+    placarJogos: { carregado: false, loading: false, jogos: [], salvandoKey: null },
+
     // Tesouraria
     tesourariaLoading: false,
     transacoesTesouraria: [],
@@ -501,6 +504,7 @@ function adminApp() {
     async carregarMembrosGrupo(grupoId) {
       this.grupoMembrosLoading = true;
       this.grupoSelecionadoMembros = [];
+      this.placarJogos = { carregado: false, loading: false, jogos: [], salvandoKey: null };
 
       try {
         const { data: membros, error } = await sbClient
@@ -618,6 +622,165 @@ function adminApp() {
         showToast('Erro ao salvar palpite: ' + err.message, 'error');
       } finally {
         this.editorPalpite.salvandoId = null;
+      }
+    },
+
+    // ============ PLACAR DA GALERA POR JOGO ============
+
+    async carregarPlacarJogos() {
+      if (!this.grupoSelecionado) return;
+      const grupo = this.grupoSelecionado;
+      this.placarJogos = { carregado: true, loading: true, jogos: [], salvandoKey: null };
+      const t = Date.now();
+      try {
+        // 1. Busca os fixtures da liga do grupo (rolando + futuros, janela de 30 dias)
+        const liga = grupo.league_id || 1;
+        const hoje = new Date();
+        const from = new Date(hoje.getTime() - 2 * 24 * 3600 * 1000).toISOString().split('T')[0];
+        const ate = new Date(hoje.getTime() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+        const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026&from=${from}&to=${ate}`, {
+          headers: {
+            'x-rapidapi-host': 'v3.football.api-sports.io',
+            'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5'
+          }
+        });
+        const json = await resp.json();
+        const ENCERRADOS = ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'];
+        const fixtures = (json.response || [])
+          .filter(j => !ENCERRADOS.includes(j.fixture?.status?.short))
+          .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+        this.adicionarLog('API-Football', `GET /fixtures liga ${liga} (placar galera)`, 'SUCCESS', Date.now() - t, `${fixtures.length} jogos rolando/futuros`);
+
+        // 2. Busca TODOS os palpites do grupo de uma vez
+        const { data: palpites, error } = await sbClient
+          .from('guesses')
+          .select('user_id, match_id, score_home, score_away')
+          .eq('group_id', grupo.id);
+        if (error) throw error;
+
+        const palpitesMap = {}; // `${match_id}_${user_id}` -> palpite
+        (palpites || []).forEach(p => { palpitesMap[`${p.match_id}_${p.user_id}`] = p; });
+
+        // 3. Monta cada jogo com a linha de cada membro
+        const membros = this.grupoSelecionadoMembros || [];
+        const ABERTO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
+        const jogos = fixtures.map(j => {
+          const fid = j.fixture.id;
+          const aoVivo = ABERTO.includes(j.fixture?.status?.short);
+          const linhas = membros.map(m => {
+            const p = palpitesMap[`${fid}_${m.user_id}`];
+            const palpitou = !!p && p.score_home !== null && p.score_away !== null;
+            return {
+              user_id: m.user_id,
+              nome: m.profiles?.full_name || 'Sem nome',
+              avatar: m.profiles?.avatar_url,
+              palpitou,
+              score_home: palpitou ? p.score_home : null,
+              score_away: palpitou ? p.score_away : null,
+              _novoHome: palpitou ? p.score_home : '',
+              _novoAway: palpitou ? p.score_away : ''
+            };
+          });
+          const semPalpite = linhas.filter(l => !l.palpitou).length;
+          return {
+            fixture_id: fid,
+            _raw: j,
+            aoVivo,
+            statusShort: j.fixture?.status?.short,
+            home: j.teams.home.name,
+            away: j.teams.away.name,
+            homeLogo: j.teams.home.logo,
+            awayLogo: j.teams.away.logo,
+            golsHome: j.goals.home,
+            golsAway: j.goals.away,
+            kickoff: j.fixture.date,
+            round: j.league?.round || '',
+            aberto: false,
+            linhas,
+            totalMembros: linhas.length,
+            semPalpite
+          };
+        });
+
+        this.placarJogos.jogos = jogos;
+      } catch (err) {
+        console.error('Erro ao carregar placar da galera:', err);
+        showToast('Erro ao carregar jogos: ' + (err.message || err), 'error');
+        this.adicionarLog('API-Football', 'GET /fixtures (placar galera)', 'ERROR', Date.now() - t, err.message || String(err));
+      } finally {
+        this.placarJogos.loading = false;
+      }
+    },
+
+    togglePlacarJogo(jogo) {
+      jogo.aberto = !jogo.aberto;
+    },
+
+    async salvarPalpiteGM(jogo, linha) {
+      const novoHome = parseInt(linha._novoHome);
+      const novoAway = parseInt(linha._novoAway);
+      if (isNaN(novoHome) || isNaN(novoAway) || novoHome < 0 || novoAway < 0) {
+        showToast('Placar inválido.', 'error');
+        return;
+      }
+      const grupoId = this.grupoSelecionado.id;
+      const key = `${jogo.fixture_id}_${linha.user_id}`;
+      this.placarJogos.salvandoKey = key;
+      const t = Date.now();
+      try {
+        // 1. Garante que o jogo existe na tabela matches (FK do guesses)
+        const j = jogo._raw;
+        const { error: matchError } = await sbClient.from('matches').upsert([{
+          id:           j.fixture.id,
+          league_id:    j.league.id,
+          season:       j.league.season,
+          home_team:    j.teams.home.name,
+          home_team_id: j.teams.home.id,
+          home_logo:    j.teams.home.logo || '',
+          away_team:    j.teams.away.name,
+          away_team_id: j.teams.away.id,
+          away_logo:    j.teams.away.logo || '',
+          kickoff:      j.fixture.date,
+          status:       j.fixture.status.short,
+          score_home:   j.goals.home,
+          score_away:   j.goals.away,
+          round:        j.league.round
+        }], { onConflict: 'id' });
+        if (matchError) throw matchError;
+
+        // 2. Upsert do palpite
+        const { error } = await sbClient
+          .from('guesses')
+          .upsert([{
+            user_id: linha.user_id,
+            group_id: grupoId,
+            match_id: jogo.fixture_id,
+            score_home: novoHome,
+            score_away: novoAway
+          }], { onConflict: 'user_id,group_id,match_id' });
+        if (error) throw error;
+
+        const old = linha.palpitou ? { home: linha.score_home, away: linha.score_away } : null;
+        linha.score_home = novoHome;
+        linha.score_away = novoAway;
+        const eraSemPalpite = !linha.palpitou;
+        linha.palpitou = true;
+        if (eraSemPalpite) jogo.semPalpite = Math.max(0, jogo.semPalpite - 1);
+
+        this.adicionarLog('Supabase', 'UPSERT guesses (placar GM)', 'SUCCESS', Date.now() - t, `${linha.nome}: ${novoHome}x${novoAway} em ${jogo.home} x ${jogo.away}`);
+        await this._registrarAuditoria(eraSemPalpite ? 'CREATE_GUESS' : 'EDIT_GUESS', 'guesses', null, {
+          match_id: jogo.fixture_id,
+          user_id: linha.user_id,
+          jogo: `${jogo.home} x ${jogo.away}`,
+          old,
+          new: { home: novoHome, away: novoAway }
+        });
+        showToast('Palpite salvo!', 'success');
+      } catch (err) {
+        showToast('Erro ao salvar: ' + (err.message || err), 'error');
+      } finally {
+        this.placarJogos.salvandoKey = null;
       }
     },
 
