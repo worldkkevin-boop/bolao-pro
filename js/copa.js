@@ -12,6 +12,32 @@ const COPA_SEASON = 2026;
 // Cache simples por sessão pra não bater na API toda hora.
 let _copaCache = { leagueId: null, standings: null, knockout: null, ts: 0 };
 
+// Modo da aba Chaveamento: 'projecao' (parcial, da classificação) ou 'reais' (fixtures da API).
+let _copaBracketModo = 'projecao';
+
+// Template OFICIAL do Round of 32 da Copa 2026 (cruzamentos por posição no grupo).
+// t: 'winner'=1º, 'runner'=2º, 'third'=melhor 3º (bolsão de grupos possíveis).
+// Fonte: bracket oficial 2026 (Wikipedia/Sky Sports/ESPN). Os 8 jogos sem 3º
+// são projetáveis com exatidão; os com 3º dependem da tabela Annex C (Etapa 2).
+const COPA_R32_TEMPLATE = [
+  { n: 73, a: { t: 'runner', g: 'A' }, b: { t: 'runner', g: 'B' } },
+  { n: 74, a: { t: 'winner', g: 'E' }, b: { t: 'third', pool: ['A', 'B', 'C', 'D', 'F'] } },
+  { n: 75, a: { t: 'winner', g: 'F' }, b: { t: 'runner', g: 'C' } },
+  { n: 76, a: { t: 'winner', g: 'C' }, b: { t: 'runner', g: 'F' } },
+  { n: 77, a: { t: 'winner', g: 'I' }, b: { t: 'third', pool: ['C', 'D', 'F', 'G', 'H'] } },
+  { n: 78, a: { t: 'runner', g: 'E' }, b: { t: 'runner', g: 'I' } },
+  { n: 79, a: { t: 'winner', g: 'A' }, b: { t: 'third', pool: ['C', 'E', 'F', 'H', 'I'] } },
+  { n: 80, a: { t: 'winner', g: 'L' }, b: { t: 'third', pool: ['E', 'H', 'I', 'J', 'K'] } },
+  { n: 81, a: { t: 'winner', g: 'D' }, b: { t: 'third', pool: ['B', 'E', 'F', 'I', 'J'] } },
+  { n: 82, a: { t: 'winner', g: 'G' }, b: { t: 'third', pool: ['A', 'E', 'H', 'I', 'J'] } },
+  { n: 83, a: { t: 'runner', g: 'K' }, b: { t: 'runner', g: 'L' } },
+  { n: 84, a: { t: 'winner', g: 'H' }, b: { t: 'runner', g: 'J' } },
+  { n: 85, a: { t: 'winner', g: 'B' }, b: { t: 'third', pool: ['E', 'F', 'G', 'I', 'J'] } },
+  { n: 86, a: { t: 'winner', g: 'J' }, b: { t: 'runner', g: 'H' } },
+  { n: 87, a: { t: 'winner', g: 'K' }, b: { t: 'third', pool: ['D', 'E', 'I', 'J', 'L'] } },
+  { n: 88, a: { t: 'runner', g: 'D' }, b: { t: 'runner', g: 'G' } }
+];
+
 // Mapa "round da API" -> nome amigável (pt-BR) + ordem do chaveamento.
 const COPA_ROUNDS = [
   { api: 'Round of 32',    nome: '16-avos de Final', slots: 16 },
@@ -68,7 +94,7 @@ async function carregarViewCopa(forcar = false) {
   const cacheValido = !forcar && _copaCache.standings && _copaCache.leagueId === ligaId && (Date.now() - _copaCache.ts < 5 * 60 * 1000);
   if (cacheValido) {
     renderCopaStandings(_copaCache.standings);
-    renderCopaBracket(_copaCache.knockout);
+    renderCopaBracket();
     return;
   }
 
@@ -95,7 +121,7 @@ async function carregarViewCopa(forcar = false) {
     _copaCache = { leagueId: ligaId, standings: grupos, knockout: fixtures, ts: Date.now() };
 
     renderCopaStandings(grupos);
-    renderCopaBracket(fixtures);
+    renderCopaBracket();
   } catch (err) {
     console.error('Erro ao carregar Copa:', err);
     elStandings.innerHTML = '<div class="bg-card-bg p-6 rounded-2xl border border-red-500/20 text-center text-red-400 text-[12px] font-semibold">Erro ao carregar a classificação. Tente atualizar.</div>';
@@ -160,11 +186,109 @@ function renderCopaStandings(grupos) {
   el.innerHTML = html;
 }
 
-function renderCopaBracket(fixtures) {
+function setCopaBracketModo(modo) {
+  _copaBracketModo = modo;
+  renderCopaBracket();
+}
+
+function renderCopaBracket() {
   const el = document.getElementById('copa-bracket');
   if (!el) return;
 
-  // Agrupa os fixtures do mata-mata por round.
+  const fixtures = _copaCache.knockout || [];
+  const grupos = _copaCache.standings || [];
+  const temReais = fixtures.length > 0;
+  // Sem confrontos reais ainda → força projeção.
+  const modo = temReais ? _copaBracketModo : 'projecao';
+
+  let html = '';
+
+  // Toggle Projeção / Confrontos reais (só quando já existem jogos reais)
+  if (temReais) {
+    const btn = (m, txt) => `<button onclick="setCopaBracketModo('${m}')" class="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${modo === m ? 'bg-brand-green text-black' : 'text-text-muted'}">${txt}</button>`;
+    html += `<div class="flex gap-2 mb-4 bg-card-bg p-1 rounded-xl border border-white/5">${btn('projecao', 'Projeção')}${btn('reais', 'Confrontos reais')}</div>`;
+  }
+
+  html += (modo === 'reais') ? _copaRenderReais(fixtures) : _copaRenderProjecao(grupos);
+  el.innerHTML = html;
+}
+
+// --------- Modo PROJEÇÃO (parcial, da classificação atual) ---------
+
+function _copaMapaGrupos(grupos) {
+  const mapa = {};
+  (grupos || []).forEach(g => {
+    if (!g || !g.length) return;
+    const letra = (g[0].group || '').replace(/group/i, '').trim().toUpperCase();
+    if (letra) mapa[letra] = g;
+  });
+  return mapa;
+}
+
+function _copaResolverSlot(slot, mapa) {
+  if (slot.t === 'third') {
+    return { team: null, label: '3º [' + slot.pool.join('/') + ']', sub: 'Melhor 3º lugar' };
+  }
+  const arr = mapa[slot.g] || [];
+  const idx = slot.t === 'winner' ? 0 : 1;
+  const reg = arr[idx] || null;
+  const pos = slot.t === 'winner' ? '1º' : '2º';
+  return { team: reg ? reg.team : null, label: pos + ' Grupo ' + slot.g, sub: pos + ' do Grupo ' + slot.g };
+}
+
+function _copaSlotProjHTML(s, alignRight) {
+  const align = alignRight ? 'justify-end text-right' : '';
+  if (s.team) {
+    const nomeBloco = `<div class="min-w-0 ${alignRight ? 'text-right' : ''}">
+        <span class="block text-[12px] font-bold text-white truncate">${s.team.name}</span>
+        <span class="block text-[9px] text-zinc-500 truncate">${s.sub}</span>
+      </div>`;
+    const img = `<img src="${_copaLogoTime(s.team)}" class="w-5 h-5 rounded-sm object-cover flex-shrink-0" onerror="this.style.display='none'">`;
+    return `<div class="flex items-center gap-2 flex-1 min-w-0 ${align}">${alignRight ? nomeBloco + img : img + nomeBloco}</div>`;
+  }
+  // Sem time definido: mostra só o rótulo (posição ou bolsão de 3º)
+  return `<div class="flex items-center flex-1 min-w-0 ${align}">
+      <span class="text-[11px] font-semibold text-zinc-400 truncate">${s.label}</span>
+    </div>`;
+}
+
+function _copaRenderProjecao(grupos) {
+  const mapa = _copaMapaGrupos(grupos);
+  if (Object.keys(mapa).length === 0) {
+    return '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold">Classificação ainda não disponível pra projetar o chaveamento.</div>';
+  }
+
+  let html = `
+    <div class="bg-indigo-500/[0.07] border border-indigo-500/20 rounded-2xl p-4 mb-4">
+      <p class="text-[12px] text-indigo-300 font-bold">📐 Projeção (parcial)</p>
+      <p class="text-[11px] text-indigo-200/70 mt-1">Confrontos das <b>16-avos</b> montados pela classificação de agora. Muda conforme os grupos mexem. Os jogos contra "melhor 3º lugar" só fecham quando a fase de grupos terminar.</p>
+    </div>
+    <div class="mb-4">
+      <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-green"></span> 16-avos de Final (Round of 32)
+      </h3>`;
+
+  COPA_R32_TEMPLATE.forEach(m => {
+    const A = _copaResolverSlot(m.a, mapa);
+    const B = _copaResolverSlot(m.b, mapa);
+    html += `
+      <div class="bg-card-bg border border-white/5 rounded-xl px-3 py-2.5 mb-2">
+        <div class="flex items-center justify-between gap-2">
+          ${_copaSlotProjHTML(A, false)}
+          <span class="text-[12px] font-black text-zinc-600 px-1 flex-shrink-0">×</span>
+          ${_copaSlotProjHTML(B, true)}
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <p class="text-[10px] text-zinc-600 text-center px-4">As fases seguintes (Oitavas → Final) aparecem quando os confrontos das 16-avos estiverem definidos.</p>`;
+  return html;
+}
+
+// --------- Modo CONFRONTOS REAIS (fixtures da API) ---------
+
+function _copaRenderReais(fixtures) {
   const porRound = {};
   (fixtures || []).forEach(f => {
     const r = (f.league && f.league.round) || '';
@@ -172,43 +296,19 @@ function renderCopaBracket(fixtures) {
     porRound[r].push(f);
   });
 
-  const temAlgum = Object.keys(porRound).length > 0;
-
   let html = '';
-  if (!temAlgum) {
-    html += `
-      <div class="bg-amber-500/[0.06] border border-amber-500/20 rounded-2xl p-4 mb-4">
-        <p class="text-[12px] text-amber-300 font-semibold">⏳ O mata-mata ainda não foi sorteado.</p>
-        <p class="text-[11px] text-amber-200/70 mt-1">Os confrontos aparecem aqui automaticamente quando a fase de grupos terminar.</p>
-      </div>`;
-  }
-
   COPA_ROUNDS.forEach(def => {
     const jogos = porRound[def.api];
-    if (!jogos && temAlgum) return; // se já tem mata-mata, só mostra os rounds existentes
+    if (!jogos) return;
     html += `<div class="mb-4">
       <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-2">
         <span class="w-1.5 h-1.5 rounded-full bg-brand-green"></span> ${def.nome}
       </h3>`;
-
-    if (jogos && jogos.length) {
-      jogos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-      jogos.forEach(j => { html += _copaCardConfronto(j); });
-    } else {
-      // Scaffold: slots "a definir"
-      for (let i = 0; i < def.slots; i++) {
-        html += `
-          <div class="bg-card-bg/50 border border-dashed border-white/10 rounded-xl px-3 py-2.5 mb-2 flex items-center justify-between">
-            <span class="text-[12px] text-zinc-500 font-semibold">A definir</span>
-            <span class="text-[10px] text-zinc-600 font-black">×</span>
-            <span class="text-[12px] text-zinc-500 font-semibold">A definir</span>
-          </div>`;
-      }
-    }
+    jogos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+    jogos.forEach(j => { html += _copaCardConfronto(j); });
     html += '</div>';
   });
-
-  el.innerHTML = html;
+  return html;
 }
 
 function _copaCardConfronto(j) {
