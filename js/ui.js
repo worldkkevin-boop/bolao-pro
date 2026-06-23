@@ -210,17 +210,42 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
     <p class="text-text-muted text-[13px] text-center py-6 animate-pulse">Buscando estatísticas...</p>`;
 
   try {
-    const [statsJson, standJson, oddsJson] = await Promise.all([
-      _estatFetch(`teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`),
+    const [fxJson, standJson, oddsJson] = await Promise.all([
+      _estatFetch(`fixtures?team=${teamId}&last=10`),
       _estatFetch(`standings?league=${leagueId}&season=${season}`),
       _estatFetch(`odds?fixture=${fixtureId}`)
     ]);
 
-    const st = statsJson.response || {};
-    const fx = st.fixtures || {};
-    const gl = st.goals || {};
-    const mediaPro = gl.for?.average?.total ?? '—';
-    const mediaContra = gl.against?.average?.total ?? '—';
+    const FINAL = ['FT', 'AET', 'PEN'];
+    const jogos = (fxJson.response || [])
+      .filter(f => FINAL.includes(f.fixture.status.short))
+      .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))
+      .map(f => {
+        const casa = f.teams.home.id === teamId;
+        const gf = casa ? (f.goals.home ?? 0) : (f.goals.away ?? 0);
+        const ga = casa ? (f.goals.away ?? 0) : (f.goals.home ?? 0);
+        const opp = casa ? f.teams.away : f.teams.home;
+        return { data: f.fixture.date, casa, gf, ga, opp, res: gf > ga ? 'W' : (gf < ga ? 'L' : 'D') };
+      });
+
+    if (jogos.length === 0) {
+      body.innerHTML = `
+        <div class="flex items-center gap-3 mb-4"><img src="${logo}" onerror="this.style.display='none'" class="w-10 h-10 rounded-lg object-cover"><div><h4 class="text-white font-black text-base">${time.name}</h4></div></div>
+        <p class="text-text-muted text-[13px] text-center py-8">Sem jogos recentes pra analisar.</p>`;
+      return;
+    }
+
+    const n = jogos.length;
+    const medGf = jogos.reduce((s, j) => s + j.gf, 0) / n;
+    const medGa = jogos.reduce((s, j) => s + j.ga, 0) / n;
+    // Projeção: média ponderada (jogos recentes pesam mais)
+    let ws = 0, wt = 0; jogos.forEach((j, i) => { ws += j.gf * (i + 1); wt += (i + 1); });
+    const projGf = ws / wt;
+    // Confiança: aproveitamento (V=1, E=0.5) nos últimos jogos
+    const conf = Math.round(jogos.reduce((s, j) => s + (j.res === 'W' ? 1 : (j.res === 'D' ? 0.5 : 0)), 0) / n * 100);
+    const grade = conf >= 66 ? 'A' : (conf >= 45 ? 'B' : 'C');
+    const confCor = conf >= 66 ? 'text-brand-green border-brand-green' : (conf >= 45 ? 'text-amber-400 border-amber-400' : 'text-red-400 border-red-400');
+    const ult5 = jogos.slice(-5);
 
     // Posição / saldo nos standings
     let posBlock = '';
@@ -232,9 +257,9 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
         const grupo = (reg.group || '').replace(/group/i, 'Grupo');
         posBlock = `
           <div class="grid grid-cols-3 gap-2 mb-4">
-            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black text-white">${reg.rank}º</p><p class="text-[9px] text-text-muted uppercase tracking-wider">${grupo || 'Posição'}</p></div>
-            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black text-white">${reg.points}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Pontos</p></div>
-            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black ${reg.goalsDiff >= 0 ? 'text-brand-green' : 'text-red-400'}">${reg.goalsDiff > 0 ? '+' : ''}${reg.goalsDiff}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Saldo</p></div>
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-xl font-black text-white">${reg.rank}º</p><p class="text-[9px] text-text-muted uppercase tracking-wider">${grupo || 'Posição'}</p></div>
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-xl font-black text-white">${reg.points}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Pontos</p></div>
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-xl font-black ${reg.goalsDiff >= 0 ? 'text-brand-green' : 'text-red-400'}">${reg.goalsDiff > 0 ? '+' : ''}${reg.goalsDiff}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Saldo</p></div>
           </div>`;
       }
     }
@@ -249,35 +274,71 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
         const get = v => bet.values.find(x => x.value === v);
         const oh = parseFloat(get('Home')?.odd), od = parseFloat(get('Draw')?.odd), oa = parseFloat(get('Away')?.odd);
         const minOdd = Math.min(oh, od, oa);
-        const minQ = oh === minOdd ? 'Casa' : (oa === minOdd ? 'Fora' : 'Empate');
         const souFav = (ehHome && oh === minOdd) || (!ehHome && oa === minOdd);
+        const minQ = oh === minOdd ? 'Casa' : (oa === minOdd ? 'Fora' : 'Empate');
         oddsBlock = `
-          <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Odds (favorito)</p>
-          <div class="bg-zinc-900/60 rounded-xl p-3 mb-4">
-            <div class="flex items-center justify-between text-center">
-              <div class="flex-1"><p class="text-[10px] text-text-muted">Casa</p><p class="font-black ${oh === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oh) ? '—' : oh.toFixed(2)}</p></div>
-              <div class="flex-1"><p class="text-[10px] text-text-muted">Empate</p><p class="font-black ${od === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(od) ? '—' : od.toFixed(2)}</p></div>
-              <div class="flex-1"><p class="text-[10px] text-text-muted">Fora</p><p class="font-black ${oa === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oa) ? '—' : oa.toFixed(2)}</p></div>
-            </div>
-            <p class="text-[11px] text-center mt-2 font-bold ${souFav ? 'text-brand-green' : 'text-amber-400'}">${souFav ? '✅ ' + time.name + ' é o favorito' : 'Favorito: ' + minQ}</p>
+          <div class="bg-zinc-900/60 rounded-xl p-3 mb-4 flex items-center justify-between">
+            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Casa</p><p class="font-black ${oh === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oh) ? '—' : oh.toFixed(2)}</p></div>
+            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Empate</p><p class="font-black ${od === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(od) ? '—' : od.toFixed(2)}</p></div>
+            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Fora</p><p class="font-black ${oa === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oa) ? '—' : oa.toFixed(2)}</p></div>
+            <div class="text-center flex-1 border-l border-white/10 pl-2"><p class="text-[9px] text-text-muted uppercase">Favorito</p><p class="font-black text-[11px] ${souFav ? 'text-brand-green' : 'text-amber-400'}">${souFav ? time.name.slice(0, 8) : minQ}</p></div>
           </div>`;
       }
     } catch (e) { /* odds podem não existir */ }
 
+    // Gráfico de barras: gols marcados (verde) + sofridos (vermelho) por jogo
+    const maxV = Math.max(1, ...jogos.map(j => Math.max(j.gf, j.ga)));
+    const barras = jogos.map(j => {
+      const flag = (typeof getFlagUrl === 'function' ? getFlagUrl(j.opp.id) : null) || j.opp.logo || '';
+      const dataFmt = new Date(j.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      const hGf = Math.round(j.gf / maxV * 70) + 3;
+      const hGa = Math.round(j.ga / maxV * 70) + 3;
+      return `
+        <div class="flex flex-col items-center gap-1 flex-shrink-0" style="width:40px">
+          <div class="flex items-end gap-0.5" style="height:80px">
+            <div class="flex flex-col items-center justify-end h-full"><span class="text-[9px] font-black text-brand-green leading-none mb-0.5">${j.gf}</span><div class="w-2.5 rounded-t bg-brand-green" style="height:${hGf}px"></div></div>
+            <div class="flex flex-col items-center justify-end h-full"><span class="text-[9px] font-black text-red-400 leading-none mb-0.5">${j.ga}</span><div class="w-2.5 rounded-t bg-red-500/80" style="height:${hGa}px"></div></div>
+          </div>
+          <span class="text-[11px] leading-none">${j.casa ? '🏠' : '✈️'}</span>
+          <img src="${flag}" onerror="this.style.display='none'" class="w-4 h-4 rounded-sm object-cover">
+          <span class="text-[8px] text-text-muted leading-none">${dataFmt}</span>
+        </div>`;
+    }).join('');
+
     body.innerHTML = `
-      <div class="flex items-center gap-3 mb-4">
-        <img src="${logo}" onerror="this.style.display='none'" class="w-10 h-10 rounded-lg object-cover">
-        <div><h4 class="text-white font-black text-base">${time.name}</h4><p class="text-[11px] text-text-muted">${jogo.teams.home.name} x ${jogo.teams.away.name}</p></div>
+      <!-- Header com confiança/grade -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <img src="${logo}" onerror="this.style.display='none'" class="w-11 h-11 rounded-full object-cover border border-white/10">
+          <div class="min-w-0"><h4 class="text-white font-black text-base truncate">${time.name}</h4><p class="text-[11px] text-text-muted truncate">${jogo.teams.home.name} vs ${jogo.teams.away.name}</p></div>
+        </div>
+        <div class="text-center flex-shrink-0">
+          <div class="w-12 h-12 rounded-full border-[3px] ${confCor} flex items-center justify-center font-black text-sm">${conf}%</div>
+          <p class="text-[8px] text-text-muted uppercase tracking-widest mt-0.5">Grade ${grade}</p>
+        </div>
       </div>
+
+      <!-- Projeção / Médias -->
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-[9px] text-text-muted uppercase tracking-wider">Projeção</p><p class="text-xl font-black text-brand-green">${projGf.toFixed(1)}</p></div>
+        <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-[9px] text-text-muted uppercase tracking-wider">Média feitos</p><p class="text-xl font-black text-white">${medGf.toFixed(1)}</p></div>
+        <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-[9px] text-text-muted uppercase tracking-wider">Média levados</p><p class="text-xl font-black text-white">${medGa.toFixed(1)}</p></div>
+      </div>
+
+      <!-- Forma (últimos 5) -->
+      <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Forma (L5)</p>
+      <div class="flex items-center gap-1.5 mb-4">${ult5.map(j => { const c = j.res === 'W' ? 'bg-brand-green text-black' : (j.res === 'L' ? 'bg-red-500 text-white' : 'bg-zinc-600 text-white'); const t = j.res === 'W' ? 'V' : (j.res === 'L' ? 'D' : 'E'); return `<span class="inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-black ${c}">${t}</span>`; }).join('')}</div>
+
+      <!-- Gráfico últimos jogos -->
+      <div class="flex items-center justify-between mb-1">
+        <p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Últimos ${n} jogos</p>
+        <div class="flex items-center gap-3 text-[9px] font-bold"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-brand-green"></span>Feitos</span><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-red-500/80"></span>Levados</span></div>
+      </div>
+      <div class="bg-zinc-900/40 rounded-xl p-3 mb-4 overflow-x-auto"><div class="flex gap-1.5 items-end" style="min-width:max-content">${barras}</div></div>
+
       ${posBlock}
-      <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Forma recente</p>
-      <div class="flex items-center gap-1.5 mb-4">${_estatForma(st.form)}</div>
-      <div class="grid grid-cols-2 gap-2 mb-4">
-        <div class="bg-zinc-900/60 rounded-xl p-3"><p class="text-[10px] text-text-muted uppercase">Jogos</p><p class="text-white font-black">${fx.played?.total ?? 0} <span class="text-[11px] text-text-muted font-normal">(${fx.wins?.total ?? 0}V ${fx.draws?.total ?? 0}E ${fx.loses?.total ?? 0}D)</span></p></div>
-        <div class="bg-zinc-900/60 rounded-xl p-3"><p class="text-[10px] text-text-muted uppercase">Média de gols</p><p class="text-white font-black">${mediaPro} <span class="text-[11px] text-text-muted font-normal">pró / ${mediaContra} contra</span></p></div>
-      </div>
       ${oddsBlock}
-      <p class="text-[10px] text-zinc-600 text-center">Dados oficiais da API-Football · season ${season}</p>`;
+      <p class="text-[10px] text-zinc-600 text-center">🏠 casa · ✈️ fora · dados da API-Football</p>`;
   } catch (err) {
     console.error('Erro ao buscar estatísticas:', err);
     body.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro ao buscar estatísticas. Tente de novo.</p>';
