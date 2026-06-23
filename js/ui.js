@@ -77,6 +77,19 @@ function fecharModal(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
+// Copia a chave PIX de doação (CPF, só dígitos) e agradece.
+function copiarPixDoacao() {
+  const chave = '01749132222';
+  const ok = () => { if (typeof showToast === 'function') showToast('Chave PIX copiada! 🙏 Muito obrigado pelo apoio.', 'success'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(chave).then(ok).catch(() => {
+      prompt('Copie a chave PIX (CPF):', chave);
+    });
+  } else {
+    prompt('Copie a chave PIX (CPF):', chave);
+  }
+}
+
 function switchView(targetViewId) {
   if (targetViewId === 'view-desafios' && typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.desafios_enabled === false) {
     if (typeof showToast === 'function') showToast("Os desafios estão desativados neste grupo pelo Administrador.", "info");
