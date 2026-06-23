@@ -402,6 +402,44 @@ async function atualizarTVAoVivo() {
     .sort((a, b) => (b.pontosConsolidados - a.pontosConsolidados) || (b.acertosExatos - a.acertosExatos))
     .forEach((u, i) => { rankFixoMap[u.id] = i + 1; });
 
+  // Card fixo "Sua posição" (você no meio da galera)
+  const suaPosEl = document.getElementById('tv-sua-posicao');
+  if (suaPosEl) {
+    const meuIdx = (typeof usuarioAtual !== 'undefined' && usuarioAtual)
+      ? rankingSorted.findIndex(u => String(u.id) === String(usuarioAtual.id)) : -1;
+    if (meuIdx >= 0) {
+      const eu = rankingSorted[meuIdx];
+      const minhaPos = meuIdx + 1;
+      const delta = (rankFixoMap[eu.id] || minhaPos) - minhaPos;
+      let setaTxt = '<span class="text-zinc-500 text-[11px] font-bold">—</span>';
+      if (delta > 0) setaTxt = `<span class="text-emerald-400 text-[12px] font-black">▲ ${delta}</span>`;
+      else if (delta < 0) setaTxt = `<span class="text-red-400 text-[12px] font-black">▼ ${Math.abs(delta)}</span>`;
+      const liveTxt = eu.pontosParciaisAoVivo > 0 ? `<span class="text-red-400 text-[10px] font-black ml-1">● +${eu.pontosParciaisAoVivo}</span>` : '';
+      suaPosEl.className = 'mb-3';
+      suaPosEl.innerHTML = `
+        <div class="bg-gradient-to-r from-brand-green/15 to-transparent border border-brand-green/30 rounded-2xl p-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="text-center">
+              <span class="block text-[8px] font-black uppercase tracking-widest text-brand-green/80">Você</span>
+              <span class="block text-xl font-black text-white leading-none">${minhaPos}º</span>
+            </div>
+            <img src="${eu.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(eu.nome) + '&background=10b981&color=fff'}" class="w-9 h-9 rounded-full border border-brand-green/40 object-cover">
+            <div>
+              <p class="text-[13px] font-bold text-white">${eu.nome}</p>
+              <p class="text-[10px] text-text-muted">Movimento: ${setaTxt}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-base font-black text-white font-mono">${eu.totalProvisorio}</span>${liveTxt}
+            <span class="block text-[9px] text-text-muted font-bold uppercase">pts</span>
+          </div>
+        </div>`;
+    } else {
+      suaPosEl.className = 'hidden mb-3';
+      suaPosEl.innerHTML = '';
+    }
+  }
+
   // Remove loaders/mensagens estáticas se houver ranking válido
   const pMsg = rankingContainer.querySelector('p');
   if (pMsg) {
@@ -444,6 +482,14 @@ async function atualizarTVAoVivo() {
       rankClasses.push('text-white/60');
     }
 
+    // Destaca VOCÊ (jogador logado) no meio da galera
+    const ehVoce = (typeof usuarioAtual !== 'undefined' && usuarioAtual && String(user.id) === String(usuarioAtual.id));
+    if (ehVoce) {
+      const bi = cardClasses.indexOf('bg-card-bg'); if (bi >= 0) cardClasses[bi] = 'bg-brand-green/10';
+      const wi = cardClasses.indexOf('border-white/5'); if (wi >= 0) cardClasses[wi] = 'border-brand-green/50';
+    }
+    const voceBadge = ehVoce ? `<span class="tv-voce-badge bg-brand-green text-black text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wide">Você</span>` : '';
+
     const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
     let rowEl = rankingContainer.querySelector(`[data-user-id="${user.id}"]`);
 
@@ -460,6 +506,7 @@ async function atualizarTVAoVivo() {
           <div class="min-w-0">
             <p class="font-bold text-[12px] text-white truncate flex items-center gap-1">
               <span class="tv-nome">${user.nome}</span>
+              <span class="tv-voce-wrap">${voceBadge}</span>
               <span class="tv-admin-badge bg-gold/20 text-gold text-[8px] px-1 rounded font-bold uppercase ${user.isAdmin ? '' : 'hidden'}">ADMIN</span>
             </p>
             <p class="text-[10px] text-text-muted mt-0.5 tv-fixo">Fixo: ${user.pontosConsolidados} pts</p>
@@ -510,6 +557,12 @@ async function atualizarTVAoVivo() {
       const movEl = rowEl.querySelector('.tv-mov-wrap');
       if (movEl && movEl.innerHTML !== movBadge) {
         movEl.innerHTML = movBadge;
+      }
+
+      // Atualiza o selo "Você"
+      const voceEl = rowEl.querySelector('.tv-voce-wrap');
+      if (voceEl && voceEl.innerHTML !== voceBadge) {
+        voceEl.innerHTML = voceBadge;
       }
 
       // Atualiza o nome se necessário
