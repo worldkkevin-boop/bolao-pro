@@ -323,8 +323,9 @@ function _copaRenderChave(grupos) {
         <p class="text-[10px] text-zinc-600 text-center px-4">Os finalistas saem das semifinais (lados Esquerda e Direita).</p>
       </div>`;
   } else {
-    const raiz = _copaTree(_copaLado === 'A' ? 101 : 102);
-    html += `<div class="bkt-scroll"><div class="bkt-tree">${_copaRenderNode(raiz, mapa, qualif)}</div></div>
+    const ladoB = _copaLado === 'B';
+    const raiz = _copaTree(ladoB ? 102 : 101);
+    html += `<div class="bkt-scroll"><div class="bkt-tree ${ladoB ? 'bkt-mirror' : ''}">${_copaRenderNode(raiz, mapa, qualif)}</div></div>
       <p class="text-[10px] text-zinc-600 text-center px-4 mt-2">Arraste pro lado pra ver o bracket. Use as setas pra trocar de lado / ver a final.</p>`;
   }
 
