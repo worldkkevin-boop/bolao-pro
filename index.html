@@ -292,9 +292,9 @@
   <!-- ===================== APP PRINCIPAL ===================== -->
   <div id="screen-app" class="hidden pt-1 px-4 max-w-md mx-auto pb-28">
 
-    <!-- Barra fixa de Apoiador (dias restantes) -->
-    <div id="apoiador-top-bar" class="hidden sticky top-0 z-[60] -mx-4 px-4 mb-2 pt-1" style="padding-top: env(safe-area-inset-top);">
-      <div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black rounded-b-2xl px-4 py-1.5 flex items-center justify-between shadow-lg">
+    <!-- Barra fixa de Apoiador (dias restantes) — fura o padding do topo e cobre a safe-area -->
+    <div id="apoiador-top-bar" class="hidden sticky top-0 z-[60] -mx-4 mb-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-lg" style="margin-top: calc(-12px - env(safe-area-inset-top)); padding-top: calc(12px + env(safe-area-inset-top));">
+      <div class="px-4 py-1.5 flex items-center justify-between">
         <span class="text-[12px] font-black flex items-center gap-1.5">💛 Apoiador <span id="apoiador-bar-dias" class="font-bold"></span></span>
         <button onclick="abrirDoacao()" class="text-[10px] font-black uppercase tracking-wide bg-black/15 px-2 py-0.5 rounded-lg active:scale-95">Renovar</button>
       </div>
