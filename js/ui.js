@@ -94,6 +94,131 @@ function atualizarSeloApoiadorConfig() {
   if (el) el.classList.toggle('hidden', !(usuarioAtual && usuarioAtual.apoiador));
 }
 
+// ===== Estatísticas do time (perk de Apoiador) — aba Jogos =====
+function _estatFetch(path) {
+  return fetch(`https://v3.football.api-sports.io/${path}`, {
+    headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+  }).then(r => r.json());
+}
+
+function _estatForma(formaStr) {
+  if (!formaStr) return '<span class="text-text-muted text-[11px]">—</span>';
+  const ult = formaStr.slice(-5).split('');
+  return ult.map(r => {
+    const cor = r === 'W' ? 'bg-brand-green text-black' : (r === 'L' ? 'bg-red-500 text-white' : 'bg-zinc-600 text-white');
+    const txt = r === 'W' ? 'V' : (r === 'L' ? 'D' : 'E');
+    return `<span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-black ${cor}">${txt}</span>`;
+  }).join(' ');
+}
+
+async function abrirEstatisticasTime(fixtureId, teamId) {
+  const jogo = (typeof todosOsJogos !== 'undefined') ? todosOsJogos.find(j => j.fixture.id === fixtureId) : null;
+  if (!jogo) { if (typeof showToast === 'function') showToast('Jogo não encontrado.', 'error'); return; }
+
+  abrirModal('modal-estat');
+  const body = document.getElementById('estat-body');
+  if (!body) return;
+
+  // Gate: exclusivo de apoiador
+  if (!(usuarioAtual && usuarioAtual.apoiador)) {
+    body.innerHTML = `
+      <div class="text-center py-4">
+        <div class="text-4xl mb-3">📊💛</div>
+        <h4 class="text-white font-black text-base mb-2">Estatísticas é um perk de Apoiador</h4>
+        <p class="text-[13px] text-text-muted mb-5 leading-relaxed">Veja forma recente, posição no campeonato, saldo e média de gols e quem é favorito nas odds — direto da API oficial.</p>
+        <button onclick="fecharModal('modal-estat'); abrirDoacao();" class="w-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black py-3 rounded-xl text-sm uppercase tracking-wider active:scale-95">💛 Virar Apoiador</button>
+      </div>`;
+    return;
+  }
+
+  const ehHome = teamId === jogo.teams.home.id;
+  const time = ehHome ? jogo.teams.home : jogo.teams.away;
+  const leagueId = jogo.league.id;
+  const season = jogo.league.season || 2026;
+  const logo = (typeof getFlagUrl === 'function' ? getFlagUrl(time.id) : null) || time.logo || '';
+
+  body.innerHTML = `
+    <div class="flex items-center gap-3 mb-4">
+      <img src="${logo}" onerror="this.style.display='none'" class="w-10 h-10 rounded-lg object-cover">
+      <div><h4 class="text-white font-black text-base">${time.name}</h4><p class="text-[11px] text-text-muted">${jogo.teams.home.name} x ${jogo.teams.away.name}</p></div>
+    </div>
+    <p class="text-text-muted text-[13px] text-center py-6 animate-pulse">Buscando estatísticas...</p>`;
+
+  try {
+    const [statsJson, standJson, oddsJson] = await Promise.all([
+      _estatFetch(`teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`),
+      _estatFetch(`standings?league=${leagueId}&season=${season}`),
+      _estatFetch(`odds?fixture=${fixtureId}`)
+    ]);
+
+    const st = statsJson.response || {};
+    const fx = st.fixtures || {};
+    const gl = st.goals || {};
+    const mediaPro = gl.for?.average?.total ?? '—';
+    const mediaContra = gl.against?.average?.total ?? '—';
+
+    // Posição / saldo nos standings
+    let posBlock = '';
+    const liga = standJson.response && standJson.response[0] && standJson.response[0].league;
+    if (liga && Array.isArray(liga.standings)) {
+      let reg = null;
+      liga.standings.forEach(g => { const f = (g || []).find(r => r.team.id === teamId); if (f) reg = f; });
+      if (reg) {
+        const grupo = (reg.group || '').replace(/group/i, 'Grupo');
+        posBlock = `
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black text-white">${reg.rank}º</p><p class="text-[9px] text-text-muted uppercase tracking-wider">${grupo || 'Posição'}</p></div>
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black text-white">${reg.points}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Pontos</p></div>
+            <div class="bg-zinc-900/60 rounded-xl p-3 text-center"><p class="text-2xl font-black ${reg.goalsDiff >= 0 ? 'text-brand-green' : 'text-red-400'}">${reg.goalsDiff > 0 ? '+' : ''}${reg.goalsDiff}</p><p class="text-[9px] text-text-muted uppercase tracking-wider">Saldo</p></div>
+          </div>`;
+      }
+    }
+
+    // Favorito nas odds (Match Winner)
+    let oddsBlock = '';
+    try {
+      const resp = oddsJson.response && oddsJson.response[0];
+      const bm = resp && resp.bookmakers && resp.bookmakers[0];
+      const bet = bm && bm.bets && bm.bets.find(b => b.name === 'Match Winner');
+      if (bet) {
+        const get = v => bet.values.find(x => x.value === v);
+        const oh = parseFloat(get('Home')?.odd), od = parseFloat(get('Draw')?.odd), oa = parseFloat(get('Away')?.odd);
+        const minOdd = Math.min(oh, od, oa);
+        const minQ = oh === minOdd ? 'Casa' : (oa === minOdd ? 'Fora' : 'Empate');
+        const souFav = (ehHome && oh === minOdd) || (!ehHome && oa === minOdd);
+        oddsBlock = `
+          <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Odds (favorito)</p>
+          <div class="bg-zinc-900/60 rounded-xl p-3 mb-4">
+            <div class="flex items-center justify-between text-center">
+              <div class="flex-1"><p class="text-[10px] text-text-muted">Casa</p><p class="font-black ${oh === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oh) ? '—' : oh.toFixed(2)}</p></div>
+              <div class="flex-1"><p class="text-[10px] text-text-muted">Empate</p><p class="font-black ${od === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(od) ? '—' : od.toFixed(2)}</p></div>
+              <div class="flex-1"><p class="text-[10px] text-text-muted">Fora</p><p class="font-black ${oa === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oa) ? '—' : oa.toFixed(2)}</p></div>
+            </div>
+            <p class="text-[11px] text-center mt-2 font-bold ${souFav ? 'text-brand-green' : 'text-amber-400'}">${souFav ? '✅ ' + time.name + ' é o favorito' : 'Favorito: ' + minQ}</p>
+          </div>`;
+      }
+    } catch (e) { /* odds podem não existir */ }
+
+    body.innerHTML = `
+      <div class="flex items-center gap-3 mb-4">
+        <img src="${logo}" onerror="this.style.display='none'" class="w-10 h-10 rounded-lg object-cover">
+        <div><h4 class="text-white font-black text-base">${time.name}</h4><p class="text-[11px] text-text-muted">${jogo.teams.home.name} x ${jogo.teams.away.name}</p></div>
+      </div>
+      ${posBlock}
+      <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Forma recente</p>
+      <div class="flex items-center gap-1.5 mb-4">${_estatForma(st.form)}</div>
+      <div class="grid grid-cols-2 gap-2 mb-4">
+        <div class="bg-zinc-900/60 rounded-xl p-3"><p class="text-[10px] text-text-muted uppercase">Jogos</p><p class="text-white font-black">${fx.played?.total ?? 0} <span class="text-[11px] text-text-muted font-normal">(${fx.wins?.total ?? 0}V ${fx.draws?.total ?? 0}E ${fx.loses?.total ?? 0}D)</span></p></div>
+        <div class="bg-zinc-900/60 rounded-xl p-3"><p class="text-[10px] text-text-muted uppercase">Média de gols</p><p class="text-white font-black">${mediaPro} <span class="text-[11px] text-text-muted font-normal">pró / ${mediaContra} contra</span></p></div>
+      </div>
+      ${oddsBlock}
+      <p class="text-[10px] text-zinc-600 text-center">Dados oficiais da API-Football · season ${season}</p>`;
+  } catch (err) {
+    console.error('Erro ao buscar estatísticas:', err);
+    body.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro ao buscar estatísticas. Tente de novo.</p>';
+  }
+}
+
 // Mural de Apoiadores (tela inicial) — lista quem tem profiles.apoiador = true.
 async function abrirMural() {
   abrirModal('modal-mural');
@@ -537,21 +662,23 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       <div id="card-jogo-${id}" onclick="abrirTelaPalpite(${id})" class="app-card bg-card-bg w-full p-4 border ${cardBorderClass} ${cardBgClass} ${cardOpacityClass} mb-4 transition-all cursor-pointer hover:border-brand-green/30">
         <div class="text-text-muted text-xs font-semibold tracking-wide mb-4">${data}</div>
         <div class="flex items-center justify-between">
-          <div class="flex flex-col items-center w-1/3">
+          <div onclick="event.stopPropagation(); abrirEstatisticasTime(${id}, ${jogo.teams.home.id})" class="flex flex-col items-center w-1/3 cursor-pointer group">
             <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
               <img src="${homeLogo}" onerror="this.onerror=null; this.src='${homeFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${homeNome}</span>
+            <span class="text-[9px] text-text-muted mt-0.5 group-hover:text-brand-green transition-colors">📊 Stats</span>
             ${homeZebra ? zebraBadge : ''}
           </div>
           <div class="w-1/3 flex flex-col items-center justify-center min-h-[60px]">
             ${centerHtml}
           </div>
-          <div class="flex flex-col items-center w-1/3">
+          <div onclick="event.stopPropagation(); abrirEstatisticasTime(${id}, ${jogo.teams.away.id})" class="flex flex-col items-center w-1/3 cursor-pointer group">
             <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
               <img src="${awayLogo}" onerror="this.onerror=null; this.src='${awayFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${awayNome}</span>
+            <span class="text-[9px] text-text-muted mt-0.5 group-hover:text-brand-green transition-colors">📊 Stats</span>
             ${awayZebra ? zebraBadge : ''}
           </div>
         </div>

@@ -1665,6 +1665,21 @@
       </div>
     </div>
 
+    <!-- ================= MODAL ESTATÍSTICAS DO TIME (perk apoiador) ================= -->
+    <div id="modal-estat" class="hidden fixed inset-0 bg-black/75 z-[10000] flex items-end justify-center backdrop-blur-sm" onclick="fecharModal('modal-estat')">
+      <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-white/5 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-black uppercase tracking-tight flex items-center gap-2"><span>📊</span> Estatísticas</h3>
+          <button onclick="fecharModal('modal-estat')" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div id="estat-body">
+          <p class="text-text-muted text-[13px] text-center py-6">Carregando...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= MODAL EDITOR DE REGRAS V2 (RISCO X RETORNO) ================= -->
     <div id="modal-regras-pontuacao" class="fixed inset-0 bg-[#09090b] z-[6000] hidden flex-col animate-fade-in">
       <!-- Cabeçalho -->
@@ -2162,7 +2177,7 @@
   <script src="js/auth.js?v=33"></script>
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=34"></script>
-  <script src="js/ui.js?v=43"></script>
+  <script src="js/ui.js?v=44"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=40"></script>
   <script src="js/evento.js?v=42"></script>
