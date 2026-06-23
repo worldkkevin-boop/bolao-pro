@@ -10,7 +10,8 @@ let tvDados = {
 let tvUltimoEstadoJogos = null;
 
 // Classificação (posição no grupo) — cache por liga, 5 min.
-let tvStandings = { leagueId: null, mapa: {}, ts: 0 };
+// mapa = oficial (rank/grupo); grupos = dados crus (pra recalcular ao vivo); liveMapa = posição recalculada com o placar rolando.
+let tvStandings = { leagueId: null, mapa: {}, grupos: [], liveMapa: {}, ts: 0 };
 
 async function _tvCarregarStandings(leagueId) {
   // Reusa cache recente da mesma liga.
@@ -23,16 +24,18 @@ async function _tvCarregarStandings(leagueId) {
     });
     const json = await resp.json();
     const mapa = {};
+    let grupos = [];
     const liga = json.response && json.response[0] && json.response[0].league;
     if (liga && Array.isArray(liga.standings)) {
-      liga.standings.forEach(grupo => {
+      grupos = liga.standings;
+      grupos.forEach(grupo => {
         (grupo || []).forEach(reg => {
           const letra = (reg.group || '').replace(/group/i, '').trim().toUpperCase();
           mapa[reg.team.id] = { rank: reg.rank, grupo: letra };
         });
       });
     }
-    tvStandings = { leagueId, mapa, ts: Date.now() };
+    tvStandings = { leagueId, mapa, grupos, liveMapa: {}, ts: Date.now() };
     return mapa;
   } catch (e) {
     console.error('[TV] Erro ao buscar classificação:', e);
@@ -40,11 +43,50 @@ async function _tvCarregarStandings(leagueId) {
   }
 }
 
+// Recalcula a posição no grupo somando o placar dos jogos que estão rolando.
+function _tvCalcPosLive(jogosAtivos) {
+  const liveMapa = {};
+  (tvStandings.grupos || []).forEach(grupo => {
+    if (!grupo || !grupo.length) return;
+    const letra = (grupo[0].group || '').replace(/group/i, '').trim().toUpperCase();
+    const work = grupo.map(reg => ({
+      id: reg.team.id,
+      pts: reg.points,
+      gd: reg.goalsDiff,
+      gf: (reg.all && reg.all.goals && reg.all.goals.for) || 0,
+      oficialRank: reg.rank,
+      live: false
+    }));
+    const byId = {};
+    work.forEach(w => { byId[w.id] = w; });
+
+    (jogosAtivos || []).forEach(j => {
+      const h = byId[j.teams.home.id], a = byId[j.teams.away.id];
+      if (!h || !a) return; // jogo não é desse grupo
+      const gh = j.goals.home ?? 0, ga = j.goals.away ?? 0;
+      h.gf += gh; a.gf += ga;
+      h.gd += (gh - ga); a.gd += (ga - gh);
+      if (gh > ga) h.pts += 3; else if (ga > gh) a.pts += 3; else { h.pts += 1; a.pts += 1; }
+      h.live = true; a.live = true;
+    });
+
+    work.sort((x, y) => (y.pts - x.pts) || (y.gd - x.gd) || (y.gf - x.gf));
+    work.forEach((w, i) => {
+      liveMapa[w.id] = { rank: i + 1, grupo: letra, delta: (w.oficialRank - (i + 1)), live: w.live };
+    });
+  });
+  tvStandings.liveMapa = liveMapa;
+  return liveMapa;
+}
+
 function _tvPosChip(teamId) {
-  const p = tvStandings.mapa[teamId];
+  const p = tvStandings.liveMapa[teamId] || tvStandings.mapa[teamId];
   if (!p || !p.rank) return '';
-  const label = p.grupo ? ('Grupo ' + p.grupo + ' · ' + p.rank + 'º') : (p.rank + 'º');
-  return `<span class="block text-[9px] text-zinc-400 font-semibold truncate mt-0.5">${label}</span>`;
+  const base = p.grupo ? ('Grupo ' + p.grupo + ' · ' + p.rank + 'º') : (p.rank + 'º');
+  let seta = '';
+  if (p.delta > 0) seta = ` <span class="text-emerald-400 font-black">▲${p.delta}</span>`;
+  else if (p.delta < 0) seta = ` <span class="text-red-400 font-black">▼${Math.abs(p.delta)}</span>`;
+  return `<span class="block text-[9px] text-zinc-400 font-semibold truncate mt-0.5">${base}${seta}</span>`;
 }
 
 async function abrirTVAoVivo() {
@@ -204,6 +246,7 @@ async function atualizarTVAoVivo() {
 
   // Classificação (posição no grupo) das seleções — pra exibir no card ao vivo
   await _tvCarregarStandings(leagueId);
+  _tvCalcPosLive(jogosAtivosGrupo); // recalcula a posição com o placar que está rolando
 
   // Mapa de zebras do grupo (time com <15% dos palpites de vitória)
   const zebrasTV = calcularZebrasTV();
@@ -352,6 +395,13 @@ async function atualizarTVAoVivo() {
     return b.acertosExatos - a.acertosExatos;
   });
 
+  // Rank FIXO (sem os pontos ao vivo) — pra saber quem subiu/desceu com os jogos rolando
+  const rankFixoMap = {};
+  Object.values(scoresProvisorios)
+    .slice()
+    .sort((a, b) => (b.pontosConsolidados - a.pontosConsolidados) || (b.acertosExatos - a.acertosExatos))
+    .forEach((u, i) => { rankFixoMap[u.id] = i + 1; });
+
   // Remove loaders/mensagens estáticas se houver ranking válido
   const pMsg = rankingContainer.querySelector('p');
   if (pMsg) {
@@ -364,6 +414,18 @@ async function atualizarTVAoVivo() {
     let cardClasses = ['bg-card-bg', 'p-3.5', 'flex', 'items-center', 'justify-between', 'relative', 'overflow-hidden', 'border', 'rounded-2xl', 'transition-all'];
     let rankClasses = ['w-5', 'text-center', 'font-black'];
     let glowBgClass = '';
+
+    // Movimento no ranking (posição fixa -> provisória): + subiu, - desceu
+    const deltaPos = (rankFixoMap[user.id] || posicao) - posicao;
+    let movBadge = '';
+    if (deltaPos > 0) {
+      cardClasses.push(deltaPos >= 3 ? 'tv-rank-up-strong' : 'tv-rank-up');
+      movBadge = `<span class="tv-mov text-emerald-400 text-[10px] font-black leading-none flex flex-col items-center">▲<span class="text-[9px]">${deltaPos}</span></span>`;
+    } else if (deltaPos < 0) {
+      const d = Math.abs(deltaPos);
+      cardClasses.push(d >= 3 ? 'tv-rank-down-strong' : 'tv-rank-down');
+      movBadge = `<span class="tv-mov text-red-400 text-[10px] font-black leading-none flex flex-col items-center">▼<span class="text-[9px]">${d}</span></span>`;
+    }
 
     if (posicao === 1) {
       cardClasses.push('border-gold/30', 'glow-gold');
@@ -393,6 +455,7 @@ async function atualizarTVAoVivo() {
         <div class="tv-glow-bar absolute left-0 top-0 bottom-0 w-1 ${glowBgClass}"></div>
         <div class="flex items-center gap-3 pl-1.5">
           <span class="${rankClasses.join(' ')} tv-posicao">${posicao}º</span>
+          <span class="tv-mov-wrap w-3 flex items-center justify-center">${movBadge}</span>
           <img src="${fotoUrl}" class="tv-avatar w-8 h-8 rounded-full border border-white/10 object-cover flex-shrink-0">
           <div class="min-w-0">
             <p class="font-bold text-[12px] text-white truncate flex items-center gap-1">
@@ -441,6 +504,12 @@ async function atualizarTVAoVivo() {
         if (posEl.className !== expectedPosClass) {
           posEl.className = expectedPosClass;
         }
+      }
+
+      // Atualiza o indicador de movimento (subiu/desceu)
+      const movEl = rowEl.querySelector('.tv-mov-wrap');
+      if (movEl && movEl.innerHTML !== movBadge) {
+        movEl.innerHTML = movBadge;
       }
 
       // Atualiza o nome se necessário

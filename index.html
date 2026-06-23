@@ -85,6 +85,20 @@
     .glow-gold { box-shadow: 0 0 15px rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); }
     .btn-circle:active { transform: scale(0.90); }
 
+    /* ====== Movimento no Ranking Ao Vivo (subiu/desceu) ====== */
+    .tv-rank-up   { box-shadow: inset 0 0 0 1.5px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.25); }
+    .tv-rank-down { box-shadow: inset 0 0 0 1.5px rgba(239,68,68,0.7), 0 0 12px rgba(239,68,68,0.25); }
+    .tv-rank-up-strong   { animation: tvPulseUp 1s ease-in-out infinite; }
+    .tv-rank-down-strong { animation: tvPulseDown 1s ease-in-out infinite; }
+    @keyframes tvPulseUp {
+      0%,100% { box-shadow: inset 0 0 0 1.5px rgba(16,185,129,0.6), 0 0 6px rgba(16,185,129,0.25); }
+      50%     { box-shadow: inset 0 0 0 2px rgba(16,185,129,1), 0 0 22px rgba(16,185,129,0.7); }
+    }
+    @keyframes tvPulseDown {
+      0%,100% { box-shadow: inset 0 0 0 1.5px rgba(239,68,68,0.6), 0 0 6px rgba(239,68,68,0.25); }
+      50%     { box-shadow: inset 0 0 0 2px rgba(239,68,68,1), 0 0 22px rgba(239,68,68,0.7); }
+    }
+
     #icone-grupo-header {
       width: 64px;
       height: 64px;
@@ -2017,7 +2031,7 @@
   <script src="js/groups.js?v=33"></script>
   <script src="js/ui.js?v=38"></script>
   <script src="js/gm.js?v=32"></script>
-  <script src="js/aovivo.js?v=36"></script>
+  <script src="js/aovivo.js?v=37"></script>
   <script src="js/evento.js?v=42"></script>
   <script src="js/copa.js?v=3"></script>
 
