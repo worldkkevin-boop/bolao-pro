@@ -94,6 +94,46 @@ function atualizarSeloApoiadorConfig() {
   if (el) el.classList.toggle('hidden', !(usuarioAtual && usuarioAtual.apoiador));
 }
 
+// Mural de Apoiadores (tela inicial) — lista quem tem profiles.apoiador = true.
+async function abrirMural() {
+  abrirModal('modal-mural');
+  const lista = document.getElementById('mural-lista');
+  if (!lista) return;
+  lista.innerHTML = '<p class="text-text-muted text-[13px] text-center py-6 animate-pulse">Carregando...</p>';
+  try {
+    const { data, error } = await sbClient
+      .from('profiles')
+      .select('full_name, avatar_url, apoiador_desde')
+      .eq('apoiador', true)
+      .order('apoiador_desde', { ascending: true });
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      lista.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Seja o primeiro apoiador! 💛</p>';
+      return;
+    }
+
+    lista.innerHTML = data.map((p, i) => {
+      const nome = p.full_name || 'Apoiador';
+      const foto = p.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=f59e0b&color=000';
+      const desde = p.apoiador_desde
+        ? new Date(p.apoiador_desde).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+        : '';
+      return `
+        <div class="flex items-center gap-3 bg-gradient-to-r from-amber-400/[0.06] to-transparent border border-amber-400/15 rounded-xl p-2.5">
+          <img src="${foto}" class="w-9 h-9 rounded-full object-cover ring-2 ring-amber-400/60 flex-shrink-0">
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-bold text-white truncate">${nome} 💛</p>
+            ${desde ? `<p class="text-[10px] text-text-muted">apoiador desde ${desde}</p>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('Erro ao carregar mural:', err);
+    lista.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro ao carregar o mural.</p>';
+  }
+}
+
 function switchView(targetViewId) {
   if (targetViewId === 'view-desafios' && typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.desafios_enabled === false) {
     if (typeof showToast === 'function') showToast("Os desafios estão desativados neste grupo pelo Administrador.", "info");
@@ -1057,6 +1097,10 @@ async function exibirRankingSelecionado() {
       const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
       const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
       const apoiadorBadge = user.apoiador ? '<span title="Apoiador do app" class="ml-1">💛</span>' : '';
+      // Visual dourado pro apoiador (sem encostar nas bordas de medalha do top 3)
+      if (user.apoiador && posicao > 3) borderGold = 'border-amber-400/40';
+      const ringApoiador = user.apoiador ? 'ring-2 ring-amber-400/70' : '';
+      const nomeCor = user.apoiador ? 'text-amber-300' : 'text-white';
 
       rankHtml += `
         <div ${rowStyle} onclick="abrirHistoricoUsuario('${user.id}', '${user.nome.replace(/'/g,"\\'")}', '${fotoUrl}')" class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3 cursor-pointer hover:bg-card-hover hover:border-brand-green/30 active:scale-[0.99] transition-all">
@@ -1064,11 +1108,11 @@ async function exibirRankingSelecionado() {
           <div class="flex items-center gap-4 pl-2">
             <div class="w-6 flex flex-col items-center"><span class="${medalhaClass}">${badgePosicao}</span></div>
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a35]">
+              <div class="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a35] ${ringApoiador}">
                 <img src="${fotoUrl}" class="w-full h-full object-cover">
               </div>
               <div>
-                <h3 class="font-bold text-[14px] text-white">${user.nome}${apoiadorBadge} ${adminBadge}</h3>
+                <h3 class="font-bold text-[14px] ${nomeCor}">${user.nome}${apoiadorBadge} ${adminBadge}</h3>
                 <p class="text-[10px] text-text-muted mt-0.5">${user.acertosExatos} placares exatos</p>
               </div>
             </div>

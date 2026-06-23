@@ -491,6 +491,7 @@ async function atualizarTVAoVivo() {
     }
     const voceBadge = ehVoce ? `<span class="tv-voce-badge bg-brand-green text-black text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wide">Você</span>` : '';
     const apoiadorBadge = user.apoiador ? '💛' : '';
+    const ringApo = user.apoiador ? 'ring-2 ring-amber-400/70' : '';
 
     const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
     let rowEl = rankingContainer.querySelector(`[data-user-id="${user.id}"]`);
@@ -504,7 +505,7 @@ async function atualizarTVAoVivo() {
         <div class="flex items-center gap-3 pl-1.5">
           <span class="${rankClasses.join(' ')} tv-posicao">${posicao}º</span>
           <span class="tv-mov-wrap w-3 flex items-center justify-center">${movBadge}</span>
-          <img src="${fotoUrl}" class="tv-avatar w-8 h-8 rounded-full border border-white/10 object-cover flex-shrink-0">
+          <img src="${fotoUrl}" class="tv-avatar w-8 h-8 rounded-full border border-white/10 object-cover flex-shrink-0 ${ringApo}">
           <div class="min-w-0">
             <p class="font-bold text-[12px] text-white truncate flex items-center gap-1">
               <span class="tv-nome">${user.nome}</span>
@@ -584,6 +585,10 @@ async function atualizarTVAoVivo() {
       const avatarEl = rowEl.querySelector('.tv-avatar');
       if (avatarEl && avatarEl.getAttribute('src') !== fotoUrl) {
         avatarEl.setAttribute('src', fotoUrl);
+      }
+      if (avatarEl) {
+        avatarEl.classList.toggle('ring-2', !!user.apoiador);
+        avatarEl.classList.toggle('ring-amber-400/70', !!user.apoiador);
       }
 
       // Atualiza badge de ADMIN
