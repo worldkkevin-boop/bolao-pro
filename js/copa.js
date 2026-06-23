@@ -19,23 +19,24 @@ let _copaBracketModo = 'projecao';
 // t: 'winner'=1º, 'runner'=2º, 'third'=melhor 3º (bolsão de grupos possíveis).
 // Fonte: bracket oficial 2026 (Wikipedia/Sky Sports/ESPN). Os 8 jogos sem 3º
 // são projetáveis com exatidão; os com 3º dependem da tabela Annex C (Etapa 2).
+// kickoff em UTC (ET + 4h; em jun/jul o leste dos EUA é UTC-4). Exibido em horário de Brasília.
 const COPA_R32_TEMPLATE = [
-  { n: 73, a: { t: 'runner', g: 'A' }, b: { t: 'runner', g: 'B' } },
-  { n: 74, a: { t: 'winner', g: 'E' }, b: { t: 'third', pool: ['A', 'B', 'C', 'D', 'F'] } },
-  { n: 75, a: { t: 'winner', g: 'F' }, b: { t: 'runner', g: 'C' } },
-  { n: 76, a: { t: 'winner', g: 'C' }, b: { t: 'runner', g: 'F' } },
-  { n: 77, a: { t: 'winner', g: 'I' }, b: { t: 'third', pool: ['C', 'D', 'F', 'G', 'H'] } },
-  { n: 78, a: { t: 'runner', g: 'E' }, b: { t: 'runner', g: 'I' } },
-  { n: 79, a: { t: 'winner', g: 'A' }, b: { t: 'third', pool: ['C', 'E', 'F', 'H', 'I'] } },
-  { n: 80, a: { t: 'winner', g: 'L' }, b: { t: 'third', pool: ['E', 'H', 'I', 'J', 'K'] } },
-  { n: 81, a: { t: 'winner', g: 'D' }, b: { t: 'third', pool: ['B', 'E', 'F', 'I', 'J'] } },
-  { n: 82, a: { t: 'winner', g: 'G' }, b: { t: 'third', pool: ['A', 'E', 'H', 'I', 'J'] } },
-  { n: 83, a: { t: 'runner', g: 'K' }, b: { t: 'runner', g: 'L' } },
-  { n: 84, a: { t: 'winner', g: 'H' }, b: { t: 'runner', g: 'J' } },
-  { n: 85, a: { t: 'winner', g: 'B' }, b: { t: 'third', pool: ['E', 'F', 'G', 'I', 'J'] } },
-  { n: 86, a: { t: 'winner', g: 'J' }, b: { t: 'runner', g: 'H' } },
-  { n: 87, a: { t: 'winner', g: 'K' }, b: { t: 'third', pool: ['D', 'E', 'I', 'J', 'L'] } },
-  { n: 88, a: { t: 'runner', g: 'D' }, b: { t: 'runner', g: 'G' } }
+  { n: 73, a: { t: 'runner', g: 'A' }, b: { t: 'runner', g: 'B' }, kickoff: '2026-06-28T19:00:00Z' },
+  { n: 74, a: { t: 'winner', g: 'E' }, b: { t: 'third', pool: ['A', 'B', 'C', 'D', 'F'] }, kickoff: '2026-06-29T20:30:00Z' },
+  { n: 75, a: { t: 'winner', g: 'F' }, b: { t: 'runner', g: 'C' }, kickoff: '2026-06-30T01:00:00Z' },
+  { n: 76, a: { t: 'winner', g: 'C' }, b: { t: 'runner', g: 'F' }, kickoff: '2026-06-29T17:00:00Z' },
+  { n: 77, a: { t: 'winner', g: 'I' }, b: { t: 'third', pool: ['C', 'D', 'F', 'G', 'H'] }, kickoff: '2026-06-30T21:00:00Z' },
+  { n: 78, a: { t: 'runner', g: 'E' }, b: { t: 'runner', g: 'I' }, kickoff: '2026-06-30T17:00:00Z' },
+  { n: 79, a: { t: 'winner', g: 'A' }, b: { t: 'third', pool: ['C', 'E', 'F', 'H', 'I'] }, kickoff: '2026-07-01T01:00:00Z' },
+  { n: 80, a: { t: 'winner', g: 'L' }, b: { t: 'third', pool: ['E', 'H', 'I', 'J', 'K'] }, kickoff: '2026-07-01T16:00:00Z' },
+  { n: 81, a: { t: 'winner', g: 'D' }, b: { t: 'third', pool: ['B', 'E', 'F', 'I', 'J'] }, kickoff: '2026-07-02T00:00:00Z' },
+  { n: 82, a: { t: 'winner', g: 'G' }, b: { t: 'third', pool: ['A', 'E', 'H', 'I', 'J'] }, kickoff: '2026-07-01T20:00:00Z' },
+  { n: 83, a: { t: 'runner', g: 'K' }, b: { t: 'runner', g: 'L' }, kickoff: '2026-07-02T23:00:00Z' },
+  { n: 84, a: { t: 'winner', g: 'H' }, b: { t: 'runner', g: 'J' }, kickoff: '2026-07-02T19:00:00Z' },
+  { n: 85, a: { t: 'winner', g: 'B' }, b: { t: 'third', pool: ['E', 'F', 'G', 'I', 'J'] }, kickoff: '2026-07-03T03:00:00Z' },
+  { n: 86, a: { t: 'winner', g: 'J' }, b: { t: 'runner', g: 'H' }, kickoff: '2026-07-03T22:00:00Z' },
+  { n: 87, a: { t: 'winner', g: 'K' }, b: { t: 'third', pool: ['D', 'E', 'I', 'J', 'L'] }, kickoff: '2026-07-04T01:30:00Z' },
+  { n: 88, a: { t: 'runner', g: 'D' }, b: { t: 'runner', g: 'G' }, kickoff: '2026-07-03T18:00:00Z' }
 ];
 
 // Mapa "round da API" -> nome amigável (pt-BR) + ordem do chaveamento.
@@ -52,6 +53,17 @@ function _copaFetch(path) {
   return fetch(`https://${COPA_API_HOST}/${path}`, {
     headers: { 'x-rapidapi-host': COPA_API_HOST, 'x-rapidapi-key': COPA_API_KEY }
   }).then(r => r.json());
+}
+
+// Formata uma data ISO no horário de Brasília (independe do fuso do aparelho).
+function _copaDataBR(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    }) + 'h';
+  } catch (e) { return ''; }
 }
 
 function _copaLogoTime(team) {
@@ -336,6 +348,7 @@ function _copaRenderProjecao(grupos) {
     const B = _copaResolverSlot(m.b, mapa);
     const aHTML = A.third ? _copaThirdSlotHTML(A.pool, m3.qualifSet, false) : _copaSlotProjHTML(A, false);
     const bHTML = B.third ? _copaThirdSlotHTML(B.pool, m3.qualifSet, true) : _copaSlotProjHTML(B, true);
+    const dataBR = _copaDataBR(m.kickoff);
     html += `
       <div class="bg-card-bg border border-white/5 rounded-xl px-3 py-2.5 mb-2">
         <div class="flex items-center justify-between gap-2">
@@ -343,6 +356,7 @@ function _copaRenderProjecao(grupos) {
           <span class="text-[12px] font-black text-zinc-600 px-1 flex-shrink-0">×</span>
           ${bHTML}
         </div>
+        ${dataBR ? `<p class="text-[10px] text-zinc-500 text-center mt-1.5">📅 ${dataBR} <span class="text-zinc-600">(Brasília)</span></p>` : ''}
       </div>`;
   });
 
@@ -380,7 +394,7 @@ function _copaCardConfronto(j) {
   const h = j.teams.home, a = j.teams.away;
   const gh = j.goals.home, ga = j.goals.away;
   const temPlacar = gh !== null && ga !== null;
-  const data = new Date(j.fixture.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const data = _copaDataBR(j.fixture.date) + ' (Brasília)';
   const hVenceu = temPlacar && gh > ga, aVenceu = temPlacar && ga > gh;
   return `
     <div class="bg-card-bg border border-white/5 rounded-xl px-3 py-2.5 mb-2">
