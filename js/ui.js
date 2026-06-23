@@ -77,16 +77,94 @@ function fecharModal(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
-// Copia a chave PIX de doação (CPF, só dígitos) e agradece.
+// ===== Doação via PIX (Copia e Cola gerado no front, padrão EMV/BR Code) =====
+const DOACAO_PIX_KEY = '01749132222';      // CPF (só dígitos)
+const DOACAO_NOME = 'KEVIN SCHWANKE';      // <=25, sem acento
+const DOACAO_CIDADE = 'BRASIL';            // <=15, sem acento
+let _doacaoValor = 10;                      // valor selecionado (R$)
+
+// TLV: id + tamanho(2 dígitos) + valor
+function _pixTlv(id, valor) {
+  return id + String(valor.length).padStart(2, '0') + valor;
+}
+
+// CRC16-CCITT (0x1021, init 0xFFFF) — exigido pelo Banco Central no fim do código
+function _pixCrc16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+// Monta o Pix Copia e Cola com o valor embutido (valor 0/null = valor em aberto)
+function gerarPixCopiaECola(valor) {
+  const gui = _pixTlv('00', 'br.gov.bcb.pix') + _pixTlv('01', DOACAO_PIX_KEY);
+  let body = _pixTlv('00', '01') + _pixTlv('26', gui) + _pixTlv('52', '0000') + _pixTlv('53', '986');
+  if (valor && Number(valor) > 0) body += _pixTlv('54', Number(valor).toFixed(2));
+  body += _pixTlv('58', 'BR') + _pixTlv('59', DOACAO_NOME) + _pixTlv('60', DOACAO_CIDADE) + _pixTlv('62', _pixTlv('05', '***'));
+  body += '6304';
+  return body + _pixCrc16(body);
+}
+
+function _atualizarDoacaoUI() {
+  const codigo = gerarPixCopiaECola(_doacaoValor);
+  const elCodigo = document.getElementById('doacao-codigo');
+  const elBtn = document.getElementById('doacao-btn-label');
+  const elQr = document.getElementById('doacao-qr');
+  if (elCodigo) elCodigo.textContent = codigo;
+  if (elBtn) elBtn.textContent = (_doacaoValor > 0 ? `📋 Copiar Pix de R$ ${_doacaoValor}` : '📋 Copiar Pix');
+
+  // Destaca o chip selecionado
+  document.querySelectorAll('.doacao-chip').forEach(ch => {
+    const v = Number(ch.getAttribute('data-doacao-valor'));
+    const on = (v === Number(_doacaoValor));
+    ch.classList.toggle('bg-brand-green', on);
+    ch.classList.toggle('text-black', on);
+    ch.classList.toggle('border-brand-green', on);
+    ch.classList.toggle('bg-zinc-900/60', !on);
+    ch.classList.toggle('text-white', !on);
+  });
+
+  // Gera o QR (se a lib estiver disponível)
+  if (elQr && typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+    QRCode.toDataURL(codigo, { margin: 1, width: 320 }).then(url => {
+      elQr.src = url; elQr.classList.remove('hidden');
+    }).catch(() => { elQr.classList.add('hidden'); });
+  }
+}
+
+function selecionarValorDoacao(valor) {
+  _doacaoValor = Number(valor) || 0;
+  const custom = document.getElementById('doacao-valor-custom');
+  if (custom) custom.value = '';
+  _atualizarDoacaoUI();
+}
+
+function selecionarValorDoacaoCustom(valor) {
+  const v = parseFloat(valor);
+  _doacaoValor = (!isNaN(v) && v > 0) ? v : 0;
+  _atualizarDoacaoUI();
+}
+
+function abrirDoacao() {
+  _doacaoValor = 10;
+  abrirModal('modal-doacao');
+  _atualizarDoacaoUI();
+}
+
+// Copia o Pix Copia e Cola (com o valor selecionado) e agradece.
 function copiarPixDoacao() {
-  const chave = '01749132222';
-  const ok = () => { if (typeof showToast === 'function') showToast('Chave PIX copiada! 🙏 Muito obrigado pelo apoio.', 'success'); };
+  const codigo = gerarPixCopiaECola(_doacaoValor);
+  const ok = () => { if (typeof showToast === 'function') showToast('Pix copiado! 🙏 Cole no seu banco em "Copia e Cola". Obrigado!', 'success'); };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(chave).then(ok).catch(() => {
-      prompt('Copie a chave PIX (CPF):', chave);
-    });
+    navigator.clipboard.writeText(codigo).then(ok).catch(() => prompt('Copie o Pix:', codigo));
   } else {
-    prompt('Copie a chave PIX (CPF):', chave);
+    prompt('Copie o Pix:', codigo);
   }
 }
 
