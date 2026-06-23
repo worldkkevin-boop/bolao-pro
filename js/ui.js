@@ -77,95 +77,21 @@ function fecharModal(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
-// ===== Doação via PIX (Copia e Cola gerado no front, padrão EMV/BR Code) =====
-const DOACAO_PIX_KEY = '01749132222';      // CPF (só dígitos)
-const DOACAO_NOME = 'KEVIN SCHWANKE';      // <=25, sem acento
-const DOACAO_CIDADE = 'BRASIL';            // <=15, sem acento
-let _doacaoValor = 10;                      // valor selecionado (R$)
-
-// TLV: id + tamanho(2 dígitos) + valor
-function _pixTlv(id, valor) {
-  return id + String(valor.length).padStart(2, '0') + valor;
-}
-
-// CRC16-CCITT (0x1021, init 0xFFFF) — exigido pelo Banco Central no fim do código
-function _pixCrc16(str) {
-  let crc = 0xFFFF;
-  for (let i = 0; i < str.length; i++) {
-    crc ^= str.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
-      crc &= 0xFFFF;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, '0');
-}
-
-// Monta o Pix Copia e Cola com o valor embutido (valor 0/null = valor em aberto)
-function gerarPixCopiaECola(valor) {
-  const gui = _pixTlv('00', 'br.gov.bcb.pix') + _pixTlv('01', DOACAO_PIX_KEY);
-  let body = _pixTlv('00', '01') + _pixTlv('26', gui) + _pixTlv('52', '0000') + _pixTlv('53', '986');
-  if (valor && Number(valor) > 0) body += _pixTlv('54', Number(valor).toFixed(2));
-  body += _pixTlv('58', 'BR') + _pixTlv('59', DOACAO_NOME) + _pixTlv('60', DOACAO_CIDADE) + _pixTlv('62', _pixTlv('05', '***'));
-  body += '6304';
-  return body + _pixCrc16(body);
-}
-
-function _atualizarDoacaoUI() {
-  const codigo = gerarPixCopiaECola(_doacaoValor);
-  const elCodigo = document.getElementById('doacao-codigo');
-  const elBtn = document.getElementById('doacao-btn-label');
-  const elQr = document.getElementById('doacao-qr');
-  if (elCodigo) elCodigo.textContent = codigo;
-  if (elBtn) elBtn.textContent = (_doacaoValor > 0 ? `📋 Copiar Pix de R$ ${_doacaoValor}` : '📋 Copiar Pix');
-
-  // Destaca o chip selecionado
-  document.querySelectorAll('.doacao-chip').forEach(ch => {
-    const v = Number(ch.getAttribute('data-doacao-valor'));
-    const on = (v === Number(_doacaoValor));
-    ch.classList.toggle('bg-brand-green', on);
-    ch.classList.toggle('text-black', on);
-    ch.classList.toggle('border-brand-green', on);
-    ch.classList.toggle('bg-zinc-900/60', !on);
-    ch.classList.toggle('text-white', !on);
-  });
-
-  // Gera o QR (se a lib estiver disponível)
-  if (elQr && typeof QRCode !== 'undefined' && QRCode.toDataURL) {
-    QRCode.toDataURL(codigo, { margin: 1, width: 320 }).then(url => {
-      elQr.src = url; elQr.classList.remove('hidden');
-    }).catch(() => { elQr.classList.add('hidden'); });
-  }
-}
-
-function selecionarValorDoacao(valor) {
-  _doacaoValor = Number(valor) || 0;
-  const custom = document.getElementById('doacao-valor-custom');
-  if (custom) custom.value = '';
-  _atualizarDoacaoUI();
-}
-
-function selecionarValorDoacaoCustom(valor) {
-  const v = parseFloat(valor);
-  _doacaoValor = (!isNaN(v) && v > 0) ? v : 0;
-  _atualizarDoacaoUI();
-}
-
+// ===== Doação / Apoiador (PIX verificado via MercadoPago → selo 💛) =====
 function abrirDoacao() {
-  _doacaoValor = 10;
   abrirModal('modal-doacao');
-  _atualizarDoacaoUI();
 }
 
-// Copia o Pix Copia e Cola (com o valor selecionado) e agradece.
-function copiarPixDoacao() {
-  const codigo = gerarPixCopiaECola(_doacaoValor);
-  const ok = () => { if (typeof showToast === 'function') showToast('Pix copiado! 🙏 Cole no seu banco em "Copia e Cola". Obrigado!', 'success'); };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(codigo).then(ok).catch(() => prompt('Copie o Pix:', codigo));
-  } else {
-    prompt('Copie o Pix:', codigo);
-  }
+// Inicia o pagamento de apoio (produto apoio_5/10/20) pelo fluxo do MercadoPago.
+function iniciarApoio(productId) {
+  fecharModal('modal-doacao');
+  if (typeof gerarPagamentoPix === 'function') gerarPagamentoPix(productId);
+}
+
+// Atualiza o destaque "Você é apoiador 💛" em Configurações.
+function atualizarSeloApoiadorConfig() {
+  const el = document.getElementById('config-apoiador-selo');
+  if (el) el.classList.toggle('hidden', !(usuarioAtual && usuarioAtual.apoiador));
 }
 
 function switchView(targetViewId) {
@@ -258,6 +184,7 @@ function switchView(targetViewId) {
   } else if (targetViewId === 'view-regras') {
     if (typeof renderizarRegrasGrupo === 'function') renderizarRegrasGrupo();
   } else if (targetViewId === 'view-painel') {
+    if (typeof atualizarSeloApoiadorConfig === 'function') atualizarSeloApoiadorConfig();
     const adminSettings = document.getElementById('admin-settings-section');
     const isOwner = grupoAtual && usuarioAtual && usuarioAtual.id === grupoAtual.owner_id;
     
@@ -1020,7 +947,7 @@ async function exibirRankingSelecionado() {
     // 3. Busca perfis dos membros (nome, avatar)
     const { data: profiles, error: errProfiles } = await sbClient
       .from('profiles')
-      .select('id, full_name, avatar_url')
+      .select('id, full_name, avatar_url, apoiador')
       .in('id', userIds);
 
     if (errProfiles) console.error("Erro ao carregar perfis:", errProfiles.message);
@@ -1034,6 +961,7 @@ async function exibirRankingSelecionado() {
         id: uid,
         nome: profile ? profile.full_name : 'Participante',
         foto: profile && profile.avatar_url ? profile.avatar_url : null,
+        apoiador: !!(profile && profile.apoiador),
         pontos: 0,
         acertosExatos: 0,
         isAdmin: memberMeta && memberMeta.role === 'owner'
@@ -1128,6 +1056,7 @@ async function exibirRankingSelecionado() {
 
       const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
       const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
+      const apoiadorBadge = user.apoiador ? '<span title="Apoiador do app" class="ml-1">💛</span>' : '';
 
       rankHtml += `
         <div ${rowStyle} onclick="abrirHistoricoUsuario('${user.id}', '${user.nome.replace(/'/g,"\\'")}', '${fotoUrl}')" class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3 cursor-pointer hover:bg-card-hover hover:border-brand-green/30 active:scale-[0.99] transition-all">
@@ -1139,7 +1068,7 @@ async function exibirRankingSelecionado() {
                 <img src="${fotoUrl}" class="w-full h-full object-cover">
               </div>
               <div>
-                <h3 class="font-bold text-[14px] text-white">${user.nome} ${adminBadge}</h3>
+                <h3 class="font-bold text-[14px] text-white">${user.nome}${apoiadorBadge} ${adminBadge}</h3>
                 <p class="text-[10px] text-text-muted mt-0.5">${user.acertosExatos} placares exatos</p>
               </div>
             </div>
@@ -2571,6 +2500,10 @@ const PRODUTOS_LOJA = {
   fichas_resenha:  { tipo:'fichas', label:'Pacote Resenha',icon:'🪙', subLabel:'15 Fichas para Desafios',    valorFmt:'1,99',  limite:15,  successMsg:'+15 fichas adicionadas ao seu saldo!' },
   fichas_sniper:   { tipo:'fichas', label:'Kit Sniper',    icon:'💎', subLabel:'40 Fichas para Desafios',    valorFmt:'4,90',  limite:40,  successMsg:'+40 fichas adicionadas ao seu saldo!' },
   fichas_bau:      { tipo:'fichas', label:'Baú do Mago',   icon:'🎁', subLabel:'100 Fichas para Desafios',   valorFmt:'9,90',  limite:100, successMsg:'+100 fichas adicionadas ao seu saldo! 🔥' },
+  // Apoiador (doação verificada → selo 💛)
+  apoio_5:         { tipo:'apoiador', label:'Apoiador 💛',  icon:'💛', subLabel:'Obrigado por ajudar!',       valorFmt:'5,00',  limite:0,   successMsg:'Você agora é Apoiador 💛 Muito obrigado!' },
+  apoio_10:        { tipo:'apoiador', label:'Apoiador 💛',  icon:'💛', subLabel:'Você é demais!',             valorFmt:'10,00', limite:0,   successMsg:'Você agora é Apoiador 💛 Muito obrigado!' },
+  apoio_20:        { tipo:'apoiador', label:'Apoiador 💛',  icon:'💛', subLabel:'Lenda do app!',              valorFmt:'20,00', limite:0,   successMsg:'Você agora é Apoiador 💛 Muito obrigado!' },
 };
 
 async function carregarViewLoja() {
@@ -2737,6 +2670,9 @@ function _mostrarOverlayPIX(pixData, produto, targetId, fichasAntes) {
       } else if (produto.tipo === 'pote') {
         const { data: part } = await sbClient.from('potes_participantes').select('status_pagamento').eq('id', targetId).single();
         if (part && part.status_pagamento === 'pago') { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, 0); }
+      } else if (produto.tipo === 'apoiador') {
+        const { data: prof } = await sbClient.from('profiles').select('apoiador').eq('id', targetId).maybeSingle();
+        if (prof && prof.apoiador === true) { clearTimeout(pollTimeout); _handlePagamentoConcluido(overlay, produto, targetId, 0); }
       }
     } catch (err) { console.error('Polling error:', err); }
   }, 4000);
@@ -2756,6 +2692,9 @@ function _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes) {
     atualizarDisplayFichas();
   } else if (produto.tipo === 'pote') {
     if (typeof carregarPoteBanner === 'function') carregarPoteBanner();
+  } else if (produto.tipo === 'apoiador') {
+    if (usuarioAtual) usuarioAtual.apoiador = true;
+    if (typeof atualizarSeloApoiadorConfig === 'function') atualizarSeloApoiadorConfig();
   }
 
   const card = overlay.firstElementChild;

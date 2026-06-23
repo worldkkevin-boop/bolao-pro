@@ -160,6 +160,19 @@ serve(async (req) => {
       }
       console.log(`✅ Fichas do usuário ${targetId} atualizadas: ${prof?.fichas_desafio || 0} → ${novoSaldo}`)
 
+    // ── APOIADOR (DOAÇÃO VERIFICADA → SELO 💛) ───────────────────────────────
+    } else if (paymentType === 'apoiador') {
+      const { error } = await adminClient
+        .from('profiles')
+        .upsert({ id: targetId, apoiador: true, apoiador_desde: new Date().toISOString() })
+      if (error) {
+        console.error("Erro ao marcar apoiador:", error)
+        return new Response(JSON.stringify({ error: 'Falha ao marcar apoiador', details: error }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log(`✅ Usuário ${targetId} marcado como apoiador 💛`)
+
     // ── POTE DE DISPUTA (BOLÃO) ──────────────────────────────────────────────
     } else if (paymentType === 'pote') {
       const { error } = await adminClient

@@ -21,7 +21,6 @@
   <meta property="og:url" content="https://bolao-pro-six.vercel.app">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -964,6 +963,15 @@
         <span id="painel-badge-admin" class="border border-brand-green/50 text-brand-green text-[11px] font-bold px-3 py-1 rounded-full bg-brand-green/10 hidden">Admin</span>
       </div>
 
+      <!-- Selo de Apoiador (aparece pra quem já apoiou) -->
+      <div id="config-apoiador-selo" class="hidden w-full bg-gradient-to-r from-amber-400/15 to-transparent border border-amber-400/30 rounded-2xl p-4 mb-3 flex items-center gap-3">
+        <span class="text-2xl">💛</span>
+        <div>
+          <h3 class="font-black text-[14px] text-amber-300">Você é Apoiador!</h3>
+          <p class="text-[11px] text-text-muted">Obrigado por ajudar a manter o Bolão Pro no ar. 🙏</p>
+        </div>
+      </div>
+
       <!-- Botão Apoiar o app -->
       <button onclick="abrirDoacao()" class="w-full bg-gradient-to-r from-pink-500/15 to-transparent border border-pink-500/25 rounded-2xl p-4 mb-5 flex items-center justify-between hover:border-pink-500/40 transition-all active:scale-[0.98]">
         <div class="flex items-center gap-3">
@@ -1606,36 +1614,23 @@
 
         <p class="text-[13px] text-text-muted mb-5 leading-relaxed">
           O <b class="text-white">Bolão Pro</b> é mantido com muito carinho e roda na faixa pra vocês. 🙏<br>
-          Sua doação ajuda a pagar a <b class="text-white">API de futebol</b> e a <b class="text-white">hospedagem</b>. Qualquer valor faz diferença!
+          Sua doação ajuda a pagar a <b class="text-white">API de futebol</b> e a <b class="text-white">hospedagem</b>. Quem ajuda ganha o selo <b class="text-amber-300">💛 Apoiador</b> no ranking!
         </p>
 
-        <!-- Seleção de valor -->
         <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Escolha um valor</p>
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          <button type="button" data-doacao-valor="5" onclick="selecionarValorDoacao(5)" class="doacao-chip bg-zinc-900/60 border border-white/5 rounded-xl py-2.5 text-sm font-black text-white transition-all">R$ 5</button>
-          <button type="button" data-doacao-valor="10" onclick="selecionarValorDoacao(10)" class="doacao-chip bg-zinc-900/60 border border-white/5 rounded-xl py-2.5 text-sm font-black text-white transition-all">R$ 10</button>
-          <button type="button" data-doacao-valor="20" onclick="selecionarValorDoacao(20)" class="doacao-chip bg-zinc-900/60 border border-white/5 rounded-xl py-2.5 text-sm font-black text-white transition-all">R$ 20</button>
-        </div>
-        <div class="flex items-center gap-2 mb-4">
-          <span class="text-[12px] text-text-muted font-bold">Outro:</span>
-          <div class="flex items-center bg-zinc-900/60 border border-white/5 rounded-xl px-3 flex-1">
-            <span class="text-text-muted text-sm font-bold">R$</span>
-            <input id="doacao-valor-custom" type="number" min="1" step="1" inputmode="numeric" placeholder="00" oninput="selecionarValorDoacaoCustom(this.value)" class="w-full bg-transparent py-2.5 px-2 text-sm text-white font-black outline-none">
-          </div>
-        </div>
-
-        <!-- QR + Copia e Cola (gerado com o valor) -->
-        <div class="bg-zinc-900/60 p-4 rounded-2xl border border-white/5 mb-4 flex flex-col items-center">
-          <img id="doacao-qr" src="" alt="QR Pix" class="w-44 h-44 rounded-xl bg-white p-2 mb-3 hidden">
-          <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Pix Copia e Cola</p>
-          <p id="doacao-codigo" class="text-[10px] text-zinc-400 font-mono break-all text-center mb-3 max-h-16 overflow-y-auto w-full">—</p>
-          <button onclick="copiarPixDoacao()" class="w-full bg-brand-green hover:bg-brand-green/90 text-black font-black py-3 rounded-xl text-sm uppercase tracking-wider transition-all active:scale-95">
-            <span id="doacao-btn-label">📋 Copiar Pix</span>
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <button type="button" onclick="iniciarApoio('apoio_5')" class="bg-zinc-900/60 border border-amber-400/20 rounded-2xl py-4 text-center hover:border-amber-400/50 transition-all active:scale-95">
+            <span class="block text-lg font-black text-white">R$ 5</span>
           </button>
-          <p class="text-[11px] text-text-muted mt-3 text-center">Chave: <b class="text-white">017.491.322-22</b> · Recebedor: <b class="text-white">Kevin Schwanke</b></p>
+          <button type="button" onclick="iniciarApoio('apoio_10')" class="bg-zinc-900/60 border border-amber-400/30 rounded-2xl py-4 text-center hover:border-amber-400/60 transition-all active:scale-95">
+            <span class="block text-lg font-black text-white">R$ 10</span>
+          </button>
+          <button type="button" onclick="iniciarApoio('apoio_20')" class="bg-amber-400/10 border border-amber-400/50 rounded-2xl py-4 text-center hover:border-amber-400 transition-all active:scale-95">
+            <span class="block text-lg font-black text-amber-300">R$ 20</span>
+          </button>
         </div>
 
-        <p class="text-[11px] text-zinc-500 text-center">Copie o código, abra seu banco no PIX em "Copia e Cola" e cole — o valor já vai preenchido. Muito obrigado! 💚</p>
+        <p class="text-[11px] text-zinc-500 text-center">Pagamento via PIX (MercadoPago). Assim que confirmar, seu selo <b class="text-amber-300">💛 Apoiador</b> é liberado automaticamente. 💚</p>
       </div>
     </div>
 
@@ -2133,12 +2128,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=31"></script>
-  <script src="js/auth.js?v=32"></script>
+  <script src="js/auth.js?v=33"></script>
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=34"></script>
-  <script src="js/ui.js?v=41"></script>
+  <script src="js/ui.js?v=42"></script>
   <script src="js/gm.js?v=32"></script>
-  <script src="js/aovivo.js?v=38"></script>
+  <script src="js/aovivo.js?v=39"></script>
   <script src="js/evento.js?v=42"></script>
   <script src="js/copa.js?v=8"></script>
 

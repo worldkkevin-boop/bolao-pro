@@ -156,7 +156,7 @@ async function carregarDadosBaseTVAoVivo() {
 
     // Busca perfis, palpites e desafios em paralelo
     const [resPerfis, resPalpites, resDesafios] = await Promise.all([
-      sbClient.from('profiles').select('id, full_name, avatar_url').in('id', userIds),
+      sbClient.from('profiles').select('id, full_name, avatar_url, apoiador').in('id', userIds),
       sbClient.from('guesses').select('user_id, match_id, score_home, score_away').eq('group_id', grupoAtual.id).limit(2000),
       sbClient.from('user_desafios').select('user_id, points_awarded').eq('group_id', grupoAtual.id)
     ]);
@@ -321,6 +321,7 @@ async function atualizarTVAoVivo() {
       id: m.user_id,
       nome: perfil ? perfil.full_name : 'Participante',
       foto: perfil && perfil.avatar_url ? perfil.avatar_url : null,
+      apoiador: !!(perfil && perfil.apoiador),
       pontosConsolidados: 0,
       pontosParciaisAoVivo: 0,
       totalProvisorio: 0,
@@ -489,6 +490,7 @@ async function atualizarTVAoVivo() {
       const wi = cardClasses.indexOf('border-white/5'); if (wi >= 0) cardClasses[wi] = 'border-brand-green/50';
     }
     const voceBadge = ehVoce ? `<span class="tv-voce-badge bg-brand-green text-black text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wide">Você</span>` : '';
+    const apoiadorBadge = user.apoiador ? '💛' : '';
 
     const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
     let rowEl = rankingContainer.querySelector(`[data-user-id="${user.id}"]`);
@@ -506,6 +508,7 @@ async function atualizarTVAoVivo() {
           <div class="min-w-0">
             <p class="font-bold text-[12px] text-white truncate flex items-center gap-1">
               <span class="tv-nome">${user.nome}</span>
+              <span class="tv-apoiador">${apoiadorBadge}</span>
               <span class="tv-voce-wrap">${voceBadge}</span>
               <span class="tv-admin-badge bg-gold/20 text-gold text-[8px] px-1 rounded font-bold uppercase ${user.isAdmin ? '' : 'hidden'}">ADMIN</span>
             </p>
@@ -563,6 +566,12 @@ async function atualizarTVAoVivo() {
       const voceEl = rowEl.querySelector('.tv-voce-wrap');
       if (voceEl && voceEl.innerHTML !== voceBadge) {
         voceEl.innerHTML = voceBadge;
+      }
+
+      // Atualiza o selo de apoiador
+      const apoEl = rowEl.querySelector('.tv-apoiador');
+      if (apoEl && apoEl.innerHTML !== apoiadorBadge) {
+        apoEl.innerHTML = apoiadorBadge;
       }
 
       // Atualiza o nome se necessário
