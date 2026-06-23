@@ -101,8 +101,22 @@ function _apoiadorDiasRestantes(ate) {
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
+// Barra fixa no topo do app com os dias de apoio (só pra apoiador ativo).
+function atualizarBarraApoiador() {
+  const bar = document.getElementById('apoiador-top-bar');
+  if (!bar) return;
+  const ativo = _apoiadorAtivo(usuarioAtual);
+  bar.classList.toggle('hidden', !ativo);
+  const el = document.getElementById('apoiador-bar-dias');
+  if (el) {
+    const dias = usuarioAtual ? _apoiadorDiasRestantes(usuarioAtual.apoiador_ate) : null;
+    el.textContent = (dias === null) ? '' : (dias <= 0 ? '· expira hoje' : `· ${dias} ${dias === 1 ? 'dia' : 'dias'}`);
+  }
+}
+
 // Atualiza o destaque "Você é apoiador 💛" em Configurações (com dias restantes).
 function atualizarSeloApoiadorConfig() {
+  atualizarBarraApoiador();
   const el = document.getElementById('config-apoiador-selo');
   if (!el) return;
   const ativo = _apoiadorAtivo(usuarioAtual);

@@ -292,6 +292,14 @@
   <!-- ===================== APP PRINCIPAL ===================== -->
   <div id="screen-app" class="hidden pt-1 px-4 max-w-md mx-auto pb-28">
 
+    <!-- Barra fixa de Apoiador (dias restantes) -->
+    <div id="apoiador-top-bar" class="hidden sticky top-0 z-[60] -mx-4 px-4 mb-2 pt-1" style="padding-top: env(safe-area-inset-top);">
+      <div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black rounded-b-2xl px-4 py-1.5 flex items-center justify-between shadow-lg">
+        <span class="text-[12px] font-black flex items-center gap-1.5">💛 Apoiador <span id="apoiador-bar-dias" class="font-bold"></span></span>
+        <button onclick="abrirDoacao()" class="text-[10px] font-black uppercase tracking-wide bg-black/15 px-2 py-0.5 rounded-lg active:scale-95">Renovar</button>
+      </div>
+    </div>
+
     <div id="view-inicio" class="fade-in block">
 
       <!-- Profile strip -->
@@ -1638,14 +1646,17 @@
 
         <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Escolha um valor</p>
         <div class="grid grid-cols-3 gap-2 mb-4">
-          <button type="button" onclick="iniciarApoio('apoio_5')" class="bg-zinc-900/60 border border-amber-400/20 rounded-2xl py-4 text-center hover:border-amber-400/50 transition-all active:scale-95">
+          <button type="button" onclick="iniciarApoio('apoio_5')" class="bg-zinc-900/60 border border-amber-400/20 rounded-2xl py-3 text-center hover:border-amber-400/50 transition-all active:scale-95">
             <span class="block text-lg font-black text-white">R$ 5</span>
+            <span class="block text-[10px] text-text-muted font-bold mt-0.5">7 dias</span>
           </button>
-          <button type="button" onclick="iniciarApoio('apoio_10')" class="bg-zinc-900/60 border border-amber-400/30 rounded-2xl py-4 text-center hover:border-amber-400/60 transition-all active:scale-95">
+          <button type="button" onclick="iniciarApoio('apoio_10')" class="bg-zinc-900/60 border border-amber-400/30 rounded-2xl py-3 text-center hover:border-amber-400/60 transition-all active:scale-95">
             <span class="block text-lg font-black text-white">R$ 10</span>
+            <span class="block text-[10px] text-text-muted font-bold mt-0.5">15 dias</span>
           </button>
-          <button type="button" onclick="iniciarApoio('apoio_20')" class="bg-amber-400/10 border border-amber-400/50 rounded-2xl py-4 text-center hover:border-amber-400 transition-all active:scale-95">
+          <button type="button" onclick="iniciarApoio('apoio_20')" class="bg-amber-400/10 border border-amber-400/50 rounded-2xl py-3 text-center hover:border-amber-400 transition-all active:scale-95">
             <span class="block text-lg font-black text-amber-300">R$ 20</span>
+            <span class="block text-[10px] text-amber-300/80 font-bold mt-0.5">30 dias</span>
           </button>
         </div>
 
@@ -2184,7 +2195,7 @@
   <script src="js/auth.js?v=34"></script>
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=34"></script>
-  <script src="js/ui.js?v=45"></script>
+  <script src="js/ui.js?v=46"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=41"></script>
   <script src="js/evento.js?v=42"></script>
