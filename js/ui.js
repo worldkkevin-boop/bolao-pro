@@ -275,13 +275,18 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
         const oh = parseFloat(get('Home')?.odd), od = parseFloat(get('Draw')?.odd), oa = parseFloat(get('Away')?.odd);
         const minOdd = Math.min(oh, od, oa);
         const souFav = (ehHome && oh === minOdd) || (!ehHome && oa === minOdd);
-        const minQ = oh === minOdd ? 'Casa' : (oa === minOdd ? 'Fora' : 'Empate');
+        const flagHome = (typeof getFlagUrl === 'function' ? getFlagUrl(jogo.teams.home.id) : null) || jogo.teams.home.logo || '';
+        const flagAway = (typeof getFlagUrl === 'function' ? getFlagUrl(jogo.teams.away.id) : null) || jogo.teams.away.logo || '';
+        const favFlag = oh === minOdd ? flagHome : (oa === minOdd ? flagAway : '');
+        const favLabel = oh === minOdd ? jogo.teams.home.name : (oa === minOdd ? jogo.teams.away.name : 'Empate');
+        const flagImg = (src) => src ? `<img src="${src}" onerror="this.style.display='none'" class="w-4 h-4 rounded-sm object-cover">` : '';
         oddsBlock = `
+          <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Odds do jogo</p>
           <div class="bg-zinc-900/60 rounded-xl p-3 mb-4 flex items-center justify-between">
-            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Casa</p><p class="font-black ${oh === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oh) ? '—' : oh.toFixed(2)}</p></div>
-            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Empate</p><p class="font-black ${od === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(od) ? '—' : od.toFixed(2)}</p></div>
-            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase">Fora</p><p class="font-black ${oa === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oa) ? '—' : oa.toFixed(2)}</p></div>
-            <div class="text-center flex-1 border-l border-white/10 pl-2"><p class="text-[9px] text-text-muted uppercase">Favorito</p><p class="font-black text-[11px] ${souFav ? 'text-brand-green' : 'text-amber-400'}">${souFav ? time.name.slice(0, 8) : minQ}</p></div>
+            <div class="text-center flex-1"><div class="flex items-center justify-center gap-1 mb-0.5">${flagImg(flagHome)}<span class="text-[9px] text-text-muted uppercase">Casa</span></div><p class="font-black ${oh === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oh) ? '—' : oh.toFixed(2)}</p></div>
+            <div class="text-center flex-1"><p class="text-[9px] text-text-muted uppercase mb-0.5">Empate</p><p class="font-black ${od === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(od) ? '—' : od.toFixed(2)}</p></div>
+            <div class="text-center flex-1"><div class="flex items-center justify-center gap-1 mb-0.5">${flagImg(flagAway)}<span class="text-[9px] text-text-muted uppercase">Fora</span></div><p class="font-black ${oa === minOdd ? 'text-brand-green' : 'text-white'}">${isNaN(oa) ? '—' : oa.toFixed(2)}</p></div>
+            <div class="text-center flex-1 border-l border-white/10 pl-2"><p class="text-[9px] text-text-muted uppercase mb-0.5">Favorito</p><div class="flex items-center justify-center gap-1">${flagImg(favFlag)}<span class="font-black text-[11px] ${souFav ? 'text-brand-green' : 'text-amber-400'}">${favLabel.slice(0, 8)}</span></div></div>
           </div>`;
       }
     } catch (e) { /* odds podem não existir */ }
