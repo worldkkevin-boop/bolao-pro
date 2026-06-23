@@ -160,18 +160,34 @@ serve(async (req) => {
       }
       console.log(`✅ Fichas do usuário ${targetId} atualizadas: ${prof?.fichas_desafio || 0} → ${novoSaldo}`)
 
-    // ── APOIADOR (DOAÇÃO VERIFICADA → SELO 💛) ───────────────────────────────
+    // ── APOIADOR (DOAÇÃO VERIFICADA → SELO 💛 POR X DIAS) ─────────────────────
     } else if (paymentType === 'apoiador') {
+      const dias = limit > 0 ? limit : 7
+      const agora = new Date()
+      // Renovar antes de vencer SOMA o tempo; senão conta a partir de agora.
+      const { data: prof } = await adminClient
+        .from('profiles')
+        .select('apoiador_ate, apoiador_desde')
+        .eq('id', targetId)
+        .maybeSingle()
+      const ateAtual = prof?.apoiador_ate ? new Date(prof.apoiador_ate) : null
+      const base = (ateAtual && ateAtual > agora) ? ateAtual : agora
+      const novoAte = new Date(base.getTime() + dias * 24 * 60 * 60 * 1000)
       const { error } = await adminClient
         .from('profiles')
-        .upsert({ id: targetId, apoiador: true, apoiador_desde: new Date().toISOString() })
+        .upsert({
+          id: targetId,
+          apoiador: true,
+          apoiador_ate: novoAte.toISOString(),
+          apoiador_desde: prof?.apoiador_desde || agora.toISOString(),
+        })
       if (error) {
         console.error("Erro ao marcar apoiador:", error)
         return new Response(JSON.stringify({ error: 'Falha ao marcar apoiador', details: error }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      console.log(`✅ Usuário ${targetId} marcado como apoiador 💛`)
+      console.log(`✅ Apoiador ${targetId} +${dias} dias → válido até ${novoAte.toISOString()}`)
 
     // ── POTE DE DISPUTA (BOLÃO) ──────────────────────────────────────────────
     } else if (paymentType === 'pote') {

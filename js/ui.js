@@ -88,13 +88,64 @@ function iniciarApoio(productId) {
   if (typeof gerarPagamentoPix === 'function') gerarPagamentoPix(productId);
 }
 
-// Atualiza o destaque "Você é apoiador 💛" em Configurações.
-function atualizarSeloApoiadorConfig() {
-  const el = document.getElementById('config-apoiador-selo');
-  if (el) el.classList.toggle('hidden', !(usuarioAtual && usuarioAtual.apoiador));
+// Apoiador ATIVO = tem prazo no futuro (apoiador_ate). Legado (sem prazo) cai no boolean.
+function _apoiadorAtivo(p) {
+  if (!p) return false;
+  if (p.apoiador_ate) return new Date(p.apoiador_ate) > new Date();
+  return !!p.apoiador;
+}
+function _apoiadorDiasRestantes(ate) {
+  if (!ate) return null;
+  const ms = new Date(ate) - new Date();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
-// ===== Estatísticas do time (perk de Apoiador) — aba Jogos =====
+// Atualiza o destaque "Você é apoiador 💛" em Configurações (com dias restantes).
+function atualizarSeloApoiadorConfig() {
+  const el = document.getElementById('config-apoiador-selo');
+  if (!el) return;
+  const ativo = _apoiadorAtivo(usuarioAtual);
+  el.classList.toggle('hidden', !ativo);
+  const diasEl = document.getElementById('config-apoiador-dias');
+  if (diasEl) {
+    const dias = usuarioAtual ? _apoiadorDiasRestantes(usuarioAtual.apoiador_ate) : null;
+    diasEl.textContent = (dias === null) ? '' : (dias <= 0 ? 'expira hoje' : `${dias} ${dias === 1 ? 'dia restante' : 'dias restantes'}`);
+  }
+}
+
+// Monta o acesso às estatísticas dentro do "Detalhes do Jogo".
+function carregarEstatisticasDetalhe(jogo) {
+  const el = document.getElementById('detalhe-estatisticas');
+  if (!el || !jogo) return;
+
+  if (!(usuarioAtual && usuarioAtual.apoiador)) {
+    el.innerHTML = `
+      <div onclick="abrirDoacao()" class="bg-gradient-to-r from-amber-400/10 to-transparent border border-amber-400/25 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:border-amber-400/50 transition-all active:scale-[0.98]">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📊</span>
+          <div><h4 class="font-black text-[13px] text-white">Estatísticas dos times</h4><p class="text-[11px] text-text-muted">Forma, posição, gols e odds — perk de Apoiador 💛</p></div>
+        </div>
+        <span class="text-amber-400 font-black text-lg">›</span>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <p class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2 mt-1">📊 Estatísticas dos times</p>
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="abrirEstatisticasTime(${jogo.fixture.id}, ${jogo.teams.home.id})" class="bg-card-bg border border-white/5 rounded-xl p-3 flex items-center gap-2 hover:border-brand-green/40 transition-all active:scale-95">
+        <img src="${getFlagUrl(jogo.teams.home.id) || jogo.teams.home.logo || ''}" onerror="this.style.display='none'" class="w-6 h-6 rounded object-cover flex-shrink-0">
+        <span class="text-[12px] font-bold text-white truncate text-left">${jogo.teams.home.name}</span>
+      </button>
+      <button onclick="abrirEstatisticasTime(${jogo.fixture.id}, ${jogo.teams.away.id})" class="bg-card-bg border border-white/5 rounded-xl p-3 flex items-center gap-2 hover:border-brand-green/40 transition-all active:scale-95">
+        <img src="${getFlagUrl(jogo.teams.away.id) || jogo.teams.away.logo || ''}" onerror="this.style.display='none'" class="w-6 h-6 rounded object-cover flex-shrink-0">
+        <span class="text-[12px] font-bold text-white truncate text-left">${jogo.teams.away.name}</span>
+      </button>
+    </div>`;
+}
+
+// ===== Estatísticas do time (perk de Apoiador) — modal detalhado =====
 function _estatFetch(path) {
   return fetch(`https://v3.football.api-sports.io/${path}`, {
     headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
@@ -226,12 +277,15 @@ async function abrirMural() {
   if (!lista) return;
   lista.innerHTML = '<p class="text-text-muted text-[13px] text-center py-6 animate-pulse">Carregando...</p>';
   try {
-    const { data, error } = await sbClient
+    const { data: raw, error } = await sbClient
       .from('profiles')
-      .select('full_name, avatar_url, apoiador_desde')
+      .select('full_name, avatar_url, apoiador_desde, apoiador, apoiador_ate')
       .eq('apoiador', true)
       .order('apoiador_desde', { ascending: true });
     if (error) throw error;
+
+    // Só apoiadores ativos (prazo no futuro, ou legado sem prazo)
+    const data = (raw || []).filter(p => _apoiadorAtivo(p));
 
     if (!data || data.length === 0) {
       lista.innerHTML = '<p class="text-text-muted text-[13px] text-center py-8">Seja o primeiro apoiador! 💛</p>';
@@ -662,23 +716,21 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       <div id="card-jogo-${id}" onclick="abrirTelaPalpite(${id})" class="app-card bg-card-bg w-full p-4 border ${cardBorderClass} ${cardBgClass} ${cardOpacityClass} mb-4 transition-all cursor-pointer hover:border-brand-green/30">
         <div class="text-text-muted text-xs font-semibold tracking-wide mb-4">${data}</div>
         <div class="flex items-center justify-between">
-          <div onclick="event.stopPropagation(); abrirEstatisticasTime(${id}, ${jogo.teams.home.id})" class="flex flex-col items-center w-1/3 cursor-pointer group">
+          <div class="flex flex-col items-center w-1/3">
             <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
               <img src="${homeLogo}" onerror="this.onerror=null; this.src='${homeFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${homeNome}</span>
-            <span class="text-[9px] text-text-muted mt-0.5 group-hover:text-brand-green transition-colors">📊 Stats</span>
             ${homeZebra ? zebraBadge : ''}
           </div>
           <div class="w-1/3 flex flex-col items-center justify-center min-h-[60px]">
             ${centerHtml}
           </div>
-          <div onclick="event.stopPropagation(); abrirEstatisticasTime(${id}, ${jogo.teams.away.id})" class="flex flex-col items-center w-1/3 cursor-pointer group">
+          <div class="flex flex-col items-center w-1/3">
             <div class="w-11 h-11 rounded-lg overflow-hidden mb-2">
               <img src="${awayLogo}" onerror="this.onerror=null; this.src='${awayFallback}'" class="w-full h-full object-cover">
             </div>
             <span class="text-[13px] font-bold text-center">${awayNome}</span>
-            <span class="text-[9px] text-text-muted mt-0.5 group-hover:text-brand-green transition-colors">📊 Stats</span>
             ${awayZebra ? zebraBadge : ''}
           </div>
         </div>
@@ -1114,7 +1166,7 @@ async function exibirRankingSelecionado() {
     // 3. Busca perfis dos membros (nome, avatar)
     const { data: profiles, error: errProfiles } = await sbClient
       .from('profiles')
-      .select('id, full_name, avatar_url, apoiador')
+      .select('id, full_name, avatar_url, apoiador, apoiador_ate')
       .in('id', userIds);
 
     if (errProfiles) console.error("Erro ao carregar perfis:", errProfiles.message);
@@ -1128,7 +1180,7 @@ async function exibirRankingSelecionado() {
         id: uid,
         nome: profile ? profile.full_name : 'Participante',
         foto: profile && profile.avatar_url ? profile.avatar_url : null,
-        apoiador: !!(profile && profile.apoiador),
+        apoiador: _apoiadorAtivo(profile),
         pontos: 0,
         acertosExatos: 0,
         isAdmin: memberMeta && memberMeta.role === 'owner'
@@ -1458,6 +1510,9 @@ async function abrirTelaPalpite(id) {
   
   // Formata e exibe a data do jogo
   document.getElementById('d-jogo-data').innerText = formatarData(jogoAtual.fixture.date);
+
+  // Estatísticas dos times (perk de apoiador) no Detalhes do Jogo
+  if (typeof carregarEstatisticasDetalhe === 'function') carregarEstatisticasDetalhe(jogoAtual);
 
   // Define o placar real da partida ou "VS" na tela de detalhes
   const realScoreEl = document.getElementById('d-real-score');
@@ -2865,6 +2920,12 @@ function _handlePagamentoConcluido(overlay, produto, targetId, fichasAntes) {
     if (typeof carregarPoteBanner === 'function') carregarPoteBanner();
   } else if (produto.tipo === 'apoiador') {
     if (usuarioAtual) usuarioAtual.apoiador = true;
+    // Busca o novo prazo pra mostrar os dias restantes certinhos
+    if (usuarioAtual && sbClient) {
+      sbClient.from('profiles').select('apoiador_ate').eq('id', usuarioAtual.id).maybeSingle().then(({ data }) => {
+        if (data && usuarioAtual) { usuarioAtual.apoiador_ate = data.apoiador_ate || null; atualizarSeloApoiadorConfig(); }
+      });
+    }
     if (typeof atualizarSeloApoiadorConfig === 'function') atualizarSeloApoiadorConfig();
   }
 

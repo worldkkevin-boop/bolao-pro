@@ -50,10 +50,11 @@ function entrarNoApp(usuario) {
 
   // Carrega saldo de fichas do perfil (não bloqueia o login)
   if (sbClient) {
-    sbClient.from('profiles').select('fichas_desafio, apoiador').eq('id', usuario.id).maybeSingle().then(({ data }) => {
+    sbClient.from('profiles').select('fichas_desafio, apoiador, apoiador_ate').eq('id', usuario.id).maybeSingle().then(({ data }) => {
       if (data && usuarioAtual) {
         usuarioAtual.fichas = data.fichas_desafio ?? 3;
-        usuarioAtual.apoiador = !!data.apoiador;
+        usuarioAtual.apoiador_ate = data.apoiador_ate || null;
+        usuarioAtual.apoiador = (typeof _apoiadorAtivo === 'function') ? _apoiadorAtivo(data) : !!data.apoiador;
         if (typeof atualizarDisplayFichas === 'function') atualizarDisplayFichas();
         if (typeof atualizarSeloApoiadorConfig === 'function') atualizarSeloApoiadorConfig();
       }

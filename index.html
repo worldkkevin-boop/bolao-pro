@@ -883,6 +883,9 @@
         <div id="desafio-jogo-container" class="hidden">
           <!-- Renderizado dinamicamente -->
         </div>
+
+        <!-- Estatísticas dos times (perk de apoiador) -->
+        <div id="detalhe-estatisticas"></div>
       </div>
 
       <!-- Tab Content: Palpites -->
@@ -978,9 +981,13 @@
       <!-- Selo de Apoiador (aparece pra quem já apoiou) -->
       <div id="config-apoiador-selo" class="hidden w-full bg-gradient-to-r from-amber-400/15 to-transparent border border-amber-400/30 rounded-2xl p-4 mb-3 flex items-center gap-3">
         <span class="text-2xl">💛</span>
-        <div>
+        <div class="flex-1">
           <h3 class="font-black text-[14px] text-amber-300">Você é Apoiador!</h3>
           <p class="text-[11px] text-text-muted">Obrigado por ajudar a manter o Bolão Pro no ar. 🙏</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <span id="config-apoiador-dias" class="block text-[11px] font-black text-amber-300"></span>
+          <button onclick="abrirDoacao()" class="text-[10px] font-bold text-amber-400 underline">renovar</button>
         </div>
       </div>
 
@@ -2174,12 +2181,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=31"></script>
-  <script src="js/auth.js?v=33"></script>
+  <script src="js/auth.js?v=34"></script>
   <script src="js/api.js?v=31"></script>
   <script src="js/groups.js?v=34"></script>
-  <script src="js/ui.js?v=44"></script>
+  <script src="js/ui.js?v=45"></script>
   <script src="js/gm.js?v=32"></script>
-  <script src="js/aovivo.js?v=40"></script>
+  <script src="js/aovivo.js?v=41"></script>
   <script src="js/evento.js?v=42"></script>
   <script src="js/copa.js?v=8"></script>
 

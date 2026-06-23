@@ -20,10 +20,10 @@ const CATALOG: Record<string, { amount: number; desc: string; type: string; limi
   fichas_resenha:  { amount:  1.99, desc: 'Bolão Pro — 15 Fichas',                        type: 'fichas', limit: 15  },
   fichas_sniper:   { amount:  4.90, desc: 'Bolão Pro — 40 Fichas',                        type: 'fichas', limit: 40  },
   fichas_bau:      { amount:  9.90, desc: 'Bolão Pro — 100 Fichas',                       type: 'fichas', limit: 100 },
-  // Apoiador (doação verificada — dá o selo 💛, não dá benefício de limite)
-  apoio_5:         { amount:  5.00, desc: 'Bolão Pro — Apoiador 💛 (R$5)',                type: 'apoiador', limit: 0 },
-  apoio_10:        { amount: 10.00, desc: 'Bolão Pro — Apoiador 💛 (R$10)',               type: 'apoiador', limit: 0 },
-  apoio_20:        { amount: 20.00, desc: 'Bolão Pro — Apoiador 💛 (R$20)',               type: 'apoiador', limit: 0 },
+  // Apoiador (doação verificada → selo 💛 por X dias). limit = dias de apoio.
+  apoio_5:         { amount:  5.00, desc: 'Bolão Pro — Apoiador 💛 (7 dias)',             type: 'apoiador', limit: 7  },
+  apoio_10:        { amount: 10.00, desc: 'Bolão Pro — Apoiador 💛 (15 dias)',            type: 'apoiador', limit: 15 },
+  apoio_20:        { amount: 20.00, desc: 'Bolão Pro — Apoiador 💛 (30 dias)',            type: 'apoiador', limit: 30 },
 }
 
 serve(async (req) => {

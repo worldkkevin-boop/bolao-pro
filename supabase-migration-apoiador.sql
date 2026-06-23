@@ -10,3 +10,6 @@
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS apoiador BOOLEAN DEFAULT false;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS apoiador_desde TIMESTAMPTZ;
+-- Apoio agora tem PRAZO (recorrente): R$5=7d, R$10=15d, R$20=30d.
+-- "apoiador ativo" = apoiador_ate > agora. Quando vence, perde os perks e renova.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS apoiador_ate TIMESTAMPTZ;
