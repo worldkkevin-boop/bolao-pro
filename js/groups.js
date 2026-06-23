@@ -131,6 +131,16 @@ async function entrarNoGrupo(grupoId, grupoNome, conviteCodigo, ownerId, leagueI
     }
   }
 
+  // Mesmo controle para o banner de Desafios na home do grupo
+  const bannerDesafios = document.getElementById('banner-desafios-home');
+  if (bannerDesafios) {
+    if (grupoAtual.desafios_enabled === false) {
+      bannerDesafios.classList.add('hidden');
+    } else {
+      bannerDesafios.classList.remove('hidden');
+    }
+  }
+
   const finalView = targetView || 'view-grupo-home';
   if (typeof switchView === 'function') switchView(finalView);
 

@@ -3318,6 +3318,11 @@ async function alterarStatusDesafios() {
       if (isEnabled) navBtn.classList.remove('hidden');
       else navBtn.classList.add('hidden');
     }
+    const bannerDesafios = document.getElementById('banner-desafios-home');
+    if (bannerDesafios) {
+      if (isEnabled) bannerDesafios.classList.remove('hidden');
+      else bannerDesafios.classList.add('hidden');
+    }
     
     if (typeof showToast === 'function') {
       showToast(`Desafios do Mago ${isEnabled ? 'ativados' : 'desativados'} para o grupo!`, "success");
