@@ -232,9 +232,11 @@
       </header>
 
       <!-- Conteúdo da Aba -->
-      <!-- min-h-0: sem isso o flex-1 herda min-height:auto e cresce até o tamanho do conteúdo,
-           então o overflow-y-auto não dispara e o <main> (overflow-hidden) corta o fim da página. -->
-      <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-8">
+      <!-- A altura do scroll é ancorada DIRETO na viewport (100dvh menos o header de 4rem),
+           em vez de depender da cadeia flex body→wrapper→main esticar certo. Assim o
+           overflow-y-auto sempre tem altura definida e rola, independente do flexbox.
+           min-h-0 continua pra não estourar o pai quando o flex calcula a base. -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-8" style="max-height: calc(100dvh - 4rem);">
         
         <!-- ABA: DASHBOARD -->
         <div x-show="abaAtiva === 'dashboard'" class="space-y-8" x-cloak>
