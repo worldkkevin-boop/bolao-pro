@@ -75,6 +75,7 @@ function adminApp() {
     palpitesTravados: false,         // Trava o cadastro público (jogo começou)
     travandoPalpites: false,
     telaoApresentacaoPalpites: false, // Modo Telão da distribuição de palpites
+    telaoConvite: false,              // Modo Telão do CONVITE (QR gigante 16:9 p/ escanear de longe)
 
     // Grupos
     gruposLista: [],
@@ -2509,6 +2510,18 @@ function adminApp() {
       try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) {}
     },
 
+    // ----- Modo Telão: CONVITE com QR gigante (projetar pra galera escanear de longe) -----
+    abrirConviteTelao() {
+      if (!this.telaoFixture) { showToast('Escolha o jogo do evento primeiro.', 'error'); return; }
+      this.telaoConvite = true;
+      try { const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); } catch (_) {}
+    },
+
+    fecharConviteTelao() {
+      this.telaoConvite = false;
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) {}
+    },
+
     // Sorteia com um "rolar" de números pra criar suspense, depois revela.
     // soAcertadores=true sorteia só entre quem cravou o placar.
     sortearNoTelao(soAcertadores = false) {
@@ -2660,6 +2673,11 @@ function adminApp() {
 
     telaoQrUrl() {
       return 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(this.telaoLinkPublico());
+    },
+
+    // QR em alta resolução pro telão (mesmo link/dado — só renderiza maior, então continua escaneando igual)
+    telaoQrUrlGrande() {
+      return 'https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=12&ecc=M&data=' + encodeURIComponent(this.telaoLinkPublico());
     },
 
     copiarLinkTelao() {

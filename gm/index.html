@@ -2410,7 +2410,10 @@
                   <div class="min-w-0">
                     <p class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">Link do QR Code (aponte a câmera do telão)</p>
                     <p class="text-xs font-mono text-pink-300 break-all" x-text="telaoLinkPublico()"></p>
-                    <button @click="copiarLinkTelao()" class="mt-2 bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 border border-pink-500/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95">📋 Copiar link</button>
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                      <button @click="copiarLinkTelao()" class="bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 border border-pink-500/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95">📋 Copiar link</button>
+                      <button @click="abrirConviteTelao()" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-pink-900/30">📺 Projetar convite (QR grande)</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2629,6 +2632,60 @@
     </div>
   </div>
 
+  <!-- ════════════ MODO TELÃO: CONVITE / QR GIGANTE (projeção 16:9 p/ escanear de longe) ════════════ -->
+  <div x-show="telaoConvite" x-cloak
+       class="fixed inset-0 z-[9999] bg-[#070309] flex items-center justify-center overflow-hidden">
+    <!-- glows decorativos -->
+    <div class="absolute top-[-15vh] left-[-10vw] w-[55vh] h-[55vh] rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(236,72,153,0.20) 0%, rgba(5,5,5,0) 70%);"></div>
+    <div class="absolute bottom-[-15vh] right-[-10vw] w-[60vh] h-[60vh] rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(168,85,247,0.16) 0%, rgba(5,5,5,0) 70%);"></div>
+
+    <!-- Sair -->
+    <button @click="fecharConviteTelao()" class="absolute top-6 right-6 z-20 text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-widest border border-zinc-700/60 rounded-xl px-4 py-2 transition-all active:scale-95">
+      ✕ Sair do modo telão
+    </button>
+
+    <!-- Palco 16:9: trava a proporção e centraliza (funciona em qualquer projetor) -->
+    <div class="relative z-10 w-full h-full max-w-[177.78vh] max-h-[56.25vw] aspect-video flex items-center gap-[4vw] px-[5vw]">
+
+      <!-- Coluna esquerda: QR GIGANTE -->
+      <div class="flex flex-col items-center flex-shrink-0">
+        <div class="bg-white rounded-[2vh] p-[2vh] shadow-[0_0_80px_rgba(236,72,153,0.25)]">
+          <img :src="telaoQrUrlGrande()" alt="QR Code do evento" class="block w-[64vh] h-[64vh]">
+        </div>
+        <p class="mt-[2.5vh] text-pink-300 font-black uppercase tracking-[0.2em]" style="font-size:2.6vh">📲 Aponte a câmera do celular</p>
+      </div>
+
+      <!-- Coluna direita: marca + jogo + chamada -->
+      <div class="flex-1 min-w-0 flex flex-col justify-center">
+        <p class="text-pink-400 uppercase font-black tracking-[0.4em]" style="font-size:2.4vh">🏟️ Bolão Pro · Evento</p>
+
+        <!-- Jogo -->
+        <div class="flex items-center gap-[1.8vw] mt-[3vh]">
+          <img :src="telaoFixture?.homeLogo" class="object-contain flex-shrink-0" style="width:9vh;height:9vh" alt="">
+          <span class="font-black text-white leading-none truncate" style="font-size:5.5vh" x-text="telaoFixture?.homeName"></span>
+          <span class="text-zinc-600 font-black flex-shrink-0" style="font-size:4vh">×</span>
+          <span class="font-black text-white leading-none truncate" style="font-size:5.5vh" x-text="telaoFixture?.awayName"></span>
+          <img :src="telaoFixture?.awayLogo" class="object-contain flex-shrink-0" style="width:9vh;height:9vh" alt="">
+        </div>
+
+        <!-- Chamada principal (muda conforme palpites abertos/travados) -->
+        <h1 class="font-black text-white leading-[1.05] mt-[5vh]" style="font-size:8vh">
+          <span x-show="!palpitesTravados">Dê seu <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-amber-300">palpite</span><br>e entre no bolão!</span>
+          <span x-show="palpitesTravados">Escaneie e <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-amber-300">concorra</span><br>ao sorteio!</span>
+        </h1>
+
+        <p class="text-zinc-400 mt-[3.5vh] leading-snug" style="font-size:3vh">
+          Escaneie o <span class="text-pink-300 font-bold">QR Code</span> ao lado, faça seu palpite no placar e dispute prêmios com a galera. É rapidinho! ⚡
+        </p>
+
+        <p class="text-zinc-600 font-bold uppercase tracking-widest mt-[4vh]" style="font-size:2.2vh">
+          📅 <span x-text="telaoFixture ? new Date(telaoFixture.date).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : ''"></span>
+          · <span class="text-pink-300">@appbolaopro</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════════ MODO TELÃO: SORTEIO EM TELA CHEIA (projeção) ════════════ -->
   <div x-show="telaoApresentacao" x-cloak
        class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center p-10 text-center overflow-hidden">
@@ -2770,6 +2827,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=44"></script>
+  <script src="/gm/js/admin.js?v=45"></script>
 </body>
 </html>
