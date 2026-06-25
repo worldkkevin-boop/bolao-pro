@@ -154,19 +154,40 @@ async function carregarDadosBaseTVAoVivo() {
     const userIds = tvDados.membros.map(m => m.user_id);
     if (userIds.length === 0) return;
 
-    // Busca perfis, palpites e desafios em paralelo
-    const [resPerfis, resPalpites, resDesafios] = await Promise.all([
+    // Busca perfis e desafios em paralelo
+    const [resPerfis, resDesafios] = await Promise.all([
       sbClient.from('profiles').select('id, full_name, avatar_url, apoiador, apoiador_ate').in('id', userIds),
-      sbClient.from('guesses').select('user_id, match_id, score_home, score_away').eq('group_id', grupoAtual.id).limit(2000),
       sbClient.from('user_desafios').select('user_id, points_awarded').eq('group_id', grupoAtual.id)
     ]);
 
     if (resPerfis.error) console.error(resPerfis.error);
-    if (resPalpites.error) console.error(resPalpites.error);
     if (resDesafios.error) console.error(resDesafios.error);
 
+    // PALPITES: paginado em blocos de 1000. Um grupo grande, ao longo da Copa, junta
+    // MILHARES de palpites somando todos os jogos. O teto fixo (.limit(2000)) cortava a
+    // consulta e gente que palpitou simplesmente sumia do Ao Vivo (aparecia na aba
+    // Palpites, que busca só o jogo, mas não aqui). Paginar garante que ninguém é cortado.
+    // Ordem estável (match_id, user_id é único dentro do grupo) pra não repetir/pular linha.
+    const todosPalpites = [];
+    const PAG = 1000;
+    let de = 0;
+    while (true) {
+      const { data, error } = await sbClient
+        .from('guesses')
+        .select('user_id, match_id, score_home, score_away')
+        .eq('group_id', grupoAtual.id)
+        .order('match_id', { ascending: true })
+        .order('user_id', { ascending: true })
+        .range(de, de + PAG - 1);
+      if (error) { console.error(error); break; }
+      if (!data || data.length === 0) break;
+      todosPalpites.push(...data);
+      if (data.length < PAG) break;
+      de += PAG;
+    }
+
     tvDados.perfis = resPerfis.data || [];
-    tvDados.palpites = resPalpites.data || [];
+    tvDados.palpites = todosPalpites;
     tvDados.userDesafios = resDesafios.data || [];
 
   } catch (e) {
