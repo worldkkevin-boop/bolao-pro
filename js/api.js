@@ -44,13 +44,10 @@ async function carregarJogos() {
         }
 
         // 2. Busca palpites de todos os usuários para calcular Zebra Dinâmica
-        const { data: allGroupGuesses, error: errAll } = await sbClient
-          .from('guesses')
-          .select('match_id, score_home, score_away')
-          .eq('group_id', grupoAtual.id)
-          .limit(2000);
-        
-        if (!errAll && allGroupGuesses) {
+        // (paginado — o teto fixo cortava palpites e bagunçava a % da zebra)
+        const allGroupGuesses = await buscarTodosPalpitesGrupo(grupoAtual.id, 'match_id, score_home, score_away');
+
+        if (allGroupGuesses && allGroupGuesses.length > 0) {
           const distribuicao = {};
           allGroupGuesses.forEach(g => {
             if (!distribuicao[g.match_id]) {

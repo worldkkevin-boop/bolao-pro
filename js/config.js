@@ -44,3 +44,30 @@ try {
 } catch (e) {
   console.error('Supabase não inicializou:', e);
 }
+
+// Busca TODOS os palpites de um grupo paginando em blocos (o Supabase corta em
+// ~1000 linhas e um teto fixo como .limit(2000) também truncava). Um grupo grande,
+// ao longo da Copa, junta milhares de palpites somando todos os jogos — sem paginar,
+// gente que palpitou some do ranking/zebra/ao vivo. Ordem estável (match_id, user_id
+// é único dentro do grupo) pra não repetir nem pular linha entre as páginas.
+async function buscarTodosPalpitesGrupo(groupId, selectCols = 'user_id, match_id, score_home, score_away') {
+  const todos = [];
+  if (!sbClient || !groupId) return todos;
+  const PAG = 1000;
+  let de = 0;
+  while (true) {
+    const { data, error } = await sbClient
+      .from('guesses')
+      .select(selectCols)
+      .eq('group_id', groupId)
+      .order('match_id', { ascending: true })
+      .order('user_id', { ascending: true })
+      .range(de, de + PAG - 1);
+    if (error) { console.error('buscarTodosPalpitesGrupo:', error); break; }
+    if (!data || data.length === 0) break;
+    todos.push(...data);
+    if (data.length < PAG) break;
+    de += PAG;
+  }
+  return todos;
+}

@@ -163,28 +163,11 @@ async function carregarDadosBaseTVAoVivo() {
     if (resPerfis.error) console.error(resPerfis.error);
     if (resDesafios.error) console.error(resDesafios.error);
 
-    // PALPITES: paginado em blocos de 1000. Um grupo grande, ao longo da Copa, junta
+    // PALPITES: paginado (helper compartilhado). Um grupo grande, ao longo da Copa, junta
     // MILHARES de palpites somando todos os jogos. O teto fixo (.limit(2000)) cortava a
     // consulta e gente que palpitou simplesmente sumia do Ao Vivo (aparecia na aba
     // Palpites, que busca só o jogo, mas não aqui). Paginar garante que ninguém é cortado.
-    // Ordem estável (match_id, user_id é único dentro do grupo) pra não repetir/pular linha.
-    const todosPalpites = [];
-    const PAG = 1000;
-    let de = 0;
-    while (true) {
-      const { data, error } = await sbClient
-        .from('guesses')
-        .select('user_id, match_id, score_home, score_away')
-        .eq('group_id', grupoAtual.id)
-        .order('match_id', { ascending: true })
-        .order('user_id', { ascending: true })
-        .range(de, de + PAG - 1);
-      if (error) { console.error(error); break; }
-      if (!data || data.length === 0) break;
-      todosPalpites.push(...data);
-      if (data.length < PAG) break;
-      de += PAG;
-    }
+    const todosPalpites = await buscarTodosPalpitesGrupo(grupoAtual.id);
 
     tvDados.perfis = resPerfis.data || [];
     tvDados.palpites = todosPalpites;

@@ -1198,18 +1198,8 @@ async function exibirRankingSelecionado() {
   }
 
   try {
-    // 1. Busca todos os palpites do grupo ativo
-    const { data: rawGuesses, error: errGuesses } = await sbClient
-      .from('guesses')
-      .select('user_id, match_id, score_home, score_away')
-      .eq('group_id', grupoAtual.id)
-      .limit(2000);
-
-    if (errGuesses) {
-      console.error("Erro ao carregar palpites para ranking:", errGuesses.message);
-      container.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Erro ao buscar palpites.</p>';
-      return;
-    }
+    // 1. Busca todos os palpites do grupo ativo (paginado — teto fixo cortava jogadores)
+    const rawGuesses = await buscarTodosPalpitesGrupo(grupoAtual.id);
 
     // 2. Busca todos os membros do grupo
     const { data: members, error: errMembers } = await sbClient
