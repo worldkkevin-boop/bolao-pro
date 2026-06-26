@@ -3763,6 +3763,104 @@ function detalharPontosPalpite(palpiteHome, palpiteAway, realHome, realAway) {
   return { pts: 0, desc: 'Zerou' };
 }
 
+// ====== Motor de STATUS das Perguntas Bônus (cruza com a classificação ao vivo) ======
+// Retorna um objeto { avaliar(qkey, valor) } que classifica cada resposta como
+// 'ativo' (valendo), 'perdida' (time eliminado / palpite impossível),
+// 'ganhou' (confirmado) ou 'aberto' (ainda sem como decidir).
+async function _statusBonusCopa() {
+  const norm = (s) => (s == null ? '' : s.toString().trim().toLowerCase());
+  const ligaId = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
+
+  let grupos = null, fixtures = [];
+  // 1. Reaproveita o cache da view-copa se estiver quente
+  if (typeof _copaCache !== 'undefined' && _copaCache.standings && _copaCache.leagueId === ligaId) {
+    grupos = _copaCache.standings;
+    fixtures = _copaCache.knockout || [];
+  }
+  // 2. Senão, busca a classificação (mesma normalização da copa.js: dedupe + sem grupo-fantasma)
+  if (!grupos && typeof _copaFetch === 'function') {
+    try {
+      const sj = await _copaFetch(`standings?league=${ligaId}&season=2026`);
+      const liga = sj && sj.response && sj.response[0] && sj.response[0].league;
+      let raw = (liga && Array.isArray(liga.standings)) ? liga.standings : [];
+      const dd = (g) => { const v = new Set(); return g.filter(t => { const id = t && t.team && t.team.id; if (id == null || v.has(id)) return false; v.add(id); return true; }); };
+      const limpos = raw.filter(g => Array.isArray(g) && g.length).map(dd);
+      const reais = limpos.filter(g => { const n = ((g[0] && g[0].group) || '').trim(); return /^group\s+[a-z0-9]+$/i.test(n) && !/^group stage$/i.test(n); });
+      grupos = reais.length ? reais : limpos;
+    } catch (e) { grupos = null; }
+  }
+
+  const teamMap = {};
+  let groupStageComplete = true;
+  let pior = null;        // lanterna geral (pior de toda a Copa)
+  let topScorer = null;   // time que mais fez gols (proxy pro palpite de gols)
+
+  (grupos || []).forEach(g => {
+    if (!g || !g.length) return;
+    const n = g.length;
+    const complete = g.every(t => (t.all && t.all.played) >= 3); // 3 jogos por time na fase de grupos
+    if (!complete) groupStageComplete = false;
+    g.forEach(t => {
+      teamMap[norm(t.team.name)] = {
+        name: t.team.name, rank: t.rank, played: t.all.played, points: t.points,
+        gd: t.goalsDiff, gf: t.all.goals.for, group: (t.group || '').replace('Group', 'Grupo'),
+        groupComplete: complete, qualified: t.rank <= 2, last: t.rank === n
+      };
+      if (!pior || t.points < pior.points || (t.points === pior.points && (t.goalsDiff < pior.gd || (t.goalsDiff === pior.gd && t.all.goals.for < pior.gf)))) {
+        pior = { name: t.team.name, points: t.points, gd: t.goalsDiff, gf: t.all.goals.for };
+      }
+      if (!topScorer || t.all.goals.for > topScorer.goals) topScorer = { name: t.team.name, goals: t.all.goals.for };
+    });
+  });
+
+  // Eliminados/campeão pelo mata-mata (quando os jogos existirem)
+  const eliminadoKO = new Set();
+  let campeao = null;
+  (fixtures || []).forEach(f => {
+    const st = f.fixture && f.fixture.status && f.fixture.status.short;
+    if (!['FT', 'AET', 'PEN'].includes(st)) return;
+    const h = f.teams && f.teams.home, a = f.teams && f.teams.away;
+    if (!h || !a) return;
+    const perdedor = h.winner === true ? a : (a.winner === true ? h : null);
+    const vencedor = h.winner === true ? h : (a.winner === true ? a : null);
+    if (perdedor) eliminadoKO.add(norm(perdedor.name));
+    const round = (f.league && f.league.round) || '';
+    if (/final/i.test(round) && !/semi|3rd|quarter|round of/i.test(round) && vencedor) campeao = norm(vencedor.name);
+  });
+
+  const avaliar = (qkey, valor) => {
+    // Pergunta de gols do campeão: não dá pra cravar até a final → indicador de progresso
+    if (qkey === 'q1') {
+      return { badge: 'aberto', texto: 'Em aberto', sub: topScorer ? `maior artilharia: ${topScorer.name} ${topScorer.goals} gols` : '' };
+    }
+    if (!valor) return { badge: 'aberto', texto: '—' };
+    const v = norm(valor);
+    const t = teamMap[v];
+    if (!t) return { badge: 'aberto', texto: 'Em aberto' };
+
+    if (qkey === 'q2') { // último colocado (lanterna)
+      if (t.qualified) return { badge: 'perdida', texto: 'Perdida', sub: 'classificou, não é o último' };
+      if (groupStageComplete) {
+        if (pior && norm(pior.name) === v) return { badge: 'ganhou', texto: 'Acertou', sub: 'lanterna da Copa' };
+        return { badge: 'perdida', texto: 'Perdida' };
+      }
+      if (t.groupComplete && t.last) return { badge: 'ativo', texto: 'Valendo', sub: `último do ${t.group} até agora` };
+      return { badge: 'ativo', texto: 'Valendo' };
+    }
+
+    // q3 (3º), q4 (vice), q5 (campeão): time precisa ir longe
+    if (qkey === 'q5' && campeao) {
+      return campeao === v ? { badge: 'ganhou', texto: 'Campeão! 🏆' } : { badge: 'perdida', texto: 'Perdida' };
+    }
+    const eliminado = eliminadoKO.has(v) || (t.groupComplete && t.rank >= 4);
+    if (eliminado) return { badge: 'perdida', texto: 'Perdida', sub: 'eliminado' };
+    if (t.qualified) return { badge: 'ativo', texto: 'Valendo', sub: 'classificado' };
+    return { badge: 'ativo', texto: 'Valendo' };
+  };
+
+  return { avaliar };
+}
+
 async function abrirHistoricoUsuario(userId, userName, userFoto) {
   const modal = document.getElementById('modal-historico');
   const fotoEl = document.getElementById('hist-usuario-foto');
@@ -3974,14 +4072,35 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
                 <p class="text-[12px] text-text-muted">Esse jogador não respondeu as perguntas bônus.</p>
               </div>`;
           } else {
+            // Status ao vivo de cada palpite (cruza com a classificação da Copa)
+            let copaCtx = null;
+            try { copaCtx = await _statusBonusCopa(); } catch (e) { copaCtx = null; }
+
+            const badgeStyle = {
+              ativo:   'text-brand-green bg-brand-green/10',
+              perdida: 'text-red-400 bg-red-500/10',
+              ganhou:  'text-amber-400 bg-amber-500/10',
+              aberto:  'text-zinc-400 bg-zinc-700/30'
+            };
+            const badgeIcon = { ativo: '🟢', perdida: '🔴', ganhou: '🏆', aberto: '⏳' };
+
             perguntasBonus.forEach(p => {
               const valor = resp[p.key + '_resposta'];
               const respTxt = (valor !== null && valor !== undefined && valor !== '') ? valor : '—';
               const semResp = respTxt === '—';
+              const st = (copaCtx && !semResp) ? copaCtx.avaliar(p.key, valor) : { badge: 'aberto', texto: semResp ? 'Sem resposta' : 'Em aberto', sub: '' };
+              const stStyle = badgeStyle[st.badge] || badgeStyle.aberto;
+              const stIcon = badgeIcon[st.badge] || '';
               bonusHtml += `
-                <div class="border border-zinc-800/80 bg-zinc-900/30 rounded-xl p-3.5 flex items-center justify-between gap-3 mb-2">
-                  <p class="text-[11px] text-text-muted font-medium leading-tight min-w-0"><span class="text-brand-green font-bold">${p.n}.</span> ${p.label}</p>
-                  <span class="text-[12px] font-black ${semResp ? 'text-zinc-600' : 'text-white'} text-right flex-shrink-0">${respTxt}</span>
+                <div class="border border-zinc-800/80 bg-zinc-900/30 rounded-xl p-3.5 mb-2">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-[11px] text-text-muted font-medium leading-tight min-w-0"><span class="text-brand-green font-bold">${p.n}.</span> ${p.label}</p>
+                    <span class="text-[12px] font-black ${semResp ? 'text-zinc-600' : 'text-white'} text-right flex-shrink-0">${respTxt}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="text-[9.5px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md ${stStyle}">${stIcon} ${st.texto}</span>
+                    ${st.sub ? `<span class="text-[9.5px] text-text-muted">${st.sub}</span>` : ''}
+                  </div>
                 </div>`;
             });
           }
