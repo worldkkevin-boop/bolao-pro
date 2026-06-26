@@ -334,7 +334,7 @@
 
       <!-- Ações -->
       <div class="grid grid-cols-2 gap-3 mb-7">
-        <button onclick="abrirModal('modal-criar-grupo')" class="bg-brand-green text-black font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:opacity-90 transition-opacity active:scale-95">
+        <button onclick="abrirModal('modal-criar-grupo'); atualizarOpcaoMataMata()" class="bg-brand-green text-black font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:opacity-90 transition-opacity active:scale-95">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           Criar Grupo
         </button>
@@ -1517,13 +1517,22 @@
         <input type="text" id="input-nome-grupo" placeholder="Ex: Bolão da Firma" maxlength="40" class="w-full bg-app-bg text-white text-[15px] font-bold rounded-2xl border border-white/5 focus:border-brand-green outline-none py-4 px-4 mb-4 transition-colors placeholder-[#2a2a35]">
         
         <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Selecione a Liga</label>
-        <select id="select-liga-grupo" class="w-full bg-app-bg text-white text-[15px] font-bold rounded-2xl border border-white/5 focus:border-brand-green outline-none py-4 px-4 mb-5 transition-colors">
+        <select id="select-liga-grupo" onchange="atualizarOpcaoMataMata()" class="w-full bg-app-bg text-white text-[15px] font-bold rounded-2xl border border-white/5 focus:border-brand-green outline-none py-4 px-4 mb-5 transition-colors">
           <option value="1">Copa do Mundo 2026</option>
           <option value="71">Brasileirão Série A 2026</option>
           <option value="13">Libertadores 2026</option>
           <option value="325">Copa do Nordeste 2026</option>
           <option value="10">Amistosos Internacionais</option>
         </select>
+
+        <!-- Apenas mata-mata (só faz sentido em mata-mata / Copa) -->
+        <label id="opcao-mata-mata" class="flex items-start gap-3 mb-5 p-3 bg-app-bg border border-white/5 rounded-2xl cursor-pointer hover:border-brand-green/40 transition-colors">
+          <input type="checkbox" id="check-mata-mata" class="mt-0.5 w-5 h-5 accent-brand-green flex-shrink-0">
+          <span class="flex flex-col">
+            <span class="text-white text-[14px] font-bold">🏆 Apenas mata-mata</span>
+            <span class="text-[11px] text-text-muted leading-snug mt-0.5">O bolão começa direto na fase eliminatória — a fase de grupos não conta. Ideal pra entrar agora na Copa.</span>
+          </span>
+        </label>
 
         <!-- AVISO DE PLANO (Substitui o antigo Slider) -->
         <div class="mt-5 mb-6">
@@ -2214,8 +2223,8 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=32"></script>
   <script src="js/auth.js?v=35"></script>
-  <script src="js/api.js?v=32"></script>
-  <script src="js/groups.js?v=34"></script>
+  <script src="js/api.js?v=33"></script>
+  <script src="js/groups.js?v=35"></script>
   <script src="js/ui.js?v=53"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=43"></script>

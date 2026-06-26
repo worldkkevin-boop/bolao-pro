@@ -321,6 +321,7 @@ function finalizadoIrHome() {
 function finalizadoCriarGrupo() {
   finalizadoIrHome();
   if (typeof abrirModal === 'function') abrirModal('modal-criar-grupo');
+  if (typeof atualizarOpcaoMataMata === 'function') atualizarOpcaoMataMata();
 }
 
 function _eventoSetTimes(casa, fora, casaLogo, foraLogo) {

@@ -1,5 +1,23 @@
 // ============ GESTÃO DE GRUPOS ============
 
+// Ligas onde a opção "Apenas mata-mata" faz sentido (têm fase eliminatória).
+// Copa do Mundo (1), Libertadores (13), Copa do Nordeste (325).
+const LIGAS_COM_MATA_MATA = [1, 13, 325];
+
+// Mostra/esconde a opção "Apenas mata-mata" conforme a liga selecionada.
+function atualizarOpcaoMataMata() {
+  const sel = document.getElementById('select-liga-grupo');
+  const opc = document.getElementById('opcao-mata-mata');
+  if (!sel || !opc) return;
+  const leagueId = parseInt(sel.value) || 0;
+  const mostra = LIGAS_COM_MATA_MATA.includes(leagueId);
+  opc.classList.toggle('hidden', !mostra);
+  if (!mostra) {
+    const chk = document.getElementById('check-mata-mata');
+    if (chk) chk.checked = false;
+  }
+}
+
 async function carregarGrupos() {
   if (!sbClient) return;
   let user = usuarioAtual;
@@ -263,6 +281,10 @@ async function criarGrupoReal() {
   const codigo = Math.random().toString(36).substring(2, 9).toUpperCase();
   const leagueId = parseInt(document.getElementById('select-liga-grupo').value) || 1;
 
+  // Apenas mata-mata: só aplica em competições de mata-mata (Copa do Mundo / Libertadores / Copa do Nordeste)
+  const chkMata = document.getElementById('check-mata-mata');
+  const apenasMataMata = !!(chkMata && chkMata.checked && LIGAS_COM_MATA_MATA.includes(leagueId));
+
   const { data: novoGrupo, error } = await sbClient
     .from('groups')
     .insert([{
@@ -271,6 +293,7 @@ async function criarGrupoReal() {
       owner_id: user.id,
       league_id: leagueId,
       max_participants: 3,
+      apenas_mata_mata: apenasMataMata,
       pt_placar_exato: 12,
       pt_vencedor_saldo: 7,
       pt_empate_nao_exato: 6,

@@ -14,6 +14,14 @@ async function carregarJogos() {
     const dados = await resposta.json();
     todosOsJogos = dados.response;
 
+    // Grupo "Apenas mata-mata": ignora a fase de grupos, só conta os jogos da eliminatória.
+    if (grupoAtual && grupoAtual.apenas_mata_mata && Array.isArray(todosOsJogos)) {
+      todosOsJogos = todosOsJogos.filter(j => {
+        const r = (j.league && j.league.round) || '';
+        return !/group stage/i.test(r);
+      });
+    }
+
     // Filtro específico para o grupo "Amistosos da Copa" (Apenas jogos de 06 a 11 de Junho de 2026)
     if (grupoAtual && grupoAtual.name === 'Amistosos da Copa' && Array.isArray(todosOsJogos)) {
       todosOsJogos = todosOsJogos.filter(j => {
