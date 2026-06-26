@@ -230,6 +230,26 @@ async function carregarViewCopa(forcar = false) {
     const liga = standingsJson.response && standingsJson.response[0] && standingsJson.response[0].league;
     if (liga && Array.isArray(liga.standings)) grupos = liga.standings;
 
+    // A API às vezes devolve linhas DUPLICADAS dentro do grupo (cada time aparece 2x)
+    // e ainda um grupo-fantasma agregado ("Group Stage" com todos os times misturados).
+    // Normaliza: deduplica por time em cada grupo e prioriza os grupos nomeados (A..L),
+    // descartando o agregado. Fallback: se não houver grupos nomeados, usa tudo deduplicado.
+    const _dedupGrupo = (g) => {
+      const vistos = new Set();
+      return g.filter(t => {
+        const id = t && t.team && t.team.id;
+        if (id == null || vistos.has(id)) return false;
+        vistos.add(id);
+        return true;
+      });
+    };
+    const _limpos = (grupos || []).filter(g => Array.isArray(g) && g.length).map(_dedupGrupo);
+    const _reais = _limpos.filter(g => {
+      const nome = ((g[0] && g[0].group) || '').trim();
+      return /^group\s+[a-z0-9]+$/i.test(nome) && !/^group stage$/i.test(nome);
+    });
+    grupos = _reais.length ? _reais : _limpos;
+
     // ----- Fixtures do mata-mata: tudo que NÃO é "Group Stage".
     const fixtures = (fixturesJson.response || []).filter(f => {
       const r = (f.league && f.league.round) || '';
