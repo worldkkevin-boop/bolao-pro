@@ -1664,6 +1664,27 @@
       </div>
     </div>
 
+    <!-- ============ MODAL PROMO: DIA DE APOIADOR GRÁTIS (26/06) ============ -->
+    <div id="modal-promo-apoio" class="hidden fixed inset-0 bg-black/85 z-[10050] flex items-center justify-center p-4 backdrop-blur-sm" onclick="fecharPromoApoio()">
+      <div class="bg-card-bg rounded-3xl w-full max-w-sm p-6 border border-amber-400/30 shadow-2xl text-center relative overflow-hidden" onclick="event.stopPropagation()">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-500"></div>
+        <div class="text-5xl mb-3">💛📊</div>
+        <h3 class="text-xl font-black text-white leading-tight mb-1">Hoje todo mundo é <span class="text-amber-300">Apoiador!</span></h3>
+        <p class="text-[10px] font-black uppercase tracking-widest text-amber-400/80 mb-4">Liberado até as 23:59 de hoje</p>
+        <p class="text-[13px] text-text-muted leading-relaxed mb-4">
+          Hoje (<b class="text-white">26/06</b>) é o dia de pagar a <b class="text-white">API de futebol</b> e a <b class="text-white">manutenção</b> do app. 🙏<br>
+          Pra agradecer, liberei pra <b class="text-white">geral</b> os perks de Apoiador hoje — incluindo as <b class="text-amber-300">estatísticas dos times</b>. Se puder, me ajuda a manter no ar. 💚
+        </p>
+        <div class="bg-zinc-900/60 border border-amber-400/15 rounded-xl p-3 mb-5 text-left">
+          <p class="text-[12px] text-white font-bold mb-0.5">📊 Como ver as estatísticas</p>
+          <p class="text-[11px] text-text-muted leading-relaxed">Na aba <b class="text-white">Jogos</b>, toque em qualquer time → forma recente, médias de gols, projeção, posição e odds.</p>
+        </div>
+        <button onclick="fecharPromoApoio(); abrirDoacao();" class="w-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black py-3 rounded-xl text-sm uppercase tracking-wider active:scale-95 mb-2">💛 Quero ajudar a manter</button>
+        <button onclick="fecharPromoApoio(); if (typeof grupoAtual !== 'undefined' && grupoAtual && typeof switchView === 'function') switchView('view-jogos');" class="w-full bg-zinc-800/80 text-white font-bold py-2.5 rounded-xl text-[13px] active:scale-95">Ver estatísticas dos times</button>
+        <button onclick="fecharPromoApoio()" class="mt-3 text-[12px] text-zinc-500 hover:text-zinc-300">Agora não</button>
+      </div>
+    </div>
+
     <!-- ================= MODAL MURAL DE APOIADORES ================= -->
     <div id="modal-mural" class="hidden fixed inset-0 bg-black/75 z-[10000] flex items-end justify-center backdrop-blur-sm" onclick="fecharModal('modal-mural')">
       <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-amber-400/20 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -2192,10 +2213,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=32"></script>
-  <script src="js/auth.js?v=34"></script>
+  <script src="js/auth.js?v=35"></script>
   <script src="js/api.js?v=32"></script>
   <script src="js/groups.js?v=34"></script>
-  <script src="js/ui.js?v=52"></script>
+  <script src="js/ui.js?v=53"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=43"></script>
   <script src="js/evento.js?v=42"></script>

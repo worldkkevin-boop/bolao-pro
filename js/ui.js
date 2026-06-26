@@ -82,6 +82,28 @@ function abrirDoacao() {
   abrirModal('modal-doacao');
 }
 
+// Promo "Dia de Apoiador grátis" (26/06/2026). Some sozinho depois das 23:59 BRT
+// (trava por data) e aparece só 1x por aparelho (localStorage). Chamado no login.
+function mostrarPromoApoiador() {
+  try {
+    const FIM = new Date('2026-06-27T02:59:59Z'); // 26/06 23:59 em Brasília (UTC-3)
+    if (new Date() > FIM) return;                  // promo encerrada → nunca mais aparece
+    if (localStorage.getItem('promo_apoio_2026_06_26')) return; // já viu nesse aparelho
+    const modal = document.getElementById('modal-promo-apoio');
+    if (!modal) return;
+    setTimeout(() => { // deixa o app montar antes de abrir
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }, 900);
+  } catch (e) { /* noop */ }
+}
+
+function fecharPromoApoio() {
+  try { localStorage.setItem('promo_apoio_2026_06_26', '1'); } catch (e) {}
+  const modal = document.getElementById('modal-promo-apoio');
+  if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+}
+
 // Inicia o pagamento de apoio (produto apoio_5/10/20) pelo fluxo do MercadoPago.
 function iniciarApoio(productId) {
   fecharModal('modal-doacao');
