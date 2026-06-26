@@ -225,7 +225,8 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
         const gf = casa ? (f.goals.home ?? 0) : (f.goals.away ?? 0);
         const ga = casa ? (f.goals.away ?? 0) : (f.goals.home ?? 0);
         const opp = casa ? f.teams.away : f.teams.home;
-        return { data: f.fixture.date, casa, gf, ga, opp, res: gf > ga ? 'W' : (gf < ga ? 'L' : 'D') };
+        const copa = !!(f.league && f.league.id === leagueId); // jogo do MESMO campeonato (a Copa)
+        return { data: f.fixture.date, casa, gf, ga, opp, copa, res: gf > ga ? 'W' : (gf < ga ? 'L' : 'D') };
       });
 
     if (jogos.length === 0) {
@@ -299,14 +300,14 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
       const hGf = Math.round(j.gf / maxV * 70) + 3;
       const hGa = Math.round(j.ga / maxV * 70) + 3;
       return `
-        <div class="flex flex-col items-center gap-1 flex-shrink-0" style="width:40px">
+        <div class="flex flex-col items-center gap-1 flex-shrink-0 ${j.copa ? 'bg-brand-green/[0.08] ring-1 ring-brand-green/30 rounded-lg pt-1 pb-0.5' : ''}" style="width:40px">
           <div class="flex items-end gap-0.5" style="height:80px">
             <div class="flex flex-col items-center justify-end h-full"><span class="text-[9px] font-black text-brand-green leading-none mb-0.5">${j.gf}</span><div class="w-2.5 rounded-t bg-brand-green" style="height:${hGf}px"></div></div>
             <div class="flex flex-col items-center justify-end h-full"><span class="text-[9px] font-black text-red-400 leading-none mb-0.5">${j.ga}</span><div class="w-2.5 rounded-t bg-red-500/80" style="height:${hGa}px"></div></div>
           </div>
-          <span class="text-[11px] leading-none">${j.casa ? '🏠' : '✈️'}</span>
+          <span class="text-[11px] leading-none">${j.copa ? '🏆' : (j.casa ? '🏠' : '✈️')}</span>
           <img src="${flag}" onerror="this.style.display='none'" class="w-4 h-4 rounded-sm object-cover">
-          <span class="text-[8px] text-text-muted leading-none">${dataFmt}</span>
+          <span class="text-[8px] ${j.copa ? 'text-brand-green font-black' : 'text-text-muted'} leading-none">${dataFmt}</span>
         </div>`;
     }).join('');
 
@@ -336,14 +337,18 @@ async function abrirEstatisticasTime(fixtureId, teamId) {
 
       <!-- Gráfico últimos jogos -->
       <div class="flex items-center justify-between mb-1">
-        <p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Últimos ${n} jogos</p>
+        <p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Últimos ${n} jogos <span class="text-brand-green normal-case tracking-normal">· 🏆 = Copa</span></p>
         <div class="flex items-center gap-3 text-[9px] font-bold"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-brand-green"></span>Feitos</span><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-red-500/80"></span>Levados</span></div>
       </div>
-      <div class="bg-zinc-900/40 rounded-xl p-3 mb-4 overflow-x-auto"><div class="flex gap-1.5 items-end" style="min-width:max-content">${barras}</div></div>
+      <div id="estat-chart-scroll" class="bg-zinc-900/40 rounded-xl p-3 mb-4 overflow-x-auto"><div class="flex gap-1.5 items-end" style="min-width:max-content">${barras}</div></div>
 
       ${posBlock}
       ${oddsBlock}
-      <p class="text-[10px] text-zinc-600 text-center">🏠 casa · ✈️ fora · dados da API-Football</p>`;
+      <p class="text-[10px] text-zinc-600 text-center">🏠 casa · ✈️ fora · 🏆 Copa · dados da API-Football</p>`;
+
+    // Abre o gráfico já rolado nos jogos mais RECENTES (os da Copa ficam à direita)
+    const chartScroll = document.getElementById('estat-chart-scroll');
+    if (chartScroll) chartScroll.scrollLeft = chartScroll.scrollWidth;
   } catch (err) {
     console.error('Erro ao buscar estatísticas:', err);
     body.innerHTML = '<p class="text-red-400 text-[13px] text-center py-6">Erro ao buscar estatísticas. Tente de novo.</p>';
