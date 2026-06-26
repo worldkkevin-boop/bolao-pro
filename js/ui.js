@@ -3923,6 +3923,77 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
       resumoEl.innerText = `${totalPontos} pts • ${placaresExatos} placares exatos`;
     }
 
+    // ====== Respostas das Perguntas Bônus (reveladas só DEPOIS do prazo) ======
+    try {
+      const { data: bConfig } = await sbClient
+        .from('bonus_config')
+        .select('*')
+        .eq('group_id', grupoAtual.id)
+        .single();
+
+      const algumaAtiva = bConfig && (bConfig.q1_ativa || bConfig.q2_ativa || bConfig.q3_ativa || bConfig.q4_ativa || bConfig.q5_ativa);
+
+      if (algumaAtiva) {
+        const prazoData = bConfig.prazo ? new Date(bConfig.prazo) : null;
+        const prazoExpirado = prazoData ? (new Date() > prazoData) : false;
+        const prazoTxt = prazoData ? `${prazoData.toLocaleDateString('pt-BR')} às ${prazoData.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '';
+
+        const perguntasBonus = [
+          { key: 'q1', n: 1, label: 'Gols do campeão no campeonato', ativa: bConfig.q1_ativa },
+          { key: 'q2', n: 2, label: 'Último colocado (rebaixado)', ativa: bConfig.q2_ativa },
+          { key: 'q3', n: 3, label: 'Terceiro colocado', ativa: bConfig.q3_ativa },
+          { key: 'q4', n: 4, label: 'Vice-campeão', ativa: bConfig.q4_ativa },
+          { key: 'q5', n: 5, label: 'Campeão', ativa: bConfig.q5_ativa }
+        ].filter(p => p.ativa);
+
+        let bonusHtml = `
+          <div class="pt-2">
+            <div class="flex items-center gap-2 mb-2 px-1">
+              <span class="text-[13px]">⭐</span>
+              <h4 class="text-[12px] font-black uppercase tracking-wider text-zinc-300">Respostas Bônus</h4>
+            </div>`;
+
+        if (!prazoExpirado) {
+          // Antes do prazo: respostas ficam ocultas pra ninguém copiar
+          bonusHtml += `
+            <div class="border border-zinc-800/80 bg-zinc-900/30 rounded-xl p-4 text-center">
+              <p class="text-[11.5px] text-text-muted leading-relaxed">🔒 As respostas ficam ocultas até o prazo encerrar${prazoTxt ? `<br><span class="text-zinc-300 font-bold">${prazoTxt}</span>` : ''}.<br>Depois disso ninguém muda e todo mundo pode ver.</p>
+            </div>`;
+        } else {
+          // Depois do prazo: revela as respostas do jogador (já travadas)
+          const { data: resp } = await sbClient
+            .from('bonus_respostas')
+            .select('*')
+            .eq('group_id', grupoAtual.id)
+            .eq('user_id', userId)
+            .single();
+
+          if (!resp) {
+            bonusHtml += `
+              <div class="border border-zinc-800/80 bg-zinc-900/30 rounded-xl p-4 text-center">
+                <p class="text-[12px] text-text-muted">Esse jogador não respondeu as perguntas bônus.</p>
+              </div>`;
+          } else {
+            perguntasBonus.forEach(p => {
+              const valor = resp[p.key + '_resposta'];
+              const respTxt = (valor !== null && valor !== undefined && valor !== '') ? valor : '—';
+              const semResp = respTxt === '—';
+              bonusHtml += `
+                <div class="border border-zinc-800/80 bg-zinc-900/30 rounded-xl p-3.5 flex items-center justify-between gap-3 mb-2">
+                  <p class="text-[11px] text-text-muted font-medium leading-tight min-w-0"><span class="text-brand-green font-bold">${p.n}.</span> ${p.label}</p>
+                  <span class="text-[12px] font-black ${semResp ? 'text-zinc-600' : 'text-white'} text-right flex-shrink-0">${respTxt}</span>
+                </div>`;
+            });
+          }
+        }
+
+        bonusHtml += `</div>`;
+        listaEl.innerHTML += bonusHtml;
+      }
+    } catch (eBonus) {
+      console.error("Erro ao carregar respostas bônus do jogador:", eBonus);
+    }
+
   } catch (err) {
     console.error("Erro ao carregar resumo de pontos do jogador:", err);
     listaEl.innerHTML = '<p class="text-red-400 text-[12px] text-center py-8">Erro ao calcular resumo do jogador.</p>';
