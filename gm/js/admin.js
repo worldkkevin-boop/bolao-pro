@@ -2046,30 +2046,63 @@ function adminApp() {
       return Math.abs(ph - pa) === Math.abs(rh - ra) ? r.saldo : r.vencedor;
     },
 
-    // EV (pontos esperados) de cada placar: soma os pontos contra cada resultado
-    // possível, ponderado pela probabilidade. Aplica zebra 2x (aprox.) quando a
-    // distribuição do bolão mostra <15% no resultado vencedor.
+    // Recalcula o status de zebra (<15%) de cada resultado DEPOIS de somar as suas
+    // entradas à distribuição da galera. addWinners = vencedores que VOCÊ vai cravar
+    // (1 por conta). É isso que torna o EV "consciente": cravar um resultado pode
+    // tirar ele da zebra (mata o 2x) ou a zebra pode aguentar as 2 contas.
+    _zebraSim(baseRaw, baseTotal, addWinners, zebraOn) {
+      const res = { home: false, draw: false, away: false, empate: false };
+      const counts = {
+        home: (baseRaw && baseRaw.home) || 0,
+        draw: (baseRaw && baseRaw.draw) || 0,
+        away: (baseRaw && baseRaw.away) || 0
+      };
+      let total = baseTotal || 0;
+      (addWinners || []).forEach(w => {
+        const k = w === 'empate' ? 'draw' : w;
+        if (counts[k] != null) { counts[k]++; total++; }
+      });
+      if (!zebraOn || total === 0) return res;
+      ['home', 'draw', 'away'].forEach(k => { res[k] = (counts[k] / total) * 100 < 15; });
+      res.empate = res.draw; // os placares usam winner 'empate'
+      return res;
+    },
+
+    // Quão coerente é um placar candidato com os gols esperados do jogo (vindos do
+    // /predictions — mesma fonte das stats do modo apoiador). 0 = encaixe perfeito,
+    // mais negativo = mais distante. Usado só como DESEMPATE entre EVs parecidos.
+    _statFit(cand, pred) {
+      const hg = Math.abs(parseFloat(pred && pred.goals ? pred.goals.home : NaN));
+      const ag = Math.abs(parseFloat(pred && pred.goals ? pred.goals.away : NaN));
+      if (isNaN(hg) || isNaN(ag)) return 0;
+      return -(Math.abs(cand.home - hg) + Math.abs(cand.away - ag));
+    },
+
+    // EV (pontos esperados) de cada placar SE VOCÊ CRAVAR ELE (1 conta): soma os
+    // pontos contra cada resultado possível, ponderado pela probabilidade. A zebra
+    // 2x é recalculada já contando a sua entrada (crowd + 1) — assim o "pt" da
+    // tabela é honesto e não promete um 2x que a própria aposta destrói.
     _calcEVPlacares(placares, distribuicao) {
       const crowd = distribuicao && distribuicao.total > 0 ? distribuicao : null;
       // Zebra: se não há grupo focado, mantém a aproximação; se há, respeita a regra do grupo.
       const zebraOn = !this.grupoFoco || !this.grupoFoco.regras || this.grupoFoco.regras.zebra;
       const multMata = (this.grupoFoco && this.grupoFoco.regras && this.grupoFoco.regras.multFase) ? this.grupoFoco.regras.multFase : 2;
       const isMata = !!this.oraculo.mataMata;
+      const baseRaw = crowd ? crowd.raw : null;
+      const baseTotal = crowd ? crowd.total : 0;
       placares.forEach(cand => {
+        const simZebra = this._zebraSim(baseRaw, baseTotal, [cand.winner], zebraOn);
         let ev = 0;
         placares.forEach(real => {
           let pts = this._pontosPalpite(cand.home, cand.away, real.home, real.away);
           if (pts > 0) {
-            if (zebraOn && crowd) {
-              const w = real.winner;
-              const pctW = w === 'home' ? crowd.homePct : (w === 'away' ? crowd.awayPct : crowd.drawPct);
-              if (pctW != null && pctW < 15) pts *= 2;
-            }
+            if (simZebra[real.winner]) pts *= 2;
             if (isMata) pts *= multMata;
           }
           ev += (real.probNorm || 0) * pts;
         });
         cand.ev = ev;
+        cand.statFit = this._statFit(cand, this.oraculo.predicoes);
       });
       return placares;
     },
@@ -2133,35 +2166,90 @@ function adminApp() {
     // Sugere placares pras 2 contas (Você + Gaby). Prioriza as odds de placar
     // exato; se não houver, cai numa heurística por probabilidade + gols.
     _calcEstrategiaPlacar(pred, placares) {
-      // 1) Preferência: escolhe pelos PONTOS ESPERADOS (EV); senão, pela prob.
+      // 1) Preferência: escolhe o PAR de placares pelos pontos esperados das 2
+      //    contas JUNTAS, com a zebra recalculada DEPOIS de vocês entrarem.
       if (placares && placares.length >= 1) {
-        const temEV = placares.some(p => typeof p.ev === 'number');
-        const ord = placares.slice().sort((a, b) => temEV ? ((b.ev || 0) - (a.ev || 0)) : ((b.prob || 0) - (a.prob || 0)));
-        const c1 = ord[0];
+        const homeName = (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa');
+        const awayName = (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora');
+        const zebraOn = !this.grupoFoco || !this.grupoFoco.regras || this.grupoFoco.regras.zebra;
+        const multMata = (this.grupoFoco && this.grupoFoco.regras && this.grupoFoco.regras.multFase) ? this.grupoFoco.regras.multFase : 2;
+        const isMata = !!this.oraculo.mataMata;
+        const dist = this.oraculo.distribuicao;
+        const baseRaw = dist && dist.total > 0 ? dist.raw : null;
+        const baseTotal = dist && dist.total > 0 ? dist.total : 0;
         const cacar = (this.oraculo && this.oraculo.modoEstrategia === 'cacar');
-        // Caçar placar: 2ª conta vai no 2º melhor placar (mesmo vencedor ok) → dobra a chance do exato.
-        // Cobrir cenários (hedge): 2ª conta vai no melhor placar de OUTRO resultado.
-        const c2 = cacar
-          ? (ord[1] || c1)
-          : (ord.find(p => p.winner !== c1.winner) || ord[1] || c1);
-        const pc = x => Math.round((x.probNorm || x.prob || 0) * 100);
-        const nomeRes = w => w === 'home' ? (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa') : (w === 'away' ? (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora') : 'o empate');
-        const alvo2 = c2.winner === 'empate' ? 'o empate' : ('a vitória de ' + nomeRes(c2.winner));
-        const confianca = c1.probNorm >= 0.13 ? 'alta' : (c1.probNorm >= 0.09 ? 'média' : 'baixa');
-        const ev1 = temEV ? ` (~${c1.ev.toFixed(1)} pts esperados)` : '';
-        const ev2 = temEV ? ` (~${c2.ev.toFixed(1)} pts)` : '';
-        const resumo = cacar
-          ? `🎯 Caçar placar: as duas contas vão nos 2 placares de maior EV (${c1.placar}${ev1} e ${c2.placar}${ev2}) pra dobrar a chance de cravar o exato quando o jogo sair como esperado.`
-          : (temEV
-            ? `🛡️ Cobrir cenários: o melhor placar é ${c1.placar}${ev1} — ${pc(c1)}% no mercado. A 2ª conta cobre ${alvo2} com ${c2.placar}${ev2}, pra não ficar refém de um resultado só.`
-            : `O cenário mais provável é ${c1.placar} (${pc(c1)}%). A 2ª conta cobre ${alvo2} com ${c2.placar} (${pc(c2)}%).`);
-        return {
-          fonte: 'odds',
-          conta1: c1.placar, conta2: c2.placar, confianca, resumo,
-          homeName: (pred && pred.teams && pred.teams.home ? pred.teams.home.name : 'Casa'),
-          awayName: (pred && pred.teams && pred.teams.away ? pred.teams.away.name : 'Fora'),
-          top: ord.slice(0, 5).map(p => ({ placar: p.placar, pct: pc(p) }))
+
+        // Pontos esperados de uma conta (cand) contra todos os resultados, usando a
+        // zebra do CENÁRIO simulado (já contando as suas 2 entradas).
+        const ptsConta = (cand, simZebra) => {
+          let ev = 0;
+          placares.forEach(real => {
+            let pts = this._pontosPalpite(cand.home, cand.away, real.home, real.away);
+            if (pts > 0) {
+              if (simZebra[real.winner]) pts *= 2;
+              if (isMata) pts *= multMata;
+            }
+            ev += (real.probNorm || 0) * pts;
+          });
+          return ev;
         };
+
+        // Limita aos 14 placares mais prováveis pra varredura O(n²) ficar barata.
+        const cands = placares.slice().sort((a, b) => (b.probNorm || 0) - (a.probNorm || 0)).slice(0, 14);
+        const pares = [];
+        for (let i = 0; i < cands.length; i++) {
+          for (let j = 0; j < cands.length; j++) {
+            if (i === j) continue;
+            const c1 = cands[i], c2 = cands[j];
+            if (!cacar && c1.winner === c2.winner) continue; // cobrir = vencedores diferentes
+            const simZebra = this._zebraSim(baseRaw, baseTotal, [c1.winner, c2.winner], zebraOn);
+            const p1 = ptsConta(c1, simZebra), p2 = ptsConta(c2, simZebra);
+            pares.push({ c1, c2, p1, p2, joint: p1 + p2, fit: this._statFit(c1, pred) + this._statFit(c2, pred) });
+          }
+        }
+        // Melhor pelo total esperado; empates de EV (≤0.15 pt) decididos pelo encaixe estatístico.
+        pares.sort((a, b) => (Math.abs(b.joint - a.joint) > 0.15 ? b.joint - a.joint : b.fit - a.fit));
+        const best = pares[0];
+        if (best) {
+          // conta1 = o placar mais provável do par (vai na "Você"); conta2 = o outro.
+          let a = best.c1, b = best.c2, pa = best.p1, pb = best.p2;
+          if ((b.probNorm || 0) > (a.probNorm || 0)) { [a, b] = [b, a]; [pa, pb] = [pb, pa]; }
+
+          const simZebra = this._zebraSim(baseRaw, baseTotal, [a.winner, b.winner], zebraOn);
+          const preZ = this._zebraSim(baseRaw, baseTotal, [], zebraOn);
+          const pc = x => Math.round((x.probNorm || x.prob || 0) * 100);
+          const nomeRes = w => w === 'home' ? homeName : (w === 'away' ? awayName : 'o empate');
+          const winLabel = w => w === 'empate' ? 'o empate' : ('a vitória de ' + nomeRes(w));
+          const confianca = a.probNorm >= 0.13 ? 'alta' : (a.probNorm >= 0.09 ? 'média' : 'baixa');
+
+          // Notas de zebra (só com grupo focado e palpites): o que ACONTECE com o 2x.
+          const zebraMsgs = [];
+          if (baseTotal > 0 && zebraOn) {
+            [a, b].forEach(c => {
+              const w = c.winner;
+              if (simZebra[w]) zebraMsgs.push(`🦓 ${c.placar} pega a zebra ×2 (${winLabel(w)} segue <15% mesmo com vocês entrando)`);
+              else if (preZ[w]) zebraMsgs.push(`⚠️ ${c.placar} mata a própria zebra — ${winLabel(w)} passa de 15% quando vocês cravam, então NÃO dobra`);
+            });
+          }
+          const zebraTxt = zebraMsgs.length ? ' ' + zebraMsgs.join('. ') + '.' : '';
+
+          const resumo = cacar
+            ? `🎯 Caçar placar: as 2 contas vão em ${a.placar} e ${b.placar} (mesma tendência) pra dobrar a chance de cravar o exato. Esperado ~${pa.toFixed(1)} e ~${pb.toFixed(1)} pts.${zebraTxt}`
+            : `🛡️ Cobrir cenários: ${a.placar} (${winLabel(a.winner)}, ${pc(a)}% no mercado) na sua conta e ${b.placar} (${winLabel(b.winner)}) na da Gaby, pra não ficar refém de um resultado. Esperado ~${pa.toFixed(1)} e ~${pb.toFixed(1)} pts.${zebraTxt}`;
+
+          const hg = Math.abs(parseFloat(pred && pred.goals ? pred.goals.home : NaN));
+          const ag = Math.abs(parseFloat(pred && pred.goals ? pred.goals.away : NaN));
+          return {
+            fonte: 'odds',
+            conta1: a.placar, conta2: b.placar, confianca, resumo,
+            pts1: pa.toFixed(1), pts2: pb.toFixed(1),
+            zebra1: !!simZebra[a.winner], zebra2: !!simZebra[b.winner],
+            statGols: (!isNaN(hg) && !isNaN(ag)) ? { home: hg.toFixed(1), away: ag.toFixed(1) } : null,
+            statForma: { home: (pred && pred.homeLast5 ? pred.homeLast5.form : '') || '', away: (pred && pred.awayLast5 ? pred.awayLast5.form : '') || '' },
+            homeName, awayName,
+            top: cands.slice(0, 5).map(p => ({ placar: p.placar, pct: pc(p) }))
+          };
+        }
       }
       // 2) Fallback: heurística por probabilidade + gols esperados.
       if (!pred || !pred.percent) return null;
