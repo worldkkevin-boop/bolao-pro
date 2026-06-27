@@ -152,10 +152,10 @@ function adminApp() {
     },
 
     // Oráculo (aba dedicada)
-    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, quantData: null, modo: 'zebra', erro: null },
+    oraculo: { loading: false, fixtureId: '', predicoes: null, distribuicao: null, distorcao: null, estrategia: null, placaresProvaveis: null, tabelaPlacares: null, golsInfo: null, mataMata: false, modoEstrategia: 'hedge', zebraRadar: null, lideres: null, quantData: null, modo: 'zebra', erro: null },
 
     // Foco no grupo: lê as regras de pontos e os palpites do bolão específico.
-    grupoFoco: { code: '', id: null, nome: null, regras: null, carregando: false, erro: null },
+    grupoFoco: { code: '', id: null, nome: null, regras: null, leagueId: null, apenasMataMata: false, carregando: false, erro: null },
     grupoFocoHistorico: [], // histórico de grupos focados (code + nome) p/ reuso rápido
 
     // Desafio rápido — lançado diretamente do Oráculo
@@ -1889,17 +1889,20 @@ function adminApp() {
       try {
         const { data, error } = await sbClient
           .from('groups')
-          .select('id, name, pt_placar_exato, pt_vencedor_saldo, pt_empate_nao_exato, pt_apenas_vencedor, regra_zebra_dinamica, mult_fase_final')
+          .select('id, name, league_id, apenas_mata_mata, pt_placar_exato, pt_vencedor_saldo, pt_empate_nao_exato, pt_apenas_vencedor, regra_zebra_dinamica, mult_fase_final')
           .eq('invite_code', code)
           .maybeSingle();
         if (error) throw error;
         if (!data) {
           this.grupoFoco.id = null; this.grupoFoco.nome = null; this.grupoFoco.regras = null;
+          this.grupoFoco.leagueId = null; this.grupoFoco.apenasMataMata = false;
           this.grupoFoco.erro = 'Grupo não encontrado com esse código.';
           return;
         }
         this.grupoFoco.id = data.id;
         this.grupoFoco.nome = data.name;
+        this.grupoFoco.leagueId = data.league_id || 1;
+        this.grupoFoco.apenasMataMata = data.apenas_mata_mata === true;
         this.grupoFoco.regras = {
           exato: data.pt_placar_exato ?? 12,
           saldo: data.pt_vencedor_saldo ?? 7,
@@ -1941,6 +1944,7 @@ function adminApp() {
       this.oraculo.tabelaPlacares = null;
       this.oraculo.golsInfo = null;
       this.oraculo.zebraRadar = null;
+      this.oraculo.lideres = null;
       this.oraculo.quantData = null;
       this.oraculo.erro = null;
       const fId = Number(this.oraculo.fixtureId);
@@ -1969,6 +1973,7 @@ function adminApp() {
         this.oraculo.estrategia = this._calcEstrategiaPlacar(pred, placares);
         this.oraculo.tabelaPlacares = placares ? this._agruparPlacares(placares) : null;
         this.oraculo.zebraRadar = this.grupoFoco.id ? await this._zebraRadarGrupo(fId, this.grupoFoco.id) : null;
+        this.oraculo.lideres = this.grupoFoco.id ? await this._carregarLideresJogo(fId, this.grupoFoco.id, this.grupoFoco.leagueId || (pred.league && pred.league.id)) : null;
         this.adicionarLog('API-Football', `/predictions?fixture=${fId}`, 'SUCCESS', Date.now() - t, `${pred.teams?.home?.name} vs ${pred.teams?.away?.name}`);
         this._popularDesafioRapido(pred, dist);
       } catch(err) {
@@ -2146,6 +2151,135 @@ function adminApp() {
         };
       };
       return { total, resultados: [mk('home'), mk('draw'), mk('away')] };
+    },
+
+    // Detecta fase de mata-mata pelo nome do round (espelha ehFaseMataMata do app).
+    _ehMataMataAdmin(round) {
+      if (!round) return false;
+      const r = String(round).toLowerCase();
+      if (r.includes('group') || r.includes('grupo')) return false;
+      return r.includes('round') || r.includes('oitavas') || r.includes('quartas') || r.includes('semi') || r.includes('final') || r.includes('3rd') || r.includes('terceiro');
+    },
+
+    // 🎯 Líderes neste jogo: monta a classificação do grupo focado (mesma regra do
+    // app — jogos encerrados × palpites, com mata-mata e zebra) e mostra, pro jogo
+    // analisado, o placar que cada líder (top 5 + você) cravou. Cache de 3 min dos
+    // dados pesados (fixtures + palpites) pra trocar de jogo no mesmo grupo ser rápido.
+    async _carregarLideresJogo(fixtureId, groupId, leagueId) {
+      if (!groupId) return null;
+      const reg = this.grupoFoco.regras || { exato: 12, saldo: 7, empate: 6, vencedor: 3, zebra: false, multFase: 2 };
+      try {
+        const liga = leagueId || 1;
+        const now = Date.now();
+        let cache = this._lideresCache;
+        if (!cache || cache.groupId !== groupId || (now - cache.ts) > 180000) {
+          // 1) Todos os palpites do grupo (paginado, ordem estável)
+          let todos = [], desde = 0; const bloco = 1000;
+          while (true) {
+            const { data, error } = await sbClient
+              .from('guesses')
+              .select('user_id, match_id, score_home, score_away')
+              .eq('group_id', groupId)
+              .order('match_id', { ascending: true }).order('user_id', { ascending: true })
+              .range(desde, desde + bloco - 1);
+            if (error) throw error;
+            todos = todos.concat(data || []);
+            if (!data || data.length < bloco) break;
+            desde += bloco;
+          }
+          // 2) Resultados dos jogos ENCERRADOS da liga (placar + round)
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026`, {
+            headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+          });
+          const json = await resp.json();
+          const FINAL = ['FT', 'AET', 'PEN'];
+          const resultados = {};
+          (json.response || []).forEach(j => {
+            if (FINAL.includes(j.fixture?.status?.short) && j.goals?.home != null && j.goals?.away != null) {
+              resultados[j.fixture.id] = { h: j.goals.home, a: j.goals.away, round: j.league?.round || '' };
+            }
+          });
+          // 3) Nomes/avatares de quem palpitou
+          const idsAll = [...new Set(todos.map(g => g.user_id))];
+          const nomes = {};
+          if (idsAll.length) {
+            const { data: profs } = await sbClient.from('profiles').select('id, full_name, avatar_url').in('id', idsAll);
+            (profs || []).forEach(p => { nomes[p.id] = { nome: (p.full_name || 'Participante'), avatar: p.avatar_url }; });
+          }
+          cache = this._lideresCache = { groupId, ts: now, todos, resultados, nomes };
+        }
+
+        const { todos, resultados, nomes } = cache;
+        if (!todos.length) return { lista: [], temVoce: false };
+
+        // Distribuição (pra zebra) por jogo
+        const distrib = {};
+        todos.forEach(g => {
+          if (!distrib[g.match_id]) distrib[g.match_id] = { home: 0, away: 0, empate: 0, total: 0 };
+          const d = distrib[g.match_id]; d.total++;
+          if (g.score_home > g.score_away) d.home++; else if (g.score_home < g.score_away) d.away++; else d.empate++;
+        });
+
+        // Pontua cada palpite em jogo encerrado (regras do grupo + mata-mata + zebra)
+        const pts = {};
+        todos.forEach(g => {
+          const r = resultados[g.match_id];
+          if (!r) return;
+          let p = this._pontosPalpite(g.score_home, g.score_away, r.h, r.a);
+          if (p > 0) {
+            if (reg.multFase > 1 && this._ehMataMataAdmin(r.round)) p *= reg.multFase;
+            if (reg.zebra) {
+              const vr = r.h > r.a ? 'home' : (r.h < r.a ? 'away' : 'empate');
+              const d = distrib[g.match_id];
+              const pctVenc = d && d.total > 0 ? (d[vr] / d.total) * 100 : 100;
+              if (pctVenc < 15) p *= 2;
+            }
+          }
+          pts[g.user_id] = (pts[g.user_id] || 0) + p;
+        });
+
+        // Ranking ordenado
+        const idsAll = [...new Set(todos.map(g => g.user_id))];
+        let ranking = idsAll.map(uid => ({
+          user_id: uid,
+          nome: (nomes[uid] && nomes[uid].nome) || 'Participante',
+          avatar: (nomes[uid] && nomes[uid].avatar) || null,
+          pontos: Math.round(pts[uid] || 0)
+        }));
+        ranking.sort((a, b) => b.pontos - a.pontos);
+        ranking.forEach((r, i) => { r.pos = i + 1; });
+
+        // Palpite de cada um no jogo focado
+        const palpiteJogo = {};
+        todos.forEach(g => { if (g.match_id === fixtureId) palpiteJogo[g.user_id] = { h: g.score_home, a: g.score_away }; });
+
+        const meuId = this.usuario && this.usuario.id ? this.usuario.id : null;
+        const meu = meuId ? palpiteJogo[meuId] : null;
+        const marcar = (r) => {
+          const p = palpiteJogo[r.user_id];
+          const placar = p ? `${p.h}-${p.a}` : null;
+          let rel = null;
+          if (placar && meu) rel = (p.h === meu.h && p.a === meu.a) ? 'igual' : 'dif';
+          return { user_id: r.user_id, nome: r.nome, avatar: r.avatar, pontos: r.pontos, pos: r.pos, placar, rel, isVoce: r.user_id === meuId };
+        };
+        const top5 = ranking.slice(0, 5).map(marcar);
+        let lista = top5;
+        if (meuId && !top5.some(r => r.user_id === meuId)) {
+          const eu = ranking.find(r => r.user_id === meuId);
+          if (eu) lista = [...top5, marcar(eu)];
+        }
+        return {
+          lista,
+          temVoce: !!meuId,
+          jogados: Object.keys(resultados).length,
+          meuPlacar: meu ? `${meu.h}-${meu.a}` : null,
+          homeName: (this.oraculo.predicoes && this.oraculo.predicoes.teams && this.oraculo.predicoes.teams.home ? this.oraculo.predicoes.teams.home.name : 'Casa'),
+          awayName: (this.oraculo.predicoes && this.oraculo.predicoes.teams && this.oraculo.predicoes.teams.away ? this.oraculo.predicoes.teams.away.name : 'Fora')
+        };
+      } catch (err) {
+        console.warn('Líderes do jogo falhou:', err && err.message);
+        return null;
+      }
     },
 
     // Agrupa os placares por resultado (Casa / Empate / Fora), ordena por odd

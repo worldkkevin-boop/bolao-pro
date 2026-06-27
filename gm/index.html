@@ -2080,6 +2080,45 @@
             <p class="text-[9px] text-zinc-500 italic mt-3">🎯 <b>Pegar:</b> entre num resultado <span class="text-fuchsia-300">zebra</span> e mantenha &lt;15% (verde) → você ganha o 2x. 🛡️ <b>Impedir:</b> se só rivais estão numa zebra, vocês entrando podem empurrar pra ≥15% (vermelho) e derrubar o 2x deles.</p>
           </div><!-- fecha RADAR DE ZEBRA -->
 
+          <!-- 🎯 LÍDERES NESTE JOGO -->
+          <div x-show="oraculo.lideres && oraculo.lideres.lista && oraculo.lideres.lista.length" class="bg-zinc-900 border border-amber-500/20 rounded-2xl p-6 shadow-xl">
+            <h4 class="text-[10px] text-amber-300 uppercase tracking-widest font-black mb-1">🎯 Líderes neste jogo — grupo <span x-text="grupoFoco.nome"></span></h4>
+            <p class="text-[10px] text-zinc-500 mb-1">Top 5 do ranking + você, e o placar que cada um cravou pra <span class="text-amber-300 font-bold" x-text="(oraculo.lideres?.homeName || 'Casa')"></span> x <span class="text-amber-300 font-bold" x-text="(oraculo.lideres?.awayName || 'Fora')"></span>.</p>
+            <p class="text-[9px] text-zinc-600 mb-4"><span class="text-amber-400 font-black">🟰 igual ao seu</span> = não ganha terreno · <span class="text-emerald-400 font-black">↔️ diferente</span> = se o seu sair e o dele não, você passa. <span class="text-zinc-500" x-text="'Ranking por ' + (oraculo.lideres?.jogados || 0) + ' jogos encerrados (fixo).'"></span></p>
+
+            <div class="space-y-1.5">
+              <template x-for="L in (oraculo.lideres?.lista || [])" :key="L.user_id">
+                <div class="flex items-center gap-3 rounded-xl border p-2.5"
+                     :class="L.isVoce ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-950/40'">
+                  <span class="w-7 text-center text-sm font-black flex-shrink-0"
+                        :class="L.pos === 1 ? 'text-amber-400' : (L.pos === 2 ? 'text-zinc-300' : (L.pos === 3 ? 'text-orange-400' : 'text-zinc-500'))"
+                        x-text="L.pos + 'º'"></span>
+                  <img :src="L.avatar || 'https://placehold.co/40x40/27272a/8b5cf6?text=%3F'" onerror="this.src='https://placehold.co/40x40/27272a/8b5cf6?text=%3F'" class="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-white/10">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xs font-black truncate" :class="L.isVoce ? 'text-emerald-300' : 'text-white'">
+                      <span x-text="L.nome"></span>
+                      <span x-show="L.isVoce" class="ml-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-600 text-white align-middle">Você</span>
+                    </p>
+                    <p class="text-[9px] text-zinc-500 font-mono" x-text="L.pontos + ' pts'"></p>
+                  </div>
+                  <div class="flex-shrink-0 text-right">
+                    <template x-if="L.placar">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-base font-black font-mono text-white" x-text="L.placar"></span>
+                        <span x-show="!L.isVoce && L.rel === 'igual'" class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">🟰 igual</span>
+                        <span x-show="!L.isVoce && L.rel === 'dif'" class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">↔️ difere</span>
+                      </div>
+                    </template>
+                    <span x-show="!L.placar" class="text-[10px] text-zinc-600 italic">não palpitou</span>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <p x-show="oraculo.lideres?.meuPlacar" class="text-[9px] text-emerald-500/80 mt-3">✓ Seu palpite neste jogo: <span class="font-mono font-bold text-white" x-text="oraculo.lideres?.meuPlacar"></span> — compare com os de cima pra decidir onde abrir diferença.</p>
+            <p x-show="oraculo.lideres && !oraculo.lideres.meuPlacar" class="text-[9px] text-zinc-600 italic mt-3">Você ainda não palpitou neste jogo — dá pra escolher um placar diferente dos líderes acima.</p>
+          </div><!-- fecha LÍDERES -->
+
           <!-- ⚡ LANÇAR DESAFIO DIRETO DO ORÁCULO -->
           <div x-data="{ desafioAberto: false }" class="relative overflow-hidden bg-zinc-900 border rounded-2xl shadow-xl" :class="oraculo.distorcao?.zebraAlert ? 'border-amber-500/30' : 'border-zinc-800'">
             <div class="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl pointer-events-none" :class="oraculo.distorcao?.zebraAlert ? 'bg-amber-500/8' : 'bg-purple-500/5'"></div>
@@ -2844,6 +2883,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=46"></script>
+  <script src="/gm/js/admin.js?v=47"></script>
 </body>
 </html>
