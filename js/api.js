@@ -1,5 +1,66 @@
 // ============ API FOOTBALL (API-SPORTS) ============
 
+// Salva no banco (tabela matches) os jogos JÁ FINALIZADOS vindos da API. Vira a
+// fonte de verdade durável dos resultados: se a API cair, o ranking continua
+// pontuando por aqui em vez de zerar. Fire-and-forget (falha não trava o app).
+async function _persistirResultadosFinalizados(jogos) {
+  if (!sbClient || !Array.isArray(jogos)) return;
+  const FINAL = ['FT', 'AET', 'PEN'];
+  const flag = (id, fallback) => (typeof getFlagUrl === 'function' ? getFlagUrl(id) : null) || fallback || '';
+  const rows = jogos
+    .filter(j => j.fixture && FINAL.includes(j.fixture.status?.short) && j.goals?.home != null && j.goals?.away != null)
+    .map(j => ({
+      id:           j.fixture.id,
+      league_id:    j.league.id,
+      season:       j.league.season,
+      home_team:    j.teams.home.name,
+      home_team_id: j.teams.home.id,
+      home_logo:    flag(j.teams.home.id, j.teams.home.logo),
+      away_team:    j.teams.away.name,
+      away_team_id: j.teams.away.id,
+      away_logo:    flag(j.teams.away.id, j.teams.away.logo),
+      kickoff:      j.fixture.date,
+      status:       j.fixture.status.short,
+      score_home:   j.goals.home,
+      score_away:   j.goals.away,
+      minute:       j.fixture.status.elapsed != null ? String(j.fixture.status.elapsed) : null,
+      round:        j.league.round
+    }));
+  if (!rows.length) return;
+  try {
+    await sbClient.from('matches').upsert(rows, { onConflict: 'id' });
+  } catch (e) {
+    console.warn('Não consegui salvar resultados no cache:', e && e.message);
+  }
+}
+
+// Reconstrói a lista de jogos a partir do banco (matches) no formato que o resto
+// do app espera, pra usar quando a API estiver fora. season fixa 2026 (igual ao código).
+async function _carregarJogosDoCache(leagueId) {
+  if (!sbClient) return [];
+  try {
+    const { data, error } = await sbClient
+      .from('matches')
+      .select('*')
+      .eq('league_id', leagueId)
+      .eq('season', 2026);
+    if (error || !Array.isArray(data)) return [];
+    return data.map(m => ({
+      fixture: { id: m.id, date: m.kickoff, status: { short: m.status, elapsed: m.minute != null ? Number(m.minute) : null } },
+      league:  { id: m.league_id, season: m.season, round: m.round },
+      teams: {
+        home: { id: m.home_team_id, name: m.home_team, logo: m.home_logo },
+        away: { id: m.away_team_id, name: m.away_team, logo: m.away_logo }
+      },
+      goals: { home: m.score_home, away: m.score_away },
+      _fromCache: true
+    }));
+  } catch (e) {
+    console.warn('Cache de jogos (matches) falhou:', e && e.message);
+    return [];
+  }
+}
+
 async function carregarJogos() {
   const leagueId = (grupoAtual && grupoAtual.league_id) ? grupoAtual.league_id : 1;
   const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=2026`;
@@ -12,7 +73,23 @@ async function carregarJogos() {
       }
     });
     const dados = await resposta.json();
-    todosOsJogos = dados.response;
+    const jogosAPI = Array.isArray(dados.response) ? dados.response : [];
+
+    if (jogosAPI.length > 0) {
+      // API OK: usa os dados frescos e SALVA os resultados finalizados no banco
+      // (rede de segurança — se a API cair depois, o ranking não zera).
+      todosOsJogos = jogosAPI;
+      _persistirResultadosFinalizados(jogosAPI);
+    } else {
+      // API vazia/fora (ex.: plano vencido, cota estourada): cai pro CACHE do
+      // banco (matches) pra manter o ranking/pontos de pé com o último resultado.
+      const cache = await _carregarJogosDoCache(leagueId);
+      todosOsJogos = cache;
+      if (cache.length > 0 && typeof showToast === 'function') {
+        showToast('⚠️ Dados ao vivo fora do ar — mostrando os últimos resultados salvos.', 'info');
+      }
+      if (dados.errors) console.warn('API-Football indisponível, usando cache:', dados.errors);
+    }
 
     // Grupo "Apenas mata-mata": ignora a fase de grupos, só conta os jogos da eliminatória.
     if (grupoAtual && grupoAtual.apenas_mata_mata && Array.isArray(todosOsJogos)) {
