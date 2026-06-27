@@ -211,6 +211,25 @@ function adminApp() {
 
         const gf = localStorage.getItem('gm_grupo_foco_history');
         if (gf) this.grupoFocoHistorico = JSON.parse(gf);
+
+        // Restaura o ESTADO do Oráculo (pra não resetar tudo no F5):
+        // grupo focado, jogo analisado e o termo buscado.
+        const snap = localStorage.getItem('gm_grupo_foco');
+        if (snap) {
+          const s = JSON.parse(snap);
+          if (s && s.id) {
+            this.grupoFoco.code = s.code || '';
+            this.grupoFoco.id = s.id;
+            this.grupoFoco.nome = s.nome;
+            this.grupoFoco.regras = s.regras;
+            this.grupoFoco.leagueId = s.leagueId || null;
+            this.grupoFoco.apenasMataMata = !!s.apenasMataMata;
+          }
+        }
+        const fx = localStorage.getItem('gm_oraculo_fixture');
+        if (fx) this.oraculo.fixtureId = fx;
+        const bt = localStorage.getItem('gm_busca_termo');
+        if (bt) this.buscaFixture = bt;
       } catch(e) {
         console.warn("Erro ao restaurar histórico:", e);
       }
@@ -248,6 +267,10 @@ function adminApp() {
         this.carregarDadosPainel();
         // Sincroniza o estado do Telão se estiver na aba
         this.carregarTelao();
+        // Restaura a análise do Oráculo que estava aberta antes do F5
+        if (this.oraculo.fixtureId) {
+          this.analisarOraculoGM();
+        }
       }
 
       this.loading = false;
@@ -1381,6 +1404,7 @@ function adminApp() {
         let h = [termo, ...this.historicoBuscaFixtures.filter(t => t.toLowerCase() !== termo.toLowerCase())];
         this.historicoBuscaFixtures = h.slice(0, 5); // Mantém as 5 últimas
         localStorage.setItem('gm_busca_history', JSON.stringify(this.historicoBuscaFixtures));
+        try { localStorage.setItem('gm_busca_termo', termo); } catch (_) {}
       }
 
       this.buscaFixtureLoading = true;
@@ -1427,6 +1451,32 @@ function adminApp() {
     usarBuscaHistorico(termo) {
       this.buscaFixture = termo;
       this.buscarPartidas();
+    },
+
+    // 📅 Lista os jogos de hoje + próximos 2 dias da liga do grupo focado (ou Copa).
+    // Joga na mesma lista de resultados — é só clicar pra analisar, sem digitar time.
+    async buscarJogosDoDia() {
+      if (this.buscaFixtureLoading) return;
+      this.buscaFixtureLoading = true;
+      this.resultadoBuscaFixtures = [];
+      const t = Date.now();
+      try {
+        const liga = (this.grupoFoco && this.grupoFoco.leagueId) ? this.grupoFoco.leagueId : 1;
+        const hoje = new Date();
+        const from = hoje.toISOString().split('T')[0];
+        const ate = new Date(hoje.getTime() + 2 * 24 * 3600 * 1000).toISOString().split('T')[0];
+        const resp = await fetch(`https://v3.football.api-sports.io/fixtures?league=${liga}&season=2026&from=${from}&to=${ate}`, {
+          headers: { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': '47ca2bb05eb5931347aca04964818eb5' }
+        });
+        const json = await resp.json();
+        this.resultadoBuscaFixtures = (json.response || []).sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+        this.adicionarLog('API-Football', `GET /fixtures jogos do dia (liga ${liga})`, 'SUCCESS', Date.now() - t, `${this.resultadoBuscaFixtures.length} jogos`);
+      } catch (err) {
+        this.adicionarLog('API-Football', 'GET /fixtures (jogos do dia)', 'ERROR', Date.now() - t, err.message);
+        if (typeof showToast === 'function') showToast('Erro ao buscar jogos do dia.', 'error');
+      } finally {
+        this.buscaFixtureLoading = false;
+      }
     },
 
     selecionarPartida(jogo) {
@@ -1916,7 +1966,14 @@ function adminApp() {
         // Salva no histórico (code + nome) pra reuso rápido sem digitar
         let hf = [{ code, nome: data.name }, ...this.grupoFocoHistorico.filter(g => g.code !== code)];
         this.grupoFocoHistorico = hf.slice(0, 5);
-        try { localStorage.setItem('gm_grupo_foco_history', JSON.stringify(this.grupoFocoHistorico)); } catch (_) {}
+        try {
+          localStorage.setItem('gm_grupo_foco_history', JSON.stringify(this.grupoFocoHistorico));
+          // Snapshot pra restaurar o foco no F5 sem precisar refazer a busca.
+          localStorage.setItem('gm_grupo_foco', JSON.stringify({
+            code, id: this.grupoFoco.id, nome: this.grupoFoco.nome, regras: this.grupoFoco.regras,
+            leagueId: this.grupoFoco.leagueId, apenasMataMata: this.grupoFoco.apenasMataMata
+          }));
+        } catch (_) {}
         // Se já tinha uma análise aberta, reanalisa com as regras do grupo
         if (this.oraculo.fixtureId) this.analisarOraculoGM();
       } catch (err) {
@@ -1935,6 +1992,7 @@ function adminApp() {
 
     async analisarOraculoGM() {
       if (!this.oraculo.fixtureId) return;
+      try { localStorage.setItem('gm_oraculo_fixture', String(this.oraculo.fixtureId)); } catch (_) {}
       this.oraculo.loading = true;
       this.oraculo.predicoes = null;
       this.oraculo.distribuicao = null;

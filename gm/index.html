@@ -1729,8 +1729,18 @@
           <div class="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
             <div>
               <h3 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">⚽ Buscar Partida na API</h3>
-              <p class="text-[10px] text-zinc-500 mb-4">Busque partidas por time para obter o ID instantaneamente sem sair da aba.</p>
-              
+              <p class="text-[10px] text-zinc-500 mb-3">O jeito rápido: clique em <b class="text-emerald-400">Jogos de hoje</b> e escolha. Ou busque por time, se preferir.</p>
+
+              <!-- Atalho principal: jogos do dia (usa a liga do grupo focado) -->
+              <button
+                @click="buscarJogosDoDia()"
+                :disabled="buscaFixtureLoading"
+                class="w-full mb-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                <span x-show="!buscaFixtureLoading">📅 Jogos de hoje<span x-show="grupoFoco.nome" class="opacity-80 normal-case tracking-normal"> · liga do <span x-text="grupoFoco.nome"></span></span></span>
+                <span x-show="buscaFixtureLoading" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              </button>
+
               <div class="flex gap-2">
                 <input 
                   type="text" 
@@ -1774,7 +1784,7 @@
                     <span class="text-[11px] font-bold text-white truncate" x-text="jogo.teams.away.name"></span>
                     <img :src="jogo.teams.away.logo" class="w-4 h-4 object-contain">
                   </div>
-                  <span class="text-[9px] text-zinc-500 flex-shrink-0" x-text="new Date(jogo.fixture.date).toLocaleDateString('pt-BR')"></span>
+                  <span class="text-[9px] text-zinc-500 flex-shrink-0 text-right" x-text="new Date(jogo.fixture.date).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' · ' + new Date(jogo.fixture.date).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Sao_Paulo' })"></span>
                 </button>
               </template>
             </div>
@@ -2883,6 +2893,6 @@
   <!-- Carrega as credenciais globais e o script do admin -->
   <script src="/js/config.js?v=20"></script>
   <script src="/gm/js/oracle.js?v=2"></script>
-  <script src="/gm/js/admin.js?v=47"></script>
+  <script src="/gm/js/admin.js?v=48"></script>
 </body>
 </html>
