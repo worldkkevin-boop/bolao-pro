@@ -82,15 +82,30 @@ function abrirDoacao() {
   abrirModal('modal-doacao');
 }
 
-// Promo "Dia de Apoiador grátis" (26/06/2026). Some sozinho depois das 23:59 BRT
-// (trava por data) e aparece só 1x por aparelho (localStorage). Chamado no login.
+// ===== CONFIG DA CAMPANHA "DIA DE APOIADOR GRÁTIS" (reutilizável) =====
+// Pra REUSAR num próximo dia (ex.: dia 25, véspera da renovação): mude SÓ os 4
+// campos abaixo e dê push. Lembre que o horário aqui é UTC (Z): 23:59 de Brasília
+// = 02:59:59Z do DIA SEGUINTE (BR é UTC-3). E que a API-Football expira em UTC
+// (≈21h BR), então faça a campanha no dia 25 pra ter folga.
+const PROMO_APOIO = {
+  INICIO:  '2026-06-26T03:00:00Z', // 26/06 00:00 BR — só aparece a partir daqui
+  FIM:     '2026-06-27T02:59:59Z', // 26/06 23:59 BR — some sozinho depois disso
+  CHAVE:   'promo_apoio_2026_06_26', // troque a cada campanha (reabre p/ quem já viu)
+  DATA_BR: '26/06'                  // data mostrada no texto do popup
+};
+
+// Mostra o popup da campanha. Trava por janela de data (INICIO–FIM) e 1x por
+// aparelho (localStorage). Chamado no login. Fora da janela: nunca aparece.
 function mostrarPromoApoiador() {
   try {
-    const FIM = new Date('2026-06-27T02:59:59Z'); // 26/06 23:59 em Brasília (UTC-3)
-    if (new Date() > FIM) return;                  // promo encerrada → nunca mais aparece
-    if (localStorage.getItem('promo_apoio_2026_06_26')) return; // já viu nesse aparelho
+    const agora = new Date();
+    if (agora < new Date(PROMO_APOIO.INICIO)) return; // ainda não começou
+    if (agora > new Date(PROMO_APOIO.FIM)) return;     // já encerrou
+    if (localStorage.getItem(PROMO_APOIO.CHAVE)) return; // já viu nesse aparelho
     const modal = document.getElementById('modal-promo-apoio');
     if (!modal) return;
+    const dataEl = document.getElementById('promo-apoio-data');
+    if (dataEl) dataEl.textContent = PROMO_APOIO.DATA_BR;
     setTimeout(() => { // deixa o app montar antes de abrir
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -99,7 +114,7 @@ function mostrarPromoApoiador() {
 }
 
 function fecharPromoApoio() {
-  try { localStorage.setItem('promo_apoio_2026_06_26', '1'); } catch (e) {}
+  try { localStorage.setItem(PROMO_APOIO.CHAVE, '1'); } catch (e) {}
   const modal = document.getElementById('modal-promo-apoio');
   if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 }
