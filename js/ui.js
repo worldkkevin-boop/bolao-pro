@@ -1116,10 +1116,19 @@ function gerarFiltrosRodadas() {
 
   // Pega rodadas únicas de todosOsJogos (grupos por número, mata-mata em ordem de chave)
   const rodadas = [...new Set(todosOsJogos.map(j => j.league.round))];
+
+  // Já começou o mata-mata? Então projeta a chave inteira (16avos → Final) como tabs,
+  // mesmo que a API ainda não tenha liberado os confrontos das fases seguintes.
+  const temMataMata = rodadas.some(r => !_ehRodadaGrupo(r));
+  if (temMataMata) {
+    const primeiroKO = _ORDEM_MATA_MATA.findIndex(r => rodadas.includes(r));
+    if (primeiroKO !== -1) {
+      _ORDEM_MATA_MATA.slice(primeiroKO).forEach(r => { if (!rodadas.includes(r)) rodadas.push(r); });
+    }
+  }
   rodadas.sort((a, b) => _ordemRodada(a) - _ordemRodada(b));
 
   const rodadasMataMata = rodadas.filter(r => !_ehRodadaGrupo(r));
-  const temMataMata = rodadasMataMata.length > 0;
 
   // Default: assim que o mata-mata existe, recolhe a fase de grupos e foca na chave
   if (mostrarFaseGrupos === null) mostrarFaseGrupos = !temMataMata;
@@ -1219,8 +1228,22 @@ function gerarFiltrosRodadas() {
 function filtrarPorRodada(rodadaName) {
   rodadaSelecionada = rodadaName;
   gerarFiltrosRodadas();
-  
+
   const jogosFiltrados = todosOsJogos.filter(j => j.league.round === rodadaName);
+
+  // Fase do mata-mata ainda sem confrontos na API: mostra aviso "a definir"
+  if (jogosFiltrados.length === 0 && _ORDEM_MATA_MATA.includes(rodadaName)) {
+    const lista = document.getElementById('lista-jogos');
+    if (lista) {
+      lista.innerHTML = renderEmptyState(
+        '🏆',
+        'Confrontos a definir',
+        'Os jogos desta fase aparecem aqui assim que a fase anterior terminar e os classificados forem definidos.'
+      );
+    }
+    return;
+  }
+
   desenharCardsNaTela(jogosFiltrados);
 }
 
