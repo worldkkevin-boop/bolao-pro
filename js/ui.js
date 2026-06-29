@@ -1087,19 +1087,42 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway, rou
   return pontosBase * multiplicador;
 }
 
+// Estado do toggle "Fase de Grupos" (null = auto: recolhe sozinho quando já há mata-mata)
+let mostrarFaseGrupos = null;
+
+// Uma rodada é "fase de grupos" se vier como Group Stage / Regular Season
+function _ehRodadaGrupo(rodada) {
+  return /group stage|regular season/i.test(rodada);
+}
+
+// Ordem de exibição: grupos por número; mata-mata na ordem real da chave (16avos → Final)
+const _ORDEM_MATA_MATA = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Match for 3rd place', 'Final'];
+function _ordemRodada(r) {
+  const idx = _ORDEM_MATA_MATA.indexOf(r);
+  if (idx !== -1) return 1000 + idx;            // mata-mata sempre depois dos grupos, em ordem de chave
+  const n = parseInt(r.replace(/\D/g, ''));
+  return isNaN(n) ? 900 : n;                     // grupos pelo número da rodada
+}
+
+function toggleFaseGrupos() {
+  mostrarFaseGrupos = !mostrarFaseGrupos;
+  gerarFiltrosRodadas();
+}
+
 function gerarFiltrosRodadas() {
   const container = document.getElementById('filtros-rodada');
   if (!container || todosOsJogos.length === 0) return;
   container.innerHTML = '';
 
-  // Pega rodadas únicas de todosOsJogos
+  // Pega rodadas únicas de todosOsJogos (grupos por número, mata-mata em ordem de chave)
   const rodadas = [...new Set(todosOsJogos.map(j => j.league.round))];
-  rodadas.sort((a, b) => {
-    const numA = parseInt(a.replace(/\D/g, ''));
-    const numB = parseInt(b.replace(/\D/g, ''));
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return a.localeCompare(b);
-  });
+  rodadas.sort((a, b) => _ordemRodada(a) - _ordemRodada(b));
+
+  const rodadasMataMata = rodadas.filter(r => !_ehRodadaGrupo(r));
+  const temMataMata = rodadasMataMata.length > 0;
+
+  // Default: assim que o mata-mata existe, recolhe a fase de grupos e foca na chave
+  if (mostrarFaseGrupos === null) mostrarFaseGrupos = !temMataMata;
 
   if (!rodadaSelecionada && rodadas.length > 0) {
     // Detecta a rodada atual pelo PRÓXIMO JOGO cronologicamente (ignora adiados de rodadas antigas)
@@ -1123,10 +1146,32 @@ function gerarFiltrosRodadas() {
         ? jogosFinalizados[0].league.round
         : rodadas[rodadas.length - 1];
     }
+
+    // Se a fase de grupos está recolhida, já abre direto no mata-mata
+    if (temMataMata && !mostrarFaseGrupos && _ehRodadaGrupo(rodadaSelecionada)) {
+      rodadaSelecionada = rodadasMataMata[0];
+    }
   }
 
+  // Atualiza o botão "Fase de Grupos" (toggle quando há mata-mata)
+  const btnToggle = document.getElementById('toggle-fase-grupos');
+  if (btnToggle) {
+    if (temMataMata) {
+      btnToggle.textContent = (mostrarFaseGrupos ? 'Fase de Grupos ▴' : 'Fase de Grupos ▾');
+      btnToggle.classList.toggle('opacity-60', !mostrarFaseGrupos);
+    } else {
+      btnToggle.textContent = 'Fase de Grupos';
+      btnToggle.classList.remove('opacity-60');
+    }
+  }
+
+  // Quando recolhida, mostra só as rodadas do mata-mata
+  const rodadasVisiveis = (temMataMata && !mostrarFaseGrupos)
+    ? rodadasMataMata
+    : rodadas;
+
   let rodadasHtml = '';
-  rodadas.forEach(rodada => {
+  rodadasVisiveis.forEach(rodada => {
     let nomeExibido = rodada;
     
     // Mapeamento amigável para Copa do Mundo e ligas comuns
@@ -1186,14 +1231,9 @@ function atualizarSeletorRanking() {
   const valorAtual = seletor.value; // Salva a rodada selecionada anteriormente para não resetar se trocar de tela
   
   seletor.innerHTML = '<option value="geral">Ranking Geral</option>';
-  
+
   const rodadas = [...new Set(todosOsJogos.map(j => j.league.round))];
-  rodadas.sort((a, b) => {
-    const numA = parseInt(a.replace(/\D/g, ''));
-    const numB = parseInt(b.replace(/\D/g, ''));
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return a.localeCompare(b);
-  });
+  rodadas.sort((a, b) => _ordemRodada(a) - _ordemRodada(b));
 
   rodadas.forEach(rodada => {
     let nomeExibido = rodada;
