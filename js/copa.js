@@ -367,7 +367,8 @@ function _copaTree(n) {
   return { n, children: [_copaTree(kids[0]), _copaTree(kids[1])] };
 }
 
-function _copaBoxRow(slot, qualif) {
+function _copaBoxRow(slot, ctx) {
+  const qualif = ctx && ctx.qualif;
   if (slot.team) {
     return `<div class="bkt-row"><img src="${_copaLogoTime(slot.team)}" onerror="this.style.display='none'"><span>${slot.team.name}</span></div>`;
   }
@@ -379,36 +380,108 @@ function _copaBoxRow(slot, qualif) {
   return `<div class="bkt-row"><span class="bkt-ph">${slot.label}</span></div>`;
 }
 
-function _copaBracketBox(n, mapa, qualif) {
-  const tpl = COPA_R32_TEMPLATE.find(m => m.n === n);
-  if (tpl) {
-    const A = _copaResolverSlot(tpl.a, mapa), B = _copaResolverSlot(tpl.b, mapa);
-    return `<div class="bkt-match">${_copaBoxRow(A, qualif)}${_copaBoxRow(B, qualif)}</div>`;
+// Vencedor de um confronto de mata-mata já encerrado (FT/AET/PEN; desempata por pênaltis).
+function _copaVencedorFixture(fx) {
+  if (!fx) return null;
+  const gh = fx.goals.home, ga = fx.goals.away;
+  const fin = ['FT', 'AET', 'PEN'].includes(fx.fixture && fx.fixture.status && fx.fixture.status.short);
+  if (!fin || gh === null || ga === null) return null;
+  if (gh !== ga) return gh > ga ? fx.teams.home : fx.teams.away;
+  const pen = fx.score && fx.score.penalty;
+  if (pen && pen.home != null && pen.away != null && pen.home !== pen.away) {
+    return pen.home > pen.away ? fx.teams.home : fx.teams.away;
   }
-  const f = COPA_FEED[n] || [];
-  const pre = (n === 103) ? 'Perd.' : 'Venc.';
-  return `<div class="bkt-match bkt-ph-box">
-      <div class="bkt-row"><span class="bkt-ph">${pre} #${f[0] || ''}</span></div>
-      <div class="bkt-row"><span class="bkt-ph">${pre} #${f[1] || ''}</span></div>
-    </div>`;
+  return null;
 }
 
-function _copaRenderNode(node, mapa, qualif) {
-  const box = _copaBracketBox(node.n, mapa, qualif);
+// Casa um confronto real do Round of 32 com uma posição do template (pelos times já definidos).
+function _copaAcharFixtureR32(tpl, mapa, reaisR32, usados) {
+  const known = [];
+  [tpl.a, tpl.b].forEach(s => {
+    if (s.t === 'third') return;
+    const arr = mapa[s.g] || [];
+    const reg = arr[s.t === 'winner' ? 0 : 1];
+    if (reg && reg.team) known.push(reg.team.id);
+  });
+  if (!known.length) return null;
+  return reaisR32.find(f => {
+    if (usados && usados.has(f.fixture.id)) return false;
+    const ids = [f.teams.home.id, f.teams.away.id];
+    return known.every(k => ids.includes(k));
+  }) || null;
+}
+
+// Monta o contexto do bracket: classificação + 16 avos reais (placar/vencedor) já casados.
+function _copaCtxBracket(grupos) {
+  const mapa = _copaMapaGrupos(grupos);
+  const qualif = _copaMelhores3(grupos).qualifSet;
+  const reaisR32 = (_copaCache.knockout || []).filter(f => /round of 32/i.test((f.league && f.league.round) || ''));
+  const fixturePorN = {};
+  const vencedores = {};
+  const usados = new Set();
+  COPA_R32_TEMPLATE.forEach(tpl => {
+    const fx = _copaAcharFixtureR32(tpl, mapa, reaisR32, usados);
+    if (!fx) return;
+    usados.add(fx.fixture.id);
+    fixturePorN[tpl.n] = fx;
+    const venc = _copaVencedorFixture(fx);
+    if (venc) vencedores[tpl.n] = venc;
+  });
+  return { mapa, qualif, fixturePorN, vencedores };
+}
+
+// Caixa de um confronto REAL do Round of 32 (placar + vencedor destacado).
+function _copaBoxRealR32(fx) {
+  const venc = _copaVencedorFixture(fx);
+  const gh = fx.goals.home, ga = fx.goals.away;
+  const temPlacar = gh !== null && ga !== null;
+  const row = (team, gols) => {
+    const isWin = venc && team.id === venc.id;
+    const isLose = venc && team.id !== venc.id;
+    return `<div class="bkt-row ${isWin ? 'bkt-win' : ''} ${isLose ? 'bkt-lose' : ''}">
+        <img src="${_copaLogoTime(team)}" onerror="this.style.display='none'"><span>${team.name}</span>${temPlacar ? `<b class="bkt-score">${gols}</b>` : ''}
+      </div>`;
+  };
+  return `<div class="bkt-match bkt-real">${row(fx.teams.home, gh)}${row(fx.teams.away, ga)}</div>`;
+}
+
+function _copaBracketBox(n, ctx) {
+  const tpl = COPA_R32_TEMPLATE.find(m => m.n === n);
+  if (tpl) {
+    const fx = ctx.fixturePorN[n];
+    if (fx) return _copaBoxRealR32(fx);                 // confronto real (placar + quem avança)
+    const A = _copaResolverSlot(tpl.a, ctx.mapa), B = _copaResolverSlot(tpl.b, ctx.mapa);
+    return `<div class="bkt-match">${_copaBoxRow(A, ctx)}${_copaBoxRow(B, ctx)}</div>`;
+  }
+  // Caixa de fase seguinte: "Venc. #f" — mas se o alimentador já terminou, mostra quem avançou.
+  const f = COPA_FEED[n] || [];
+  const pre = (n === 103) ? 'Perd.' : 'Venc.';
+  const row = (fNum) => {
+    const venc = (n !== 103) ? ctx.vencedores[fNum] : null;
+    if (venc) {
+      return `<div class="bkt-row bkt-win"><img src="${_copaLogoTime(venc)}" onerror="this.style.display='none'"><span>${venc.name}</span></div>`;
+    }
+    return `<div class="bkt-row"><span class="bkt-ph">${pre} #${fNum || ''}</span></div>`;
+  };
+  return `<div class="bkt-match bkt-ph-box">${row(f[0])}${row(f[1])}</div>`;
+}
+
+function _copaRenderNode(node, ctx) {
+  const box = _copaBracketBox(node.n, ctx);
   if (node.leaf) return `<div class="bkt-cell">${box}</div>`;
   return `<div class="bkt-cell"><div class="bkt-node">
-      <div class="bkt-kids">${_copaRenderNode(node.children[0], mapa, qualif)}${_copaRenderNode(node.children[1], mapa, qualif)}</div>
+      <div class="bkt-kids">${_copaRenderNode(node.children[0], ctx)}${_copaRenderNode(node.children[1], ctx)}</div>
       <div class="bkt-conn"></div>
       ${box}
     </div></div>`;
 }
 
 function _copaRenderChave(grupos) {
-  const mapa = _copaMapaGrupos(grupos);
-  if (Object.keys(mapa).length === 0) {
+  const ctx = _copaCtxBracket(grupos);
+  if (Object.keys(ctx.mapa).length === 0) {
     return '<div class="bg-card-bg p-6 rounded-2xl border border-white/5 text-center text-text-muted text-[12px] font-semibold">Classificação ainda não disponível pra montar o chaveamento.</div>';
   }
-  const qualif = _copaMelhores3(grupos).qualifSet;
+  const temReaisR32 = Object.keys(ctx.fixturePorN).length > 0;
 
   const labels = { A: 'Chave Esquerda', final: 'Final', B: 'Chave Direita' };
   const ordem = ['A', 'final', 'B'];
@@ -430,19 +503,21 @@ function _copaRenderChave(grupos) {
     html += `<div class="flex flex-col items-center gap-5 pt-4">
         <div class="w-full flex flex-col items-center">
           <h3 class="text-[12px] font-black uppercase tracking-widest text-amber-400 mb-2">🏆 Final</h3>
-          <div class="bkt-final">${_copaBracketBox(104, mapa, qualif)}</div>
+          <div class="bkt-final">${_copaBracketBox(104, ctx)}</div>
         </div>
         <div class="w-full flex flex-col items-center">
           <h3 class="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2">3º Lugar</h3>
-          ${_copaBracketBox(103, mapa, qualif)}
+          ${_copaBracketBox(103, ctx)}
         </div>
         <p class="text-[10px] text-zinc-600 text-center px-4">Os finalistas saem das semifinais (lados Esquerda e Direita).</p>
       </div>`;
   } else {
     const ladoB = _copaLado === 'B';
     const raiz = _copaTree(ladoB ? 102 : 101);
-    html += `<div class="bkt-scroll"><div class="bkt-tree ${ladoB ? 'bkt-mirror' : ''}">${_copaRenderNode(raiz, mapa, qualif)}</div></div>
-      <p class="text-[10px] text-zinc-600 text-center px-4 mt-2">Arraste pro lado pra ver o bracket. Use as setas pra trocar de lado / ver a final.</p>`;
+    html += `<div class="bkt-scroll"><div class="bkt-tree ${ladoB ? 'bkt-mirror' : ''}">${_copaRenderNode(raiz, ctx)}</div></div>
+      <p class="text-[10px] text-zinc-600 text-center px-4 mt-2">${temReaisR32
+        ? 'Os 16-avos mostram o <span class="text-emerald-400 font-bold">placar real</span>; quem vence <span class="text-emerald-400 font-bold">avança</span> sozinho na chave. As fases seguintes preenchem conforme os jogos acontecem.'
+        : 'Arraste pro lado pra ver o bracket. Use as setas pra trocar de lado / ver a final.'}</p>`;
   }
 
   return html;
