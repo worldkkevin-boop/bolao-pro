@@ -119,6 +119,101 @@ function fecharPromoApoio() {
   if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 }
 
+// ===== CAMPANHA "BÔNUS POR VITÓRIA DE UM TIME" (reutilizável) =====
+// Comemora a vitória de um time e premia QUEM CRAVOU a vitória com X dias
+// de Apoiador (o bônus em si é dado pela migração SQL filtrada pelos
+// palpites — supabase-migration-bonus-vitoria-brasil.sql). Este popup só
+// mostra o resultado + o palpite da pessoa + a mensagem.
+// Pra REUSAR numa próxima vitória: rode a migração com o novo fixture e
+// mude SÓ os campos abaixo (FIXTURE, placar, LADO, time, FIM, CHAVE).
+// LADO = lado do time premiado neste jogo ('home' mandante / 'away' visitante).
+const PROMO_VITORIA = {
+  FIM:       '2026-07-02T03:00:00Z',         // some sozinho depois (janela ~2 dias)
+  CHAVE:     'promo_vitoria_brasil_2026_06_29', // troque a cada campanha
+  FIXTURE:   1562344,                         // fixture do jogo (API-Football)
+  MANDANTE:  'Brasil',
+  VISITANTE: 'Japão',
+  PLACAR_H:  2,
+  PLACAR_A:  1,
+  LADO:      'home',                          // Brasil era o mandante
+  TIME:      'Brasil',
+  EMOJI:     '🇧🇷',
+  DIAS:      2
+};
+
+// Mostra o popup da vitória. Trava por data (FIM) + 1x por aparelho. Busca o
+// palpite da pessoa NESSE jogo (em qualquer grupo dela) pra saber se cravou —
+// mesma regra do SQL do bônus. Chamado no login.
+async function mostrarPromoVitoria() {
+  try {
+    const agora = new Date();
+    if (agora > new Date(PROMO_VITORIA.FIM)) return;       // campanha encerrada
+    if (localStorage.getItem(PROMO_VITORIA.CHAVE)) return; // já viu nesse aparelho
+    if (!sbClient || !usuarioAtual) return;
+    const modal = document.getElementById('modal-promo-vitoria');
+    if (!modal) return;
+
+    // Palpite da pessoa nesse jogo (qualquer grupo) — espelha o SQL do bônus
+    let meuH = null, meuA = null, cravou = false;
+    const { data } = await sbClient
+      .from('guesses')
+      .select('score_home, score_away')
+      .eq('user_id', usuarioAtual.id)
+      .eq('match_id', PROMO_VITORIA.FIXTURE);
+    if (data && data.length) {
+      meuH = data[0].score_home; meuA = data[0].score_away;
+      cravou = data.some(g => PROMO_VITORIA.LADO === 'home'
+        ? g.score_home > g.score_away
+        : g.score_away > g.score_home);
+    }
+
+    // Placar real
+    const placarEl = document.getElementById('promo-vit-placar');
+    if (placarEl) placarEl.textContent = `${PROMO_VITORIA.MANDANTE} ${PROMO_VITORIA.PLACAR_H} x ${PROMO_VITORIA.PLACAR_A} ${PROMO_VITORIA.VISITANTE}`;
+
+    // Seu palpite
+    const palpiteBox = document.getElementById('promo-vit-palpite-box');
+    const palpiteEl  = document.getElementById('promo-vit-palpite');
+    if (meuH !== null) {
+      if (palpiteEl) palpiteEl.textContent = `${PROMO_VITORIA.MANDANTE} ${meuH} x ${meuA} ${PROMO_VITORIA.VISITANTE}`;
+      if (palpiteBox) palpiteBox.classList.remove('hidden');
+    } else if (palpiteBox) {
+      palpiteBox.classList.add('hidden');
+    }
+
+    // Título + mensagem (3 estados: cravou / errou / não palpitou)
+    const tituloEl = document.getElementById('promo-vit-titulo');
+    const msgEl    = document.getElementById('promo-vit-msg');
+    if (cravou) {
+      if (tituloEl) tituloEl.innerHTML = `Você cravou a vitória do ${PROMO_VITORIA.TIME}! ${PROMO_VITORIA.EMOJI}`;
+      if (msgEl) {
+        msgEl.className = 'bg-green-500/10 border border-green-400/30 rounded-xl p-3 mb-5 text-[13px] text-green-100 leading-relaxed';
+        msgEl.innerHTML = `Mandou bem! Liberei <b class="text-amber-300">${PROMO_VITORIA.DIAS} dias de Apoiador</b> pra você — estatísticas dos times, visual dourado e mais. Aproveita! 💛`;
+      }
+    } else if (meuH !== null) {
+      if (tituloEl) tituloEl.innerHTML = `O ${PROMO_VITORIA.TIME} venceu! ${PROMO_VITORIA.EMOJI}`;
+      if (msgEl) {
+        msgEl.className = 'bg-zinc-900/60 border border-amber-400/15 rounded-xl p-3 mb-5 text-[13px] text-text-muted leading-relaxed';
+        msgEl.innerHTML = `Dessa vez seu palpite não pegou a vitória — quem cravou ganhou <b class="text-amber-300">${PROMO_VITORIA.DIAS} dias de Apoiador</b>. Bora pro próximo! 🔥`;
+      }
+    } else {
+      if (tituloEl) tituloEl.innerHTML = `O ${PROMO_VITORIA.TIME} venceu! ${PROMO_VITORIA.EMOJI}`;
+      if (msgEl) {
+        msgEl.className = 'bg-zinc-900/60 border border-amber-400/15 rounded-xl p-3 mb-5 text-[13px] text-text-muted leading-relaxed';
+        msgEl.innerHTML = `Quem cravou a vitória do ${PROMO_VITORIA.TIME} ganhou <b class="text-amber-300">${PROMO_VITORIA.DIAS} dias de Apoiador</b>. Não perca os próximos jogos! 🔥`;
+      }
+    }
+
+    setTimeout(() => { modal.classList.remove('hidden'); modal.classList.add('flex'); }, 1100);
+  } catch (e) { /* noop */ }
+}
+
+function fecharPromoVitoria() {
+  try { localStorage.setItem(PROMO_VITORIA.CHAVE, '1'); } catch (e) {}
+  const modal = document.getElementById('modal-promo-vitoria');
+  if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+}
+
 // Inicia o pagamento de apoio (produto apoio_5/10/20) pelo fluxo do MercadoPago.
 function iniciarApoio(productId) {
   fecharModal('modal-doacao');

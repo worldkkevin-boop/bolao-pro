@@ -1702,6 +1702,29 @@
       </div>
     </div>
 
+    <!-- ============ MODAL PROMO: BÔNUS POR VITÓRIA (Brasil 29/06) ============ -->
+    <div id="modal-promo-vitoria" class="hidden fixed inset-0 bg-black/85 z-[10050] flex items-center justify-center p-4 backdrop-blur-sm" onclick="fecharPromoVitoria()">
+      <div class="bg-card-bg rounded-3xl w-full max-w-sm p-6 border border-green-400/30 shadow-2xl text-center relative overflow-hidden" onclick="event.stopPropagation()">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-green-400 via-yellow-400 to-green-400"></div>
+        <div class="text-5xl mb-3">🇧🇷🎉</div>
+        <h3 id="promo-vit-titulo" class="text-xl font-black text-white leading-tight mb-1">O Brasil venceu!</h3>
+        <p class="text-[10px] font-black uppercase tracking-widest text-green-400/80 mb-4">Round of 32 · Copa 2026</p>
+        <!-- Placar real -->
+        <div class="bg-zinc-900/60 border border-green-400/15 rounded-xl p-3 mb-3">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-0.5">Resultado</p>
+          <p id="promo-vit-placar" class="text-base font-black text-white">Brasil 2 x 1 Japão</p>
+        </div>
+        <!-- Seu palpite -->
+        <div id="promo-vit-palpite-box" class="hidden bg-zinc-900/60 border border-zinc-700/40 rounded-xl p-3 mb-3">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-0.5">Seu palpite</p>
+          <p id="promo-vit-palpite" class="text-base font-black text-amber-200">—</p>
+        </div>
+        <!-- Mensagem (preenchida pelo JS) -->
+        <div id="promo-vit-msg" class="bg-zinc-900/60 border border-amber-400/15 rounded-xl p-3 mb-5 text-[13px] text-text-muted leading-relaxed"></div>
+        <button onclick="fecharPromoVitoria()" class="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-black py-3 rounded-xl text-sm uppercase tracking-wider active:scale-95">Bora! 🔥</button>
+      </div>
+    </div>
+
     <!-- ================= MODAL MURAL DE APOIADORES ================= -->
     <div id="modal-mural" class="hidden fixed inset-0 bg-black/75 z-[10000] flex items-end justify-center backdrop-blur-sm" onclick="fecharModal('modal-mural')">
       <div class="bg-card-bg rounded-t-3xl w-full max-w-md p-6 border-t border-amber-400/20 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -2230,10 +2253,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="js/config.js?v=32"></script>
-  <script src="js/auth.js?v=35"></script>
+  <script src="js/auth.js?v=36"></script>
   <script src="js/api.js?v=34"></script>
   <script src="js/groups.js?v=35"></script>
-  <script src="js/ui.js?v=56"></script>
+  <script src="js/ui.js?v=57"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=43"></script>
   <script src="js/evento.js?v=42"></script>

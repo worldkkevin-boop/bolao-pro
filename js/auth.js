@@ -59,6 +59,7 @@ function entrarNoApp(usuario) {
         if (typeof atualizarSeloApoiadorConfig === 'function') atualizarSeloApoiadorConfig();
       }
       if (typeof mostrarPromoApoiador === 'function') mostrarPromoApoiador();
+      if (typeof mostrarPromoVitoria === 'function') mostrarPromoVitoria();
     });
   }
 
