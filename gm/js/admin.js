@@ -2254,7 +2254,14 @@ function adminApp() {
           const resultados = {};
           (json.response || []).forEach(j => {
             if (FINAL.includes(j.fixture?.status?.short) && j.goals?.home != null && j.goals?.away != null) {
-              resultados[j.fixture.id] = { h: j.goals.home, a: j.goals.away, round: j.league?.round || '' };
+              // Pro bolão vale só os 90': em AET/PEN, score.fulltime é o placar do
+              // tempo normal (prorrogação/pênaltis não contam na pontuação).
+              const st = j.fixture.status.short;
+              const ft = j.score && j.score.fulltime;
+              const vale = (['AET', 'PEN'].includes(st) && ft && ft.home != null && ft.away != null)
+                ? { h: ft.home, a: ft.away }
+                : { h: j.goals.home, a: j.goals.away };
+              resultados[j.fixture.id] = { h: vale.h, a: vale.a, round: j.league?.round || '' };
             }
           });
           // 3) Nomes/avatares de quem palpitou

@@ -9,23 +9,31 @@ async function _persistirResultadosFinalizados(jogos) {
   const flag = (id, fallback) => (typeof getFlagUrl === 'function' ? getFlagUrl(id) : null) || fallback || '';
   const rows = jogos
     .filter(j => j.fixture && FINAL.includes(j.fixture.status?.short) && j.goals?.home != null && j.goals?.away != null)
-    .map(j => ({
-      id:           j.fixture.id,
-      league_id:    j.league.id,
-      season:       j.league.season,
-      home_team:    j.teams.home.name,
-      home_team_id: j.teams.home.id,
-      home_logo:    flag(j.teams.home.id, j.teams.home.logo),
-      away_team:    j.teams.away.name,
-      away_team_id: j.teams.away.id,
-      away_logo:    flag(j.teams.away.id, j.teams.away.logo),
-      kickoff:      j.fixture.date,
-      status:       j.fixture.status.short,
-      score_home:   j.goals.home,
-      score_away:   j.goals.away,
-      minute:       j.fixture.status.elapsed != null ? String(j.fixture.status.elapsed) : null,
-      round:        j.league.round
-    }));
+    .map(j => {
+      // Salva o placar que VALE pro bolão (90'): em jogos AET/PEN, score.fulltime
+      // é o resultado do tempo normal — não o total com prorrogação. Assim o cache
+      // (usado quando a API cai) já guarda o placar correto pra pontuação.
+      const vale = (typeof placarValido === 'function')
+        ? placarValido(j)
+        : { home: j.goals.home, away: j.goals.away };
+      return {
+        id:           j.fixture.id,
+        league_id:    j.league.id,
+        season:       j.league.season,
+        home_team:    j.teams.home.name,
+        home_team_id: j.teams.home.id,
+        home_logo:    flag(j.teams.home.id, j.teams.home.logo),
+        away_team:    j.teams.away.name,
+        away_team_id: j.teams.away.id,
+        away_logo:    flag(j.teams.away.id, j.teams.away.logo),
+        kickoff:      j.fixture.date,
+        status:       j.fixture.status.short,
+        score_home:   vale.home,
+        score_away:   vale.away,
+        minute:       j.fixture.status.elapsed != null ? String(j.fixture.status.elapsed) : null,
+        round:        j.league.round
+      };
+    });
   if (!rows.length) return;
   try {
     await sbClient.from('matches').upsert(rows, { onConflict: 'id' });

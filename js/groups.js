@@ -543,8 +543,10 @@ function atualizarDestaquesHomeGrupo() {
   if (ultimoJogo) {
     const homeNome = ultimoJogo.teams.home.name;
     const awayNome = ultimoJogo.teams.away.name;
-    const homeGols = ultimoJogo.goals.home;
-    const awayGols = ultimoJogo.goals.away;
+    // Placar que VALE pro bolão = só os 90' (prorrogação/pênaltis não contam).
+    const rUlt = (typeof placarValido === 'function') ? placarValido(ultimoJogo) : { home: ultimoJogo.goals.home, away: ultimoJogo.goals.away };
+    const homeGols = rUlt.home;
+    const awayGols = rUlt.away;
     document.getElementById('ultimo-jogo-nome').innerText = `${homeNome} ${homeGols} x ${awayGols} ${awayNome}`;
 
     // Adiciona interatividade: clique para ir direto ver os palpites dos amigos
@@ -582,11 +584,11 @@ function atualizarDestaquesHomeGrupo() {
     if (ultimoPalpiteEl) {
       const meuPalpiteUltimo = palpitesUsuario.find(p => p.match_id === ultimoJogo.fixture.id);
       if (meuPalpiteUltimo) {
-        const vencedorReal = ultimoJogo.goals.home > ultimoJogo.goals.away ? 'home' : (ultimoJogo.goals.home < ultimoJogo.goals.away ? 'away' : 'empate');
+        const vencedorReal = homeGols > awayGols ? 'home' : (homeGols < awayGols ? 'away' : 'empate');
         const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[ultimoJogo.fixture.id] : null;
         const pctVencedor = dist ? dist[vencedorReal] : 100;
         const pts = (typeof calcularPontosPalpite === 'function')
-          ? calcularPontosPalpite(meuPalpiteUltimo.score_home, meuPalpiteUltimo.score_away, ultimoJogo.goals.home, ultimoJogo.goals.away, ultimoJogo.league.round, pctVencedor)
+          ? calcularPontosPalpite(meuPalpiteUltimo.score_home, meuPalpiteUltimo.score_away, homeGols, awayGols, ultimoJogo.league.round, pctVencedor)
           : 0;
         ultimoPalpiteEl.innerText = `Palpite: ${meuPalpiteUltimo.score_home}x${meuPalpiteUltimo.score_away} (+${pts} pts)`;
         ultimoPalpiteEl.className = `text-[10px] font-bold px-2.5 py-0.5 rounded-full ${pts > 0 ? 'bg-gold/20 text-gold' : 'bg-zinc-800 text-zinc-500'}`;

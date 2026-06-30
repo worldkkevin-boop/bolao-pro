@@ -279,6 +279,23 @@ async function atualizarTVAoVivo() {
         ? renderDistribuicaoZebra(zJogo.homePct, zJogo.empatePct, zJogo.awayPct, zJogo.total, (grupoAtual && grupoAtual.regra_zebra_dinamica === true))
         : '';
 
+      // Prorrogação/pênaltis: pro bolão vale só os 90'. Mostra o jogo seguindo, mas
+      // avisa que o placar dos 90' já está cravado e não muda mais a pontuação.
+      const stShort = jogo.fixture.status.short;
+      const emProrrogacao = (typeof passouDoTempoNormal === 'function') && passouDoTempoNormal(jogo);
+      let bannerProrrogacao = '';
+      if (emProrrogacao) {
+        const vale = placarValido(jogo);
+        const faseTxt = stShort === 'P' ? 'Pênaltis' : 'Prorrogação';
+        bannerProrrogacao = `
+          <div class="mt-3 flex items-center justify-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
+            <span class="text-base">⏱️</span>
+            <span class="text-[10px] font-bold text-amber-300 leading-tight">
+              ${faseTxt} em andamento — pro bolão valeu o <span class="text-amber-200 font-black">90' (${vale.home ?? 0} x ${vale.away ?? 0})</span>. Daqui não conta mais.
+            </span>
+          </div>`;
+      }
+
       htmlJogos += `
         <div class="bg-zinc-900/90 p-5 rounded-2xl border border-red-500/25 shadow-[0_0_22px_rgba(239,68,68,0.07)] relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-b from-red-500/10 via-transparent to-transparent pointer-events-none"></div>
@@ -308,6 +325,7 @@ async function atualizarTVAoVivo() {
               <img src="${awayLogo}" onerror="this.src='${awayFallback}'" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
             </div>
           </div>
+          ${bannerProrrogacao}
           ${footerLive}
         </div>
       `;
@@ -342,14 +360,17 @@ async function atualizarTVAoVivo() {
     const jogo = todosOsJogos.find(j => j.fixture.id === g.match_id);
     if (!jogo) return;
 
-    if (statusTerminado.includes(jogo.fixture.status.short) && jogo.goals.home !== null && jogo.goals.away !== null) {
+    if (statusTerminado.includes(jogo.fixture.status.short)) {
+      // Placar que VALE pro bolão = só os 90' (placarValido ignora prorrogação/pênaltis).
+      const r = placarValido(jogo);
+      if (r.home === null || r.away === null) return;
       // Pontos REAIS: mesmo motor do Ranking Oficial (aplica zebra dinâmica + mata-mata)
-      const vencedorReal = jogo.goals.home > jogo.goals.away ? 'home' : (jogo.goals.home < jogo.goals.away ? 'away' : 'empate');
+      const vencedorReal = r.home > r.away ? 'home' : (r.home < r.away ? 'away' : 'empate');
       const zc = zebrasTV[g.match_id];
       const pctVencedor = zc ? zc[vencedorReal + 'Pct'] : 100;
-      const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away, jogo.league.round, pctVencedor);
+      const pts = calcularPontosPalpite(g.score_home, g.score_away, r.home, r.away, jogo.league.round, pctVencedor);
       scoresProvisorios[g.user_id].pontosConsolidados += pts;
-      if (g.score_home === jogo.goals.home && g.score_away === jogo.goals.away) {
+      if (g.score_home === r.home && g.score_away === r.away) {
         scoresProvisorios[g.user_id].acertosExatos += 1;
       }
     }
@@ -370,8 +391,10 @@ async function atualizarTVAoVivo() {
       const jogoAoVivo = jogosAtivosGrupo.find(j => j.fixture.id === g.match_id);
       if (!jogoAoVivo) return;
 
-      const liveHome = jogoAoVivo.goals.home ?? 0;
-      const liveAway = jogoAoVivo.goals.away ?? 0;
+      // Em prorrogação/pênaltis, congela no placar dos 90' (não conta mais pro bolão).
+      const rLive = placarValido(jogoAoVivo);
+      const liveHome = rLive.home ?? 0;
+      const liveAway = rLive.away ?? 0;
       const vencedorLive = liveHome > liveAway ? 'home' : (liveHome < liveAway ? 'away' : 'empate');
       const zl = zebrasTV[g.match_id];
       const pctVencedorLive = zl ? zl[vencedorLive + 'Pct'] : 100;
@@ -687,8 +710,10 @@ async function atualizarTVAoVivo() {
           const foiNaZebra = (g.score_home > g.score_away && zJogoP.homeZebra) || (g.score_away > g.score_home && zJogoP.awayZebra) || (g.score_home === g.score_away && zJogoP.empateZebra);
           const zebraPlayerTag = foiNaZebra ? '<span class="text-[11px] flex-shrink-0" title="Foi na zebra! Coragem.">🦓</span>' : '';
 
-          const liveHome = jogo.goals.home ?? 0;
-          const liveAway = jogo.goals.away ?? 0;
+          // Em prorrogação/pênaltis, congela no placar dos 90' (não conta mais).
+          const rLiveP = placarValido(jogo);
+          const liveHome = rLiveP.home ?? 0;
+          const liveAway = rLiveP.away ?? 0;
           const vencedorLiveP = liveHome > liveAway ? 'home' : (liveHome < liveAway ? 'away' : 'empate');
           const pctVencedorP = (zJogoP[vencedorLiveP + 'Pct'] !== undefined) ? zJogoP[vencedorLiveP + 'Pct'] : 100;
           const ptsParciais = calcularPontosPalpite(g.score_home, g.score_away, liveHome, liveAway, jogo.league.round, pctVencedorP);

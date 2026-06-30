@@ -38,6 +38,33 @@ function getFlagUrl(teamId) {
   return code ? 'https://flagcdn.com/w40/' + code + '.png' : null;
 }
 
+// ============ PLACAR QUE VALE PRO BOLÃO (só os 90' + acréscimos) ============
+// Regra do bolão: vale só o tempo normal. Quando o jogo entra em prorrogação ou
+// pênaltis, a API congela o placar dos 90' em `score.fulltime` e o `goals` passa a
+// somar os gols da prorrogação. Então, em jogos pós-90' (ET/BT/P em andamento ou
+// AET/PEN encerrado), usamos `score.fulltime` — assim prorrogação e pênaltis NÃO
+// mexem na pontuação. Sem `score` (ex.: jogo vindo do cache `matches`, onde já
+// salvamos o placar de 90'), cai no `goals` mesmo.
+const STATUS_POS_90 = ['ET', 'BT', 'P', 'AET', 'PEN'];
+
+function passouDoTempoNormal(jogo) {
+  const st = jogo && jogo.fixture && jogo.fixture.status ? jogo.fixture.status.short : null;
+  return STATUS_POS_90.includes(st);
+}
+
+// Retorna { home, away } com o placar que conta pro bolão (90').
+function placarValido(jogo) {
+  if (!jogo) return { home: null, away: null };
+  const ft = jogo.score ? jogo.score.fulltime : null;
+  if (passouDoTempoNormal(jogo) && ft && ft.home != null && ft.away != null) {
+    return { home: ft.home, away: ft.away };
+  }
+  return {
+    home: jogo.goals ? jogo.goals.home : null,
+    away: jogo.goals ? jogo.goals.away : null
+  };
+}
+
 // Inicializa o cliente do Supabase
 try {
   sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

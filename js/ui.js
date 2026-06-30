@@ -830,8 +830,11 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
     let cardOpacityClass = '';
 
     if (isFinished) {
-      const realHome = jogo.goals.home ?? 0;
-      const realAway = jogo.goals.away ?? 0;
+      // Placar que VALE pro bolão = só os 90' (prorrogação/pênaltis não contam).
+      const rVale = placarValido(jogo);
+      const realHome = rVale.home ?? 0;
+      const realAway = rVale.away ?? 0;
+      const teveProrrogacao = (typeof passouDoTempoNormal === 'function') && passouDoTempoNormal(jogo);
       let guessText = '';
       let ptsHtml = '';
 
@@ -839,7 +842,7 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
         const vencedorReal = realHome > realAway ? 'home' : (realHome < realAway ? 'away' : 'empate');
         const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[jogo.fixture.id] : null;
         const pctVencedor = dist ? dist[vencedorReal] : 100;
-        
+
         const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway, jogo.league.round, pctVencedor);
         guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
         if (pts > 0) {
@@ -854,10 +857,15 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
         cardBorderClass = 'border-red-500/10';
       }
 
+      const notaProrrogacao = teveProrrogacao
+        ? `<div class="text-[9px] text-amber-400/80 mt-1 font-semibold">⏱️ valeu o 90' (prorrogação não conta)</div>`
+        : '';
+
       centerHtml = `
         <div class="flex flex-col items-center justify-center">
           <span class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider mb-1 border border-white/5">ENCERRADO</span>
           <div class="text-xl font-black tracking-widest text-white/80">${realHome} x ${realAway}</div>
+          ${notaProrrogacao}
           <div class="text-[11px] text-text-muted mt-1 font-semibold">${guessText}</div>
           ${ptsHtml}
         </div>
@@ -865,8 +873,14 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
       cardOpacityClass = 'opacity-70';
 
     } else if (isLive) {
-      const realHome = jogo.goals.home ?? 0;
-      const realAway = jogo.goals.away ?? 0;
+      // Placar exibido = o que está rolando na tela (inclui prorrogação).
+      const liveHome = jogo.goals.home ?? 0;
+      const liveAway = jogo.goals.away ?? 0;
+      // Placar que VALE pro bolão = só os 90' (congela quando entra na prorrogação).
+      const rVale = placarValido(jogo);
+      const realHome = rVale.home ?? 0;
+      const realAway = rVale.away ?? 0;
+      const emProrrogacao = (typeof passouDoTempoNormal === 'function') && passouDoTempoNormal(jogo);
       const elapsed = jogo.fixture.status.elapsed ? `${jogo.fixture.status.elapsed}'` : '';
       let guessText = '';
       let ptsHtml = '';
@@ -875,13 +889,14 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
         const vencedorReal = realHome > realAway ? 'home' : (realHome < realAway ? 'away' : 'empate');
         const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined') ? distribuicaoPalpitesGrupo[jogo.fixture.id] : null;
         const pctVencedor = dist ? dist[vencedorReal] : 100;
-        
+
         const pts = calcularPontosPalpite(meuPalpite.score_home, meuPalpite.score_away, realHome, realAway, jogo.league.round, pctVencedor);
         guessText = `Seu palpite: ${meuPalpite.score_home}x${meuPalpite.score_away}`;
+        const rotuloPts = emProrrogacao ? 'Cravado' : 'Parcial';
         if (pts > 0) {
-          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-brand-green/20 text-brand-green mt-1 tracking-wide uppercase animate-pulse">Parcial: +${pts} pts</span>`;
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-brand-green/20 text-brand-green mt-1 tracking-wide uppercase animate-pulse">${rotuloPts}: +${pts} pts</span>`;
         } else {
-          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 mt-1 tracking-wide uppercase">Parcial: 0 pts</span>`;
+          ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 mt-1 tracking-wide uppercase">${rotuloPts}: 0 pts</span>`;
         }
         cardBorderClass = 'border-brand-green/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
         cardBgClass = 'bg-brand-green/5';
@@ -890,13 +905,19 @@ function desenharCardsNaTela(jogos, palpitesDoUsuario = palpitesUsuario) {
         ptsHtml = `<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-zinc-850 text-zinc-500 mt-1 tracking-wide uppercase">0 PTS</span>`;
       }
 
+      const faseLabel = jogo.fixture.status.short === 'P' ? 'PÊNALTIS' : (jogo.fixture.status.short === 'ET' || jogo.fixture.status.short === 'BT' ? 'PRORROGAÇÃO' : `AO VIVO ${elapsed}`);
+      const notaProrrogacao = emProrrogacao
+        ? `<div class="text-[9px] text-amber-400 mt-1 font-bold">⏱️ valeu o 90' (${realHome} x ${realAway}) — não conta mais</div>`
+        : '';
+
       centerHtml = `
         <div class="flex flex-col items-center justify-center">
           <span class="inline-flex items-center gap-1 bg-red-500/15 text-red-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider mb-1 animate-pulse border border-red-500/20">
             <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-            AO VIVO ${elapsed}
+            ${faseLabel}
           </span>
-          <div class="text-xl font-black tracking-widest text-white">${realHome} x ${realAway}</div>
+          <div class="text-xl font-black tracking-widest text-white">${liveHome} x ${liveAway}</div>
+          ${notaProrrogacao}
           <div class="text-[11px] text-text-muted mt-1 font-semibold">${guessText}</div>
           ${ptsHtml}
         </div>
@@ -1478,16 +1499,18 @@ async function exibirRankingSelecionado() {
 
         // Apenas calcula jogos finalizados
         const statusTerminado = ['FT', 'AET', 'PEN'].includes(jogo.fixture.status.short);
-        if (statusTerminado && jogo.goals.home !== null && jogo.goals.away !== null) {
-          const vencedorReal = jogo.goals.home > jogo.goals.away ? 'home' : (jogo.goals.home < jogo.goals.away ? 'away' : 'empate');
+        // Placar que VALE pro bolão = só os 90' (ignora prorrogação/pênaltis).
+        const r = placarValido(jogo);
+        if (statusTerminado && r.home !== null && r.away !== null) {
+          const vencedorReal = r.home > r.away ? 'home' : (r.home < r.away ? 'away' : 'empate');
           const dist = distribuicao[g.match_id];
           const pctVencedor = dist ? dist[vencedorReal] : 100;
 
-          const pts = calcularPontosPalpite(g.score_home, g.score_away, jogo.goals.home, jogo.goals.away, jogo.league.round, pctVencedor);
+          const pts = calcularPontosPalpite(g.score_home, g.score_away, r.home, r.away, jogo.league.round, pctVencedor);
           scores[g.user_id].pontos += pts;
-          
+
           // Verifica acerto exato comparando diretamente os placares
-          if (g.score_home === jogo.goals.home && g.score_away === jogo.goals.away) {
+          if (g.score_home === r.home && g.score_away === r.away) {
             scores[g.user_id].acertosExatos += 1;
           }
         }
@@ -1794,9 +1817,16 @@ async function abrirTelaPalpite(id) {
 
   if (realScoreEl) {
     if (isLive || isFinished) {
+      // Placar exibido = o que aconteceu na partida (inclui prorrogação).
       const realHome = jogoAtual.goals.home ?? 0;
       const realAway = jogoAtual.goals.away ?? 0;
-      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>`;
+      // Placar que VALE pro bolão = só os 90'.
+      const rVale = (typeof placarValido === 'function') ? placarValido(jogoAtual) : { home: realHome, away: realAway };
+      const teveProrrogacao = (typeof passouDoTempoNormal === 'function') && passouDoTempoNormal(jogoAtual);
+      const notaVale = teveProrrogacao
+        ? `<div class="text-[10px] text-amber-400 font-bold mt-0.5">⏱️ pro bolão vale o 90': ${rVale.home ?? 0} x ${rVale.away ?? 0}</div>`
+        : '';
+      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>${notaVale}`;
       if (isLive) {
         const elapsed = jogoAtual.fixture.status.elapsed ? ` (${jogoAtual.fixture.status.elapsed}')` : '';
         document.getElementById('d-jogo-data').innerHTML = `<span class="text-red-500 font-bold animate-pulse">● AO VIVO${elapsed}</span>`;
@@ -2466,10 +2496,15 @@ function renderizarPlacarAoVivo(jogo) {
     jogoAtual = jogo;
     const realHome = jogo.goals.home ?? 0;
     const realAway = jogo.goals.away ?? 0;
+    const rVale = (typeof placarValido === 'function') ? placarValido(jogo) : { home: realHome, away: realAway };
+    const teveProrrogacao = (typeof passouDoTempoNormal === 'function') && passouDoTempoNormal(jogo);
+    const notaVale = teveProrrogacao
+      ? `<div class="text-[10px] text-amber-400 font-bold mt-0.5">⏱️ pro bolão vale o 90': ${rVale.home ?? 0} x ${rVale.away ?? 0}</div>`
+      : '';
 
     const realScoreEl = document.getElementById('d-real-score');
     if (realScoreEl) {
-      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>`;
+      realScoreEl.innerHTML = `<span class="text-xl font-black text-white">${realHome} x ${realAway}</span>${notaVale}`;
     }
 
     const elapsed = jogo.fixture.status.elapsed ? ` (${jogo.fixture.status.elapsed}')` : '';
@@ -4144,16 +4179,18 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
         if (!match) return;
 
         const isFinished = ['FT', 'AET', 'PEN'].includes(match.fixture.status.short);
-        if (isFinished && match.goals.home !== null && match.goals.away !== null) {
-          const ptDetails = detalharPontosPalpite(g.score_home, g.score_away, match.goals.home, match.goals.away);
+        // Placar que VALE pro bolão = só os 90' (prorrogação/pênaltis não contam).
+        const rm = placarValido(match);
+        if (isFinished && rm.home !== null && rm.away !== null) {
+          const ptDetails = detalharPontosPalpite(g.score_home, g.score_away, rm.home, rm.away);
           if (ptDetails.pts > 0) {
             const chave = mapaCategoria[ptDetails.desc];
             if (chave && counts[chave]) {
               // Pontos REAIS: mesmo motor do ranking oficial (aplica zebra dinâmica + mata-mata)
-              const vencedorReal = match.goals.home > match.goals.away ? 'home' : (match.goals.home < match.goals.away ? 'away' : 'empate');
+              const vencedorReal = rm.home > rm.away ? 'home' : (rm.home < rm.away ? 'away' : 'empate');
               const dist = (typeof distribuicaoPalpitesGrupo !== 'undefined' && distribuicaoPalpitesGrupo) ? distribuicaoPalpitesGrupo[g.match_id] : null;
               const pctVencedor = dist ? dist[vencedorReal] : 100;
-              const ptsReais = calcularPontosPalpite(g.score_home, g.score_away, match.goals.home, match.goals.away, match.league.round, pctVencedor);
+              const ptsReais = calcularPontosPalpite(g.score_home, g.score_away, rm.home, rm.away, match.league.round, pctVencedor);
 
               counts[chave].count++;
               counts[chave].totalPts += ptsReais;
