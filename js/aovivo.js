@@ -120,11 +120,14 @@ async function abrirTVAoVivo() {
     await carregarDadosBaseTVAoVivo();
     await atualizarTVAoVivo();
 
-    // Inicia cronômetro a cada 60 segundos
+    // Atualiza a cada 20s (a API-Football refresca o ao vivo a cada ~15s;
+    // 20s deixa o painel bem mais vivo que os 60s antigos sem 4x na cota de
+    // requisições — lembrando que cada usuário com a tela aberta gasta a
+    // MESMA key compartilhada). Só 1 request (live=all) por ciclo.
     desativarTVAoVivo();
     tvIntervalo = setInterval(async () => {
       await atualizarTVAoVivo();
-    }, 60000);
+    }, 20000);
   } catch (e) {
     console.error("Erro ao iniciar Modo TV Ao Vivo:", e);
   }

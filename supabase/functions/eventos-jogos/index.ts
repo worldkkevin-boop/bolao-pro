@@ -12,6 +12,13 @@ import webpush from "https://esm.sh/web-push@3.6.7"
 //   • GOL      -> goals atual > último placar avisado (notif_score_*)
 //   • TERMINOU -> jogo que estava em andamento sumiu do feed ao vivo e a
 //                 API confirma status final (FT/AET/PEN)
+//
+// "MAIS AO VIVO": o pg_cron não vai abaixo de 1 min, então a função se
+// auto-repete DENTRO do minuto — até MAX_PASSADAS de INTERVALO_MS em
+// INTERVALO_MS enquanto houver jogo ao vivo (a API atualiza o ao vivo a
+// cada ~15s, então 15s é o ponto ótimo — mais rápido não traz gol antes).
+// Sem jogo ao vivo, sai na 1ª passada (não gasta requisição à toa).
+//
 // Push vai pra TODOS os membros dos grupos daquela liga. Gol na
 // prorrogação/pênaltis é avisado, mas marcado "não conta no bolão"; o fim
 // avisa o placar de 90' que valeu pro bolão (score.fulltime).
@@ -31,13 +38,20 @@ webpush.setVapidDetails('mailto:suporte@bolaopro.com.br', VAPID_PUBLIC_KEY, VAPI
 
 const API_FOOTBALL_KEY = '47ca2bb05eb5931347aca04964818eb5'
 
+// "Mais ao vivo": auto-repetição dentro do minuto do cron.
+// 4 passadas a cada 15s = passadas em ~0/15/30/45s, encerra ~45s (deixa
+// folga pro cron do próximo minuto não sobrepor). Latência de gol ~15s.
+const INTERVALO_MS = 15000
+const MAX_PASSADAS = 4
+
 // Espelha config.js: status pós-90' (prorrogação/pênaltis). O `goals` da API
 // infla com a prorrogação; o placar que vale pro bolão fica em score.fulltime.
 const STATUS_POS_90 = ['ET', 'BT', 'P', 'AET', 'PEN']
-const STATUS_LIVE = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE']
 const STATUS_FINAL = ['FT', 'AET', 'PEN']
 // Encerramentos "sem jogo" — param o tracking sem mandar push.
 const STATUS_CANCELADO = ['PST', 'CANC', 'ABD', 'AWD', 'WO']
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function apiHeaders() {
   return { 'x-rapidapi-host': 'v3.football.api-sports.io', 'x-rapidapi-key': API_FOOTBALL_KEY }
@@ -69,12 +83,12 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const admin = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Ligas ativas (a partir dos grupos)
+    // 1. Ligas ativas (a partir dos grupos) — buscado 1x, reusado nas passadas
     const { data: grupos, error: erroGrupos } = await admin.from('groups').select('id, league_id')
     if (erroGrupos) throw erroGrupos
     const activeLeagues = new Set((grupos ?? []).map((g: any) => g.league_id || 1))
 
-    // Cache de assinaturas por liga (várias partidas da mesma liga reusam)
+    // Cache de assinaturas por liga (várias partidas / passadas reusam)
     const subsCache = new Map<number, any[]>()
     async function subsDaLiga(leagueId: number): Promise<any[]> {
       if (subsCache.has(leagueId)) return subsCache.get(leagueId)!
@@ -107,126 +121,148 @@ serve(async (req) => {
       return enviados
     }
 
-    const resumo: any[] = []
+    // --------------------------------------------------------------------
+    // Uma passada: detecta início/gol/fim uma vez. Retorna quantos jogos
+    // estão ao vivo (pra decidir se vale repetir) + os eventos disparados.
+    // --------------------------------------------------------------------
+    async function passada(): Promise<{ aoVivo: number, eventos: any[] }> {
+      const eventos: any[] = []
 
-    // 2. Jogos AO VIVO (1 request cobre o mundo todo; filtramos pras nossas ligas)
-    const respLive = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers: apiHeaders() })
-    const dadosLive = await respLive.json()
-    const fixturesLive = (Array.isArray(dadosLive?.response) ? dadosLive.response : [])
-      .filter((j: any) => activeLeagues.has(j?.league?.id))
+      // 2. Jogos AO VIVO (1 request cobre o mundo todo; filtramos pras nossas ligas)
+      const respLive = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers: apiHeaders() })
+      const dadosLive = await respLive.json()
+      const fixturesLive = (Array.isArray(dadosLive?.response) ? dadosLive.response : [])
+        .filter((j: any) => activeLeagues.has(j?.league?.id))
 
-    const liveIds = new Set<number>(fixturesLive.map((j: any) => j.fixture.id))
+      const liveIds = new Set<number>(fixturesLive.map((j: any) => j.fixture.id))
 
-    // Estado salvo desses jogos ao vivo
-    const liveIdList = [...liveIds]
-    const estadoMap = new Map<number, any>()
-    if (liveIdList.length > 0) {
-      const { data: rows } = await admin
-        .from('matches')
-        .select('id, notif_inicio_em, notif_fim_em, notif_score_home, notif_score_away')
-        .in('id', liveIdList)
-      for (const r of (rows ?? [])) estadoMap.set(r.id, r)
-    }
-
-    for (const j of fixturesLive) {
-      const fid = j.fixture.id
-      const leagueId = j.league.id
-      const st = j.fixture.status.short
-      const elapsed = j.fixture.status.elapsed ?? 0
-      const home = j.teams.home.name
-      const away = j.teams.away.name
-      const gh = j.goals?.home ?? 0
-      const ga = j.goals?.away ?? 0
-      const posTempo = STATUS_POS_90.includes(st)
-      const estado = estadoMap.get(fid)
-
-      // Garante a linha em `matches` + atualiza status/minuto (útil pro cache do app)
-      await admin.from('matches').upsert([{
-        id: fid, league_id: leagueId, season: j.league.season,
-        home_team: home, home_team_id: j.teams.home.id, home_logo: j.teams.home.logo || '',
-        away_team: away, away_team_id: j.teams.away.id, away_logo: j.teams.away.logo || '',
-        kickoff: j.fixture.date, status: st, minute: elapsed, round: j.league.round || null,
-      }], { onConflict: 'id' })
-
-      // -------- Primeira vez que vemos este jogo ao vivo --------
-      if (!estado || !estado.notif_inicio_em) {
-        // "Começou" só se pegamos bem no início (evita spam em cold start / meio de jogo)
-        const cedo = (st === '1H' && elapsed <= 15)
-        if (cedo) {
-          const n = await enviar(leagueId, '🟢 Bola rolando!', `Começou: ${home} x ${away}. Boa sorte! 🍀`)
-          resumo.push({ matchId: fid, evento: 'inicio', enviados: n })
-        }
-        // Baseline de placar = placar atual (não notifica gols anteriores ao tracking)
-        await admin.from('matches').update({
-          notif_inicio_em: new Date().toISOString(),
-          notif_score_home: gh, notif_score_away: ga,
-        }).eq('id', fid)
-        continue
+      // Estado salvo desses jogos ao vivo
+      const liveIdList = [...liveIds]
+      const estadoMap = new Map<number, any>()
+      if (liveIdList.length > 0) {
+        const { data: rows } = await admin
+          .from('matches')
+          .select('id, notif_inicio_em, notif_fim_em, notif_score_home, notif_score_away')
+          .in('id', liveIdList)
+        for (const r of (rows ?? [])) estadoMap.set(r.id, r)
       }
 
-      // -------- Gol? (placar aumentou vs o último avisado) --------
-      const prevH = estado.notif_score_home ?? 0
-      const prevA = estado.notif_score_away ?? 0
-      if (gh > prevH || ga > prevA) {
-        const marcou = gh > prevH ? home : away
-        let body = `${marcou} marcou!  ${home} ${gh} x ${ga} ${away}`
-        if (posTempo) body += ` ⏱️ prorrogação — não conta no bolão`
-        const n = await enviar(leagueId, '⚽ GOOOOL!', body)
-        await admin.from('matches').update({ notif_score_home: gh, notif_score_away: ga }).eq('id', fid)
-        resumo.push({ matchId: fid, evento: 'gol', placar: `${gh}x${ga}`, prorrogacao: posTempo, enviados: n })
-      }
-    }
+      for (const j of fixturesLive) {
+        const fid = j.fixture.id
+        const leagueId = j.league.id
+        const st = j.fixture.status.short
+        const elapsed = j.fixture.status.elapsed ?? 0
+        const home = j.teams.home.name
+        const away = j.teams.away.name
+        const gh = j.goals?.home ?? 0
+        const ga = j.goals?.away ?? 0
+        const posTempo = STATUS_POS_90.includes(st)
+        const estado = estadoMap.get(fid)
 
-    // 3. TERMINOU: jogos que estávamos trackeando e sumiram do feed ao vivo.
-    const { data: emAndamento } = await admin
-      .from('matches')
-      .select('id, league_id, home_team, away_team')
-      .not('notif_inicio_em', 'is', null)
-      .is('notif_fim_em', null)
-    const candidatosFim = (emAndamento ?? [])
-      .filter((m: any) => activeLeagues.has(m.league_id) && !liveIds.has(m.id))
+        // Garante a linha em `matches` + atualiza status/minuto (útil pro cache do app)
+        await admin.from('matches').upsert([{
+          id: fid, league_id: leagueId, season: j.league.season,
+          home_team: home, home_team_id: j.teams.home.id, home_logo: j.teams.home.logo || '',
+          away_team: away, away_team_id: j.teams.away.id, away_logo: j.teams.away.logo || '',
+          kickoff: j.fixture.date, status: st, minute: elapsed, round: j.league.round || null,
+        }], { onConflict: 'id' })
 
-    // Confirma o status final buscando esses fixtures direto (em blocos de 20).
-    for (let i = 0; i < candidatosFim.length; i += 20) {
-      const bloco = candidatosFim.slice(i, i + 20)
-      const idsParam = bloco.map((m: any) => m.id).join('-')
-      let porId = new Map<number, any>()
-      try {
-        const resp = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idsParam}`, { headers: apiHeaders() })
-        const dados = await resp.json()
-        for (const j of (Array.isArray(dados?.response) ? dados.response : [])) porId.set(j.fixture.id, j)
-      } catch (e) {
-        console.error('[EVENTOS] Falha ao confirmar jogos encerrados:', (e as Error).message)
-        continue
-      }
-
-      for (const m of bloco) {
-        const j = porId.get(m.id)
-        const st = j?.fixture?.status?.short
-        if (!st) continue
-
-        if (STATUS_FINAL.includes(st)) {
-          const p = placar90(j)                       // placar que valeu (90')
-          const foiPos = STATUS_POS_90.includes(st)   // passou dos 90'?
-          let body = `${m.home_team} ${p.home} x ${p.away} ${m.away_team}`
-          if (foiPos) body += st === 'PEN' ? ` (valeu o 90' — decidido nos pênaltis)` : ` (valeu o 90')`
-          const n = await enviar(m.league_id, '🏁 Fim de jogo', body)
+        // -------- Primeira vez que vemos este jogo ao vivo --------
+        if (!estado || !estado.notif_inicio_em) {
+          // "Começou" só se pegamos bem no início (evita spam em cold start / meio de jogo)
+          const cedo = (st === '1H' && elapsed <= 15)
+          if (cedo) {
+            const n = await enviar(leagueId, '🟢 Bola rolando!', `Começou: ${home} x ${away}. Boa sorte! 🍀`)
+            eventos.push({ matchId: fid, evento: 'inicio', enviados: n })
+          }
+          // Baseline de placar = placar atual (não notifica gols anteriores ao tracking)
           await admin.from('matches').update({
-            notif_fim_em: new Date().toISOString(),
-            status: st, score_home: p.home, score_away: p.away,
-          }).eq('id', m.id)
-          resumo.push({ matchId: m.id, evento: 'fim', placar: `${p.home}x${p.away}`, enviados: n })
-        } else if (STATUS_CANCELADO.includes(st)) {
-          // Adiado/cancelado: para o tracking, sem push.
-          await admin.from('matches').update({ notif_fim_em: new Date().toISOString(), status: st }).eq('id', m.id)
-          resumo.push({ matchId: m.id, evento: 'cancelado', status: st })
+            notif_inicio_em: new Date().toISOString(),
+            notif_score_home: gh, notif_score_away: ga,
+          }).eq('id', fid)
+          continue
         }
-        // Se ainda não é final nem cancelado (glitch momentâneo do feed), ignora — pega na próxima rodada.
+
+        // -------- Gol? (placar aumentou vs o último avisado) --------
+        const prevH = estado.notif_score_home ?? 0
+        const prevA = estado.notif_score_away ?? 0
+        if (gh > prevH || ga > prevA) {
+          const marcou = gh > prevH ? home : away
+          let body = `${marcou} marcou!  ${home} ${gh} x ${ga} ${away}`
+          if (posTempo) body += ` ⏱️ prorrogação — não conta no bolão`
+          const n = await enviar(leagueId, '⚽ GOOOOL!', body)
+          await admin.from('matches').update({ notif_score_home: gh, notif_score_away: ga }).eq('id', fid)
+          eventos.push({ matchId: fid, evento: 'gol', placar: `${gh}x${ga}`, prorrogacao: posTempo, enviados: n })
+        }
       }
+
+      // 3. TERMINOU: jogos que estávamos trackeando e sumiram do feed ao vivo.
+      const { data: emAndamento } = await admin
+        .from('matches')
+        .select('id, league_id, home_team, away_team')
+        .not('notif_inicio_em', 'is', null)
+        .is('notif_fim_em', null)
+      const candidatosFim = (emAndamento ?? [])
+        .filter((m: any) => activeLeagues.has(m.league_id) && !liveIds.has(m.id))
+
+      // Confirma o status final buscando esses fixtures direto (em blocos de 20).
+      for (let i = 0; i < candidatosFim.length; i += 20) {
+        const bloco = candidatosFim.slice(i, i + 20)
+        const idsParam = bloco.map((m: any) => m.id).join('-')
+        let porId = new Map<number, any>()
+        try {
+          const resp = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idsParam}`, { headers: apiHeaders() })
+          const dados = await resp.json()
+          for (const j of (Array.isArray(dados?.response) ? dados.response : [])) porId.set(j.fixture.id, j)
+        } catch (e) {
+          console.error('[EVENTOS] Falha ao confirmar jogos encerrados:', (e as Error).message)
+          continue
+        }
+
+        for (const m of bloco) {
+          const j = porId.get(m.id)
+          const st = j?.fixture?.status?.short
+          if (!st) continue
+
+          if (STATUS_FINAL.includes(st)) {
+            const p = placar90(j)                       // placar que valeu (90')
+            const foiPos = STATUS_POS_90.includes(st)   // passou dos 90'?
+            let body = `${m.home_team} ${p.home} x ${p.away} ${m.away_team}`
+            if (foiPos) body += st === 'PEN' ? ` (valeu o 90' — decidido nos pênaltis)` : ` (valeu o 90')`
+            const n = await enviar(m.league_id, '🏁 Fim de jogo', body)
+            await admin.from('matches').update({
+              notif_fim_em: new Date().toISOString(),
+              status: st, score_home: p.home, score_away: p.away,
+            }).eq('id', m.id)
+            eventos.push({ matchId: m.id, evento: 'fim', placar: `${p.home}x${p.away}`, enviados: n })
+          } else if (STATUS_CANCELADO.includes(st)) {
+            // Adiado/cancelado: para o tracking, sem push.
+            await admin.from('matches').update({ notif_fim_em: new Date().toISOString(), status: st }).eq('id', m.id)
+            eventos.push({ matchId: m.id, evento: 'cancelado', status: st })
+          }
+          // Se ainda não é final nem cancelado (glitch do feed), ignora — pega na próxima passada.
+        }
+      }
+
+      return { aoVivo: fixturesLive.length, eventos }
+    }
+
+    // --------------------------------------------------------------------
+    // Loop de passadas: repete de INTERVALO_MS em INTERVALO_MS enquanto
+    // houver jogo ao vivo (até MAX_PASSADAS). Idle -> sai na 1ª.
+    // --------------------------------------------------------------------
+    const eventosTotais: any[] = []
+    let aoVivo = 0
+    for (let p = 0; p < MAX_PASSADAS; p++) {
+      const r = await passada()
+      aoVivo = r.aoVivo
+      eventosTotais.push(...r.eventos)
+      if (aoVivo === 0) break                       // ninguém ao vivo -> não repete
+      if (p < MAX_PASSADAS - 1) await sleep(INTERVALO_MS)
     }
 
     return new Response(
-      JSON.stringify({ message: 'Eventos processados', aoVivo: fixturesLive.length, eventos: resumo }),
+      JSON.stringify({ message: 'Eventos processados', aoVivo, passadas: Math.min(MAX_PASSADAS, aoVivo === 0 ? 1 : MAX_PASSADAS), eventos: eventosTotais }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {
