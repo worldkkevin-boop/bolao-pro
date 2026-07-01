@@ -543,7 +543,7 @@ function switchView(targetViewId) {
     localStorage.setItem('last_active_view', targetViewId);
   }
 
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -613,6 +613,8 @@ function switchView(targetViewId) {
     }
   } else if (targetViewId === 'view-copa') {
     if (typeof carregarViewCopa === 'function') carregarViewCopa();
+  } else if (targetViewId === 'view-assistir') {
+    if (typeof carregarViewAssistir === 'function') carregarViewAssistir();
   } else if (targetViewId === 'view-desafios') {
     if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
   } else if (targetViewId === 'view-loja') {
