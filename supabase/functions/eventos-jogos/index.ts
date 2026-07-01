@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import webpush from "https://esm.sh/web-push@3.6.7"
 
@@ -67,7 +66,7 @@ function placar90(j: any): { home: number | null, away: number | null } {
   return { home: j?.goals?.home ?? null, away: j?.goals?.away ?? null }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   // Proteção por segredo (o cron manda o header). Sem CRON_SECRET, deixa passar.
@@ -106,9 +105,11 @@ serve(async (req) => {
       return subs
     }
 
-    async function enviar(leagueId: number, title: string, body: string): Promise<number> {
+    async function enviar(leagueId: number, title: string, body: string, opts: any = {}): Promise<number> {
       const subs = await subsDaLiga(leagueId)
-      const payload = JSON.stringify({ title, body, url: '/' })
+      // tag = agrupa as notificações do MESMO jogo numa só que se atualiza (placar
+      // ao vivo, tipo widget); renotify = re-alerta (ex.: no gol).
+      const payload = JSON.stringify({ title, body, url: '/', tag: opts.tag, renotify: opts.renotify })
       let enviados = 0
       for (const sub of subs) {
         try {
@@ -172,7 +173,7 @@ serve(async (req) => {
           // "Começou" só se pegamos bem no início (evita spam em cold start / meio de jogo)
           const cedo = (st === '1H' && elapsed <= 15)
           if (cedo) {
-            const n = await enviar(leagueId, '🟢 Bola rolando!', `Começou: ${home} x ${away}. Boa sorte! 🍀`)
+            const n = await enviar(leagueId, '🟢 Bola rolando!', `Começou: ${home} 0 x 0 ${away}. Boa sorte! 🍀`, { tag: `jogo-${fid}` })
             eventos.push({ matchId: fid, evento: 'inicio', enviados: n })
           }
           // Baseline de placar = placar atual (não notifica gols anteriores ao tracking)
@@ -190,7 +191,7 @@ serve(async (req) => {
           const marcou = gh > prevH ? home : away
           let body = `${marcou} marcou!  ${home} ${gh} x ${ga} ${away}`
           if (posTempo) body += ` ⏱️ prorrogação — não conta no bolão`
-          const n = await enviar(leagueId, '⚽ GOOOOL!', body)
+          const n = await enviar(leagueId, '⚽ GOOOOL!', body, { tag: `jogo-${fid}`, renotify: true })
           await admin.from('matches').update({ notif_score_home: gh, notif_score_away: ga }).eq('id', fid)
           eventos.push({ matchId: fid, evento: 'gol', placar: `${gh}x${ga}`, prorrogacao: posTempo, enviados: n })
         }
@@ -229,7 +230,7 @@ serve(async (req) => {
             const foiPos = STATUS_POS_90.includes(st)   // passou dos 90'?
             let body = `${m.home_team} ${p.home} x ${p.away} ${m.away_team}`
             if (foiPos) body += st === 'PEN' ? ` (valeu o 90' — decidido nos pênaltis)` : ` (valeu o 90')`
-            const n = await enviar(m.league_id, '🏁 Fim de jogo', body)
+            const n = await enviar(m.league_id, '🏁 Fim de jogo', body, { tag: `jogo-${m.id}`, renotify: true })
             await admin.from('matches').update({
               notif_fim_em: new Date().toISOString(),
               status: st, score_home: p.home, score_away: p.away,

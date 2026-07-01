@@ -13,11 +13,21 @@ self.addEventListener('push', function(event) {
     const options = {
       body: data.body || 'Você tem uma novidade no bolão!',
       icon: '/midia/icon-192.png', // Aponta para a imagem na pasta midia
-      vibrate: [200, 100, 200, 100, 200], // Vibração personalizada 📳
+      badge: '/midia/icon-192.png',
+      vibrate: data.silent ? [] : [200, 100, 200, 100, 200], // Vibração personalizada 📳
       data: {
         url: data.url || '/' // Para onde o app vai se o cara clicar na notificação
       }
     };
+
+    // "Placar ao vivo": todas as notificações do mesmo jogo usam a MESMA tag, então
+    // uma ATUALIZA a outra (não empilha) — fica uma notificação só, mostrando o
+    // placar atual, tipo um widget. renotify = re-alerta (ex.: no gol).
+    if (data.tag) {
+      options.tag = data.tag;
+      options.renotify = !!data.renotify; // só faz sentido junto de tag
+    }
+    if (data.silent) options.silent = true;
 
     const title = data.title || 'Bolão Pro 🏆';
 
