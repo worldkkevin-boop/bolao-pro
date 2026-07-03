@@ -222,14 +222,19 @@ async function atualizarTVAoVivo() {
 
   console.log('[TV POLLING] Buscando dados de partidas ao vivo...');
   let jogosAoVivoApi = null;
-  
+
   try {
-    if (typeof buscarDadosAoVivo === 'function') {
+    // Busca no FEED DA LIGA (não no live=all): a Copa às vezes some do live=all e o
+    // Modo TV ficava "FORA DO AR" com jogo rolando. O feed da liga sempre traz o jogo
+    // (é o mesmo que a aba Jogos usa). Já vem filtrado pros status ao vivo.
+    if (typeof buscarJogosAoVivoLiga === 'function') {
+      jogosAoVivoApi = await buscarJogosAoVivoLiga(leagueId);
+    } else if (typeof buscarDadosAoVivo === 'function') {
       jogosAoVivoApi = await buscarDadosAoVivo();
-      // Salva para fallback caso a próxima falhe
-      if (Array.isArray(jogosAoVivoApi) && jogosAoVivoApi.length > 0) {
-        tvUltimoEstadoJogos = jogosAoVivoApi;
-      }
+    }
+    // Salva para fallback caso a próxima falhe
+    if (Array.isArray(jogosAoVivoApi) && jogosAoVivoApi.length > 0) {
+      tvUltimoEstadoJogos = jogosAoVivoApi;
     }
   } catch (e) {
     console.error("Erro ao buscar jogos ao vivo da API:", e);

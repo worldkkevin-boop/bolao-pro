@@ -206,6 +206,36 @@ async function carregarJogos() {
   }
 }
 
+// Jogos AO VIVO da liga do grupo, buscando NO FEED DA LIGA (/fixtures?league=&season=2026)
+// em vez do /fixtures?live=all. Motivo: a API-Football às vezes NÃO inclui a Copa (league 1)
+// no feed live=all (a cobertura "live" dela oscila), então o Modo TV mostrava "FORA DO AR"
+// enquanto a aba Jogos (que lê do feed da liga) já mostrava o jogo AO VIVO. O feed da liga
+// é superset do live=all pra aquela liga → pega todo jogo rolando sem depender da cobertura live.
+// Custo: 1 request/ciclo (mesmo peso do live=all), mas com o placar/elapsed frescos.
+async function buscarJogosAoVivoLiga(leagueId) {
+  const statusAoVivo = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE', 'INT', 'SUSP'];
+  const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=2026`;
+  try {
+    const resposta = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-rapidapi-host": "v3.football.api-sports.io",
+        "x-rapidapi-key": "47ca2bb05eb5931347aca04964818eb5"
+      }
+    });
+    if (!resposta.ok) throw new Error(`Erro HTTP: ${resposta.status}`);
+    const dados = await resposta.json();
+    if (dados.errors && (Array.isArray(dados.errors) ? dados.errors.length > 0 : Object.keys(dados.errors).length > 0)) {
+      throw new Error(JSON.stringify(dados.errors));
+    }
+    const todos = dados.response || [];
+    return todos.filter(j => statusAoVivo.includes(j.fixture.status.short));
+  } catch (erro) {
+    console.error("Erro na API-Football (Ao Vivo da liga):", erro);
+    return null;
+  }
+}
+
 async function buscarDadosAoVivo() {
   const url = 'https://v3.football.api-sports.io/fixtures?live=all';
   try {
