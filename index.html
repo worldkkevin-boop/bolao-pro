@@ -240,6 +240,15 @@
           Acessar com código
         </button>
 
+        <!-- LOGIN DEV: só aparece em localhost (js/config.js -> _BOLAO_DEV). Em produção fica escondido. -->
+        <div id="dev-login-box" class="w-full mt-6 p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 hidden">
+          <p class="text-amber-300 text-[11px] font-black uppercase tracking-widest mb-3">🛠️ Login DEV (local)</p>
+          <input id="dev-email" type="email" placeholder="e-mail de teste" autocomplete="off" class="w-full mb-2 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-amber-500/60">
+          <input id="dev-senha" type="password" placeholder="senha" autocomplete="off" class="w-full mb-3 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-amber-500/60">
+          <button onclick="entrarComEmailDev()" class="w-full bg-amber-500 text-black font-bold py-2.5 rounded-xl text-sm hover:bg-amber-400 transition-colors active:scale-95">Entrar (dev)</button>
+          <p id="dev-login-erro" class="text-red-400 text-[11px] mt-2 hidden"></p>
+        </div>
+
       </div>
 
       <div id="code-input-section" class="w-full hidden opacity-0 transition-all duration-300 transform translate-y-4">
@@ -2328,8 +2337,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script src="js/config.js?v=33"></script>
-  <script src="js/auth.js?v=36"></script>
+  <script src="js/config.js?v=34"></script>
+  <script src="js/auth.js?v=37"></script>
   <script src="js/api.js?v=36"></script>
   <script src="js/groups.js?v=36"></script>
   <script src="js/ui.js?v=62"></script>

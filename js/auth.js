@@ -22,6 +22,29 @@ async function entrarComGoogle() {
   }
 }
 
+// ===== LOGIN DEV (só em localhost) — e-mail/senha, sem OAuth =====
+// Sucesso dispara onAuthStateChange('SIGNED_IN') -> entrarNoApp automaticamente.
+async function entrarComEmailDev() {
+  const email = (document.getElementById('dev-email')?.value || '').trim();
+  const senha = document.getElementById('dev-senha')?.value || '';
+  const erroEl = document.getElementById('dev-login-erro');
+  if (erroEl) erroEl.classList.add('hidden');
+  if (!sbClient) return;
+  const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+  if (error) {
+    console.error('Login dev falhou:', error.message);
+    if (erroEl) { erroEl.textContent = error.message; erroEl.classList.remove('hidden'); }
+  }
+}
+
+// Revela o box de login dev só quando estamos em localhost (_BOLAO_DEV vem do config.js)
+function _revelarLoginDev() {
+  if (typeof _BOLAO_DEV !== 'undefined' && _BOLAO_DEV) {
+    document.getElementById('dev-login-box')?.classList.remove('hidden');
+  }
+}
+document.addEventListener('DOMContentLoaded', _revelarLoginDev);
+
 async function deslogar() {
   if (sbClient) await sbClient.auth.signOut();
   usuarioAtual = null;
