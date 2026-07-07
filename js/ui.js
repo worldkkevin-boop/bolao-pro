@@ -4075,7 +4075,7 @@ async function _statusBonusCopa() {
   const teamMap = {};
   let groupStageComplete = true;
   let pior = null;        // lanterna geral (pior de toda a Copa)
-  let topScorer = null;   // time que mais fez gols (proxy pro palpite de gols)
+  const golsTime = {};    // norm(nome) -> { name, goals } total no torneio (grupos + mata-mata)
 
   (grupos || []).forEach(g => {
     if (!g || !g.length) return;
@@ -4091,7 +4091,8 @@ async function _statusBonusCopa() {
       if (!pior || t.points < pior.points || (t.points === pior.points && (t.goalsDiff < pior.gd || (t.goalsDiff === pior.gd && t.all.goals.for < pior.gf)))) {
         pior = { name: t.team.name, points: t.points, gd: t.goalsDiff, gf: t.all.goals.for };
       }
-      if (!topScorer || t.all.goals.for > topScorer.goals) topScorer = { name: t.team.name, goals: t.all.goals.for };
+      // Gols na fase de grupos (a classificação só reflete os grupos); o mata-mata é somado abaixo
+      golsTime[norm(t.team.name)] = { name: t.team.name, goals: (t.all && t.all.goals && t.all.goals.for) || 0 };
     });
   });
 
@@ -4110,7 +4111,15 @@ async function _statusBonusCopa() {
     if (perdedor) eliminadoKO.add(norm(perdedor.name));
     const round = (f.league && f.league.round) || '';
     if (/final/i.test(round) && !/semi|3rd|quarter|round of/i.test(round) && vencedor) campeao = norm(vencedor.name);
+    // Soma os gols do mata-mata (a classificação não os inclui). Pênaltis não entram no goals.
+    const gh = (f.goals && f.goals.home) || 0, ga = (f.goals && f.goals.away) || 0;
+    const addGol = (team, n) => { if (!team) return; const k = norm(team.name); if (!golsTime[k]) golsTime[k] = { name: team.name, goals: 0 }; golsTime[k].goals += n; };
+    addGol(h, gh); addGol(a, ga);
   });
+
+  // Time com mais gols no torneio inteiro (proxy do palpite de gols do campeão)
+  let topScorer = null;
+  Object.values(golsTime).forEach(x => { if (!topScorer || x.goals > topScorer.goals) topScorer = { name: x.name, goals: x.goals }; });
 
   const avaliar = (qkey, valor) => {
     // Pergunta de gols do campeão: não dá pra cravar até a final → indicador de progresso
