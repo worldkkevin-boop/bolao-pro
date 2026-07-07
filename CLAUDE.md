@@ -113,6 +113,34 @@ sql/arquivo/            Migrações históricas (já aplicadas em prod; guardada
 - `abrirTVAoVivo()` / `atualizarTVAoVivo()` — abre e atualiza (polling 60s) o Modo TV.
 - `calcularZebrasTV()` — calcula distribuição + zebras por jogo a partir de `tvDados.palpites`.
 
+### 📐 Convenções de código (padrões do projeto — seguir ao escrever código novo)
+
+O código já segue estes padrões de forma consistente. **Código novo deve manter isto** (evita "padronizar" depois):
+
+**Nomes de função**
+- **camelCase** + **verbo em português**: `carregarJogos`, `abrirTVAoVivo`, `buscarDadosAoVivo`, `atualizarSeletorRanking`.
+- Prefixos por intenção: `carregar*` (busca/monta dados), `buscar*` (fetch de API), `abrir*` (abre modal/view), `render*`/`renderizar*` (desenha HTML), `atualizar*` (re-render/estado), `mostrar*`/`exibir*` (mostra algo), `calcular*` (cálculo puro).
+- **Prefixo `_`** = helper interno/"privado" daquele arquivo, não chamado pelo HTML (`_copaFetch`, `_tvCarregarStandings`, `_persistirResultadosFinalizados`). Se é chamado por `onclick=` no HTML, **não** leva `_`.
+- Evitar misturar idioma no mesmo nome (ex.: preferir `render*` OU `renderizar*`, não os dois). Outliers antigos (`switchView_login`) existem — não replicar.
+
+**Arquitetura**
+- **Vanilla JS, funções GLOBAIS** (sem módulos/import). Funções são chamadas entre arquivos E direto no HTML (`onclick="funcao()"`). ⚠️ Por isso **renomear função é arriscado** — tem que caçar todas as refs (js + html). Ao criar função nova, nome definitivo de primeira.
+- **Estado global** mora em [js/config.js](js/config.js) (`sbClient`, `usuarioAtual`, `grupoAtual`, `todosOsJogos`, etc.). Novo estado compartilhado → declarar lá.
+- **Jogos** vêm da **API-Football** (`todosOsJogos`), não do banco. Pontuação sempre por **`placarValido(jogo)`** (vale só o 90').
+- **Ambiente**: `_BOLAO_DEV` (config.js) alterna Supabase dev (VPS, em localhost) × produção. Ver [[project_ambiente_dev]].
+
+**Cache busting (OBRIGATÓRIO)**
+- Editou um `.js`? **Bump o `?v=`** dele em [index.html](index.html) (senão o navegador serve cache velho). Ver seção 3.
+
+**Estilo / UI**
+- **Tailwind via CDN Play** — usar classes utilitárias no HTML (nada é purgado). Tema dark, mobile-first.
+- Indentação 2 espaços; strings em aspas simples no JS.
+
+**Onde encostar pra tarefas comuns**
+- Nova **view/tela** → registrar em `switchView` (array + branch) em ui.js + `<div id="view-...">` no HTML.
+- Nova **regra de pontuação** → `calcularPontosPalpite` (motor) **e** `detalharPontosPalpite` (detalhe), na mesma ordem de cascata (ui.js).
+- Nova **coluna/tabela** → SQL manual no Supabase (não vai pelo git) + registrar em `sql/schema.sql` e na seção 6.
+
 ---
 
 ## 6. Backend — Tabelas do Postgres
