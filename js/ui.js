@@ -543,7 +543,7 @@ function switchView(targetViewId) {
     localStorage.setItem('last_active_view', targetViewId);
   }
 
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir', 'view-criar-bolao'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -579,7 +579,7 @@ function switchView(targetViewId) {
   } else {
     if (gmNavBar) gmNavBar.classList.add('hidden');
     
-    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo') {
+    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo' || targetViewId === 'view-criar-bolao') {
       if (navBar) navBar.classList.add('hidden');
     } else {
       if (navBar) navBar.classList.remove('hidden');
