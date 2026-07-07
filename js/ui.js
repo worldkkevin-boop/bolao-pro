@@ -4049,17 +4049,27 @@ async function _statusBonusCopa() {
     grupos = _copaCache.standings;
     fixtures = _copaCache.knockout || [];
   }
-  // 2. Senão, busca a classificação (mesma normalização da copa.js: dedupe + sem grupo-fantasma)
-  if (!grupos && typeof _copaFetch === 'function') {
+  // 2. Senão (cache frio), busca classificação + jogos do mata-mata (igual copa.js).
+  //    Importante buscar os fixtures também: sem eles, eliminação/campeão do KO
+  //    nunca são detectados e 3º/Vice/Campeão ficam presos em "Valendo".
+  if ((!grupos || !fixtures.length) && typeof _copaFetch === 'function') {
     try {
-      const sj = await _copaFetch(`standings?league=${ligaId}&season=2026`);
-      const liga = sj && sj.response && sj.response[0] && sj.response[0].league;
-      let raw = (liga && Array.isArray(liga.standings)) ? liga.standings : [];
-      const dd = (g) => { const v = new Set(); return g.filter(t => { const id = t && t.team && t.team.id; if (id == null || v.has(id)) return false; v.add(id); return true; }); };
-      const limpos = raw.filter(g => Array.isArray(g) && g.length).map(dd);
-      const reais = limpos.filter(g => { const n = ((g[0] && g[0].group) || '').trim(); return /^group\s+[a-z0-9]+$/i.test(n) && !/^group stage$/i.test(n); });
-      grupos = reais.length ? reais : limpos;
-    } catch (e) { grupos = null; }
+      const [sj, fj] = await Promise.all([
+        (!grupos) ? _copaFetch(`standings?league=${ligaId}&season=2026`) : Promise.resolve(null),
+        _copaFetch(`fixtures?league=${ligaId}&season=2026`)
+      ]);
+      if (sj) {
+        const liga = sj && sj.response && sj.response[0] && sj.response[0].league;
+        let raw = (liga && Array.isArray(liga.standings)) ? liga.standings : [];
+        const dd = (g) => { const v = new Set(); return g.filter(t => { const id = t && t.team && t.team.id; if (id == null || v.has(id)) return false; v.add(id); return true; }); };
+        const limpos = raw.filter(g => Array.isArray(g) && g.length).map(dd);
+        const reais = limpos.filter(g => { const n = ((g[0] && g[0].group) || '').trim(); return /^group\s+[a-z0-9]+$/i.test(n) && !/^group stage$/i.test(n); });
+        grupos = reais.length ? reais : limpos;
+      }
+      if (fj && Array.isArray(fj.response)) {
+        fixtures = fj.response.filter(f => { const r = (f.league && f.league.round) || ''; return !/group stage/i.test(r); });
+      }
+    } catch (e) { /* mantém o que já tiver */ }
   }
 
   const teamMap = {};
@@ -4088,9 +4098,11 @@ async function _statusBonusCopa() {
   // Eliminados/campeão pelo mata-mata (quando os jogos existirem)
   const eliminadoKO = new Set();
   let campeao = null;
+  let koComecou = false; // já há jogo de mata-mata encerrado?
   (fixtures || []).forEach(f => {
     const st = f.fixture && f.fixture.status && f.fixture.status.short;
     if (!['FT', 'AET', 'PEN'].includes(st)) return;
+    koComecou = true;
     const h = f.teams && f.teams.home, a = f.teams && f.teams.away;
     if (!h || !a) return;
     const perdedor = h.winner === true ? a : (a.winner === true ? h : null);
@@ -4126,8 +4138,9 @@ async function _statusBonusCopa() {
     }
     const eliminado = eliminadoKO.has(v) || (t.groupComplete && t.rank >= 4);
     if (eliminado) return { badge: 'perdida', texto: 'Perdida', sub: 'eliminado' };
-    if (t.qualified) return { badge: 'ativo', texto: 'Valendo', sub: 'classificado' };
-    return { badge: 'ativo', texto: 'Valendo' };
+    // Ainda vivo: se o mata-mata já rola, diz "ainda na disputa"; senão "classificado".
+    const subVivo = koComecou ? 'ainda na disputa' : (t.qualified ? 'classificado' : '');
+    return { badge: 'ativo', texto: 'Valendo', sub: subVivo };
   };
 
   return { avaliar };
