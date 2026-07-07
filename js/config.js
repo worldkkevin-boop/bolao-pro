@@ -1,6 +1,17 @@
 // ============ SUPABASE CONFIG & INITIALIZATION ============
-const SUPABASE_URL      = 'https://hkiqozqqcymbhfobydoq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhraXFvenFxY3ltYmhmb2J5ZG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4ODk0NzYsImV4cCI6MjA5NTQ2NTQ3Nn0.fx31IcsivW-YjYy6Of7c_gbKq90yvE40Tqrt-jCydso';
+// AMBIENTE: em localhost usa o Supabase de TESTE (VPS); no site de verdade usa PRODUÇÃO.
+// A checagem é pelo hostname, então nunca aponta usuário real pro banco de dev.
+const _BOLAO_DEV = ['localhost', '127.0.0.1', '::1'].includes(location.hostname) || location.hostname.endsWith('.local');
+
+const SUPABASE_URL = _BOLAO_DEV
+  ? 'https://supabase-dev.ksstudio.cloud'                       // DEV (VPS self-hosted)
+  : 'https://hkiqozqqcymbhfobydoq.supabase.co';                 // PRODUÇÃO
+
+const SUPABASE_ANON_KEY = _BOLAO_DEV
+  ? 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4MzQ1NDU4MCwiZXhwIjo0OTM5MTI4MTgwLCJyb2xlIjoiYW5vbiJ9.VGwo7oEpShbcZvMrh74pD2VWW24pep64fpNpBNsqjAI'                             // SERVICE_SUPABASEANON_KEY (anon, pode ficar no front)
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhraXFvenFxY3ltYmhmb2J5ZG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4ODk0NzYsImV4cCI6MjA5NTQ2NTQ3Nn0.fx31IcsivW-YjYy6Of7c_gbKq90yvE40Tqrt-jCydso';
+
+if (_BOLAO_DEV) console.log('%c[BOLÃO DEV] Conectado ao Supabase de teste:', 'color:#f59e0b;font-weight:bold', SUPABASE_URL);
 
 // Número do WhatsApp para suporte (Exemplo: 55 + DDD + Número)
 const SUPORTE_WHATSAPP = '5596991767788'; 
