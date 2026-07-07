@@ -1149,7 +1149,12 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway, rou
     pt_vencedor_saldo: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 7,
     pt_empate_nao_exato: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 6,
     pt_apenas_vencedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 3,
-    
+
+    // Regras extras (opcionais; 0 = desligada → cascata cai pra próxima, igual antes)
+    pt_vencedor_gols_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? Number(grupoAtual.pt_vencedor_gols_time) : 0,
+    pt_vencedor_gols_perdedor: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? Number(grupoAtual.pt_vencedor_gols_perdedor) : 0,
+    pt_gols_um_time: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? Number(grupoAtual.pt_gols_um_time) : 0,
+
     // Novas regras premium
     regra_zebra_dinamica: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.regra_zebra_dinamica !== undefined) ? grupoAtual.regra_zebra_dinamica : false,
     mult_fase_final: (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.mult_fase_final !== undefined && grupoAtual.mult_fase_final !== null) ? Number(grupoAtual.mult_fase_final) : 2
@@ -1158,6 +1163,9 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway, rou
   let pontosBase = 0;
 
   // ================= A CASCATA DE PONTUAÇÃO (RISCO X RETORNO) =================
+  // Ordem idêntica a detalharPontosPalpite. Cada regra só entra se estiver > 0
+  // (regra em 0 = desligada, cai pra próxima) — mantém 100% do comportamento
+  // antigo pros grupos que usam só as 4 regras clássicas.
 
   // 1. Placar Exato (Na Mosca)
   if (pHome === rHome && pAway === rAway && regras.pt_placar_exato > 0) {
@@ -1175,14 +1183,41 @@ function calcularPontosPalpite(palpiteHome, palpiteAway, realHome, realAway, rou
         const saldoPalpite = Math.abs(pHome - pAway);
         const saldoReal = Math.abs(rHome - rAway);
 
-        // 3. Vencedor e Saldo
-        if (saldoPalpite === saldoReal && regras.pt_vencedor_saldo > 0) {
+        const acertouGolsHome = pHome === rHome;
+        const acertouGolsAway = pAway === rAway;
+        let acertouGolsDoVencedor = false;
+        let acertouGolsDoPerdedor = false;
+        if (vencedorReal === 'home') {
+          acertouGolsDoVencedor = acertouGolsHome;
+          acertouGolsDoPerdedor = acertouGolsAway;
+        } else if (vencedorReal === 'away') {
+          acertouGolsDoVencedor = acertouGolsAway;
+          acertouGolsDoPerdedor = acertouGolsHome;
+        }
+
+        // 3. Vencedor e Gols do Vencedor
+        if (acertouGolsDoVencedor && regras.pt_vencedor_gols_time > 0) {
+          pontosBase = regras.pt_vencedor_gols_time;
+        }
+        // 4. Vencedor e Saldo
+        else if (saldoPalpite === saldoReal && regras.pt_vencedor_saldo > 0) {
           pontosBase = regras.pt_vencedor_saldo;
         }
-        // 4. Apenas o Vencedor
+        // 5. Vencedor e Gols do Perdedor
+        else if (acertouGolsDoPerdedor && regras.pt_vencedor_gols_perdedor > 0) {
+          pontosBase = regras.pt_vencedor_gols_perdedor;
+        }
+        // 6. Apenas o Vencedor
         else if (regras.pt_apenas_vencedor > 0) {
           pontosBase = regras.pt_apenas_vencedor;
         }
+      }
+    } else {
+      // 7. Placar de um Time (errou o vencedor, mas cravou os gols de um dos times)
+      const acertouGolsHome = pHome === rHome;
+      const acertouGolsAway = pAway === rAway;
+      if ((acertouGolsHome || acertouGolsAway) && regras.pt_gols_um_time > 0) {
+        pontosBase = regras.pt_gols_um_time;
       }
     }
   }
@@ -4770,7 +4805,12 @@ function abrirEditorRegras() {
     document.getElementById('regra-pt-saldo').value = (grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? grupoAtual.pt_vencedor_saldo : 7;
     document.getElementById('regra-pt-empate').value = (grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? grupoAtual.pt_empate_nao_exato : 6;
     document.getElementById('regra-pt-apenas-vencedor').value = (grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? grupoAtual.pt_apenas_vencedor : 3;
-    
+
+    // Regras extras (0 = desligada)
+    document.getElementById('regra-pt-vencedor-gols').value = (grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? grupoAtual.pt_vencedor_gols_time : 0;
+    document.getElementById('regra-pt-vencedor-gols-perdedor').value = (grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? grupoAtual.pt_vencedor_gols_perdedor : 0;
+    document.getElementById('regra-pt-gols-um-time').value = (grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? grupoAtual.pt_gols_um_time : 0;
+
     // Carrega as configurações premium
     document.getElementById('toggle-zebra').checked = grupoAtual.regra_zebra_dinamica === true;
     document.getElementById('select-mult-fase').value = (grupoAtual.mult_fase_final !== undefined && grupoAtual.mult_fase_final !== null) ? grupoAtual.mult_fase_final : 2;
@@ -4795,7 +4835,12 @@ async function salvarRegrasPontuacao() {
   const pt_vencedor_saldo = parseInt(document.getElementById('regra-pt-saldo').value) || 0;
   const pt_empate_nao_exato = parseInt(document.getElementById('regra-pt-empate').value) || 0;
   const pt_apenas_vencedor = parseInt(document.getElementById('regra-pt-apenas-vencedor').value) || 0;
-  
+
+  // Regras extras (0 = desligada)
+  const pt_vencedor_gols_time = parseInt(document.getElementById('regra-pt-vencedor-gols').value) || 0;
+  const pt_vencedor_gols_perdedor = parseInt(document.getElementById('regra-pt-vencedor-gols-perdedor').value) || 0;
+  const pt_gols_um_time = parseInt(document.getElementById('regra-pt-gols-um-time').value) || 0;
+
   const regra_zebra_dinamica = document.getElementById('toggle-zebra').checked;
   const mult_fase_final = parseInt(document.getElementById('select-mult-fase').value) || 1;
   
@@ -4811,10 +4856,10 @@ async function salvarRegrasPontuacao() {
         pt_apenas_vencedor,
         regra_zebra_dinamica,
         mult_fase_final,
-        // Mantém as regras legadas zeradas ou limpas
-        pt_vencedor_gols_time: 0,
-        pt_vencedor_gols_perdedor: 0,
-        pt_gols_um_time: 0
+        // Regras extras (agora editáveis; 0 = desligada)
+        pt_vencedor_gols_time,
+        pt_vencedor_gols_perdedor,
+        pt_gols_um_time
       })
       .eq('id', grupoAtual.id);
       
@@ -4831,12 +4876,12 @@ async function salvarRegrasPontuacao() {
     grupoAtual.pt_apenas_vencedor = pt_apenas_vencedor;
     grupoAtual.regra_zebra_dinamica = regra_zebra_dinamica;
     grupoAtual.mult_fase_final = mult_fase_final;
-    
-    // Limpa regras legadas
-    grupoAtual.pt_vencedor_gols_time = 0;
-    grupoAtual.pt_vencedor_gols_perdedor = 0;
-    grupoAtual.pt_gols_um_time = 0;
-    
+
+    // Regras extras
+    grupoAtual.pt_vencedor_gols_time = pt_vencedor_gols_time;
+    grupoAtual.pt_vencedor_gols_perdedor = pt_vencedor_gols_perdedor;
+    grupoAtual.pt_gols_um_time = pt_gols_um_time;
+
     showToast("Novas regras aplicadas com sucesso!", "success");
     fecharEditorRegras();
     
@@ -4867,8 +4912,34 @@ function renderizarRegrasGrupo() {
     pt_placar_exato: (grupoAtual && grupoAtual.pt_placar_exato !== undefined && grupoAtual.pt_placar_exato !== null) ? Number(grupoAtual.pt_placar_exato) : 12,
     pt_vencedor_saldo: (grupoAtual && grupoAtual.pt_vencedor_saldo !== undefined && grupoAtual.pt_vencedor_saldo !== null) ? Number(grupoAtual.pt_vencedor_saldo) : 7,
     pt_empate_nao_exato: (grupoAtual && grupoAtual.pt_empate_nao_exato !== undefined && grupoAtual.pt_empate_nao_exato !== null) ? Number(grupoAtual.pt_empate_nao_exato) : 6,
-    pt_apenas_vencedor: (grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 3
+    pt_apenas_vencedor: (grupoAtual && grupoAtual.pt_apenas_vencedor !== undefined && grupoAtual.pt_apenas_vencedor !== null) ? Number(grupoAtual.pt_apenas_vencedor) : 3,
+    pt_vencedor_gols_time: (grupoAtual && grupoAtual.pt_vencedor_gols_time !== undefined && grupoAtual.pt_vencedor_gols_time !== null) ? Number(grupoAtual.pt_vencedor_gols_time) : 0,
+    pt_vencedor_gols_perdedor: (grupoAtual && grupoAtual.pt_vencedor_gols_perdedor !== undefined && grupoAtual.pt_vencedor_gols_perdedor !== null) ? Number(grupoAtual.pt_vencedor_gols_perdedor) : 0,
+    pt_gols_um_time: (grupoAtual && grupoAtual.pt_gols_um_time !== undefined && grupoAtual.pt_gols_um_time !== null) ? Number(grupoAtual.pt_gols_um_time) : 0
   };
+
+  // Regras extras (só aparecem quando o GM ligou, isto é, valor > 0)
+  const cardRegraExtra = (titulo, pts, exemplo) => `
+    <div class="bg-card-bg rounded-xl p-4 border border-white/5">
+      <div class="flex justify-between items-center mb-2">
+        <h4 class="font-bold text-[14px] text-white">${titulo}</h4>
+        <span class="bg-white/5 text-white text-[13px] font-bold px-2 py-0.5 rounded">+${pts} pts</span>
+      </div>
+      <p class="text-[12px] text-text-muted">${exemplo}</p>
+    </div>`;
+  let regrasExtrasHTML = '';
+  if (regras.pt_vencedor_gols_time > 0) {
+    regrasExtrasHTML += cardRegraExtra('Vencedor e Gols do Vencedor', regras.pt_vencedor_gols_time,
+      'Palpitou <strong class="text-white">2x0</strong> e deu <strong class="text-white">2x1</strong> (acertou quem ganhou e os gols do vencedor).');
+  }
+  if (regras.pt_vencedor_gols_perdedor > 0) {
+    regrasExtrasHTML += cardRegraExtra('Vencedor e Gols do Perdedor', regras.pt_vencedor_gols_perdedor,
+      'Palpitou <strong class="text-white">3x1</strong> e deu <strong class="text-white">2x1</strong> (acertou quem ganhou e os gols de quem perdeu).');
+  }
+  if (regras.pt_gols_um_time > 0) {
+    regrasExtrasHTML += cardRegraExtra('Placar de um Time', regras.pt_gols_um_time,
+      'Errou quem ganhou, mas cravou os gols de um dos times. Ex: palpitou <strong class="text-white">2x1</strong> e deu <strong class="text-white">0x1</strong>.');
+  }
 
   // Renderiza as Regras Base
   containerBase.innerHTML = `
@@ -4911,6 +4982,7 @@ function renderizarRegrasGrupo() {
       </div>
       <p class="text-[12px] text-text-muted">Palpitou <strong class="text-white">2x0</strong> e deu <strong class="text-white">3x1</strong> (Só acertou quem ganhou a partida).</p>
     </div>
+    ${regrasExtrasHTML}
   `;
 
   // Renderiza as Regras Premium ativas
@@ -4925,7 +4997,7 @@ function renderizarRegrasGrupo() {
           <span class="text-xl">🦓</span>
           <div>
             <h4 class="text-[#10b981] font-bold text-[13px]">Zebra Dinâmica Ativa</h4>
-            <p class="text-gray-400 text-[10px] leading-snug mt-0.5">Se o time vencedor tiver <strong>menos de 15%</strong> de palpites do grupo, a pontuação obtida nessa partida é <strong>DOBRADA</strong>!</p>
+            <p class="text-gray-400 text-[10px] leading-snug mt-0.5">Se o resultado (vitória <strong>ou empate</strong>) tiver <strong>menos de 15%</strong> de palpites do grupo, a pontuação obtida nessa partida é <strong>DOBRADA</strong>!</p>
           </div>
         </div>
       `;

@@ -1333,7 +1333,7 @@
             <span class="text-lg leading-none mt-0.5">🦓</span>
             <div>
               <p class="text-yellow-300 text-[11px] font-bold">Zebra Dinâmica</p>
-              <p class="text-gray-500 text-[10px] leading-snug mt-0.5">Apostou no azarão e menos de 15% do grupo apostou igual? Se o time ganhar → sua pontuação é <span class="text-yellow-300 font-bold">DOBRADA</span>.</p>
+              <p class="text-gray-500 text-[10px] leading-snug mt-0.5">Apostou num resultado (vitória <span class="text-yellow-300 font-bold">ou empate</span>) que menos de 15% do grupo cravou? Se acontecer → sua pontuação é <span class="text-yellow-300 font-bold">DOBRADA</span>.</p>
             </div>
           </div>
           <div class="flex items-start gap-3 p-2.5 bg-black/30 rounded-xl border border-orange-500/15">
@@ -1871,10 +1871,41 @@
               </div>
             </div>
 
-            <!-- Inputs Ocultos/Fallbacks para compatibilidade com o banco de dados -->
-            <input type="hidden" id="regra-pt-vencedor-gols" value="0">
-            <input type="hidden" id="regra-pt-vencedor-gols-perdedor" value="0">
-            <input type="hidden" id="regra-pt-gols-um-time" value="0">
+            <!-- Vencedor e Gols do Vencedor (opcional; 0 = desligada) -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Vencedor e Gols do Vencedor</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou quem ganhou E os gols do vencedor. Ex: apostou 2x0, deu 2x1. <span class="text-gray-600">(0 = desligada)</span></p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
+                <input type="number" id="regra-pt-vencedor-gols" value="0" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Vencedor e Gols do Perdedor (opcional; 0 = desligada) -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Vencedor e Gols do Perdedor</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Acertou quem ganhou E os gols de quem perdeu. Ex: apostou 3x1, deu 2x1. <span class="text-gray-600">(0 = desligada)</span></p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
+                <input type="number" id="regra-pt-vencedor-gols-perdedor" value="0" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
+
+            <!-- Placar de um Time (errando o vencedor) (opcional; 0 = desligada) -->
+            <div class="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+              <div class="pr-2">
+                <p class="text-white font-bold text-sm">Placar de um Time</p>
+                <p class="text-gray-500 text-[10px] leading-tight mt-0.5">Errou o vencedor, mas cravou os gols de um dos times. <span class="text-gray-600">(0 = desligada)</span></p>
+              </div>
+              <div class="flex items-center gap-1 bg-[#222226] p-1 rounded-lg border border-white/5">
+                <input type="number" id="regra-pt-gols-um-time" value="0" class="w-10 bg-transparent text-white font-black text-center outline-none text-sm appearance-none">
+                <span class="text-gray-500 text-[10px] font-bold pr-2">pts</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1886,7 +1917,7 @@
             <label class="flex items-center justify-between p-3 bg-[#10b981]/10 rounded-xl border border-[#10b981]/20 cursor-pointer">
               <div class="pr-4">
                 <p class="text-[#10b981] font-bold text-sm flex items-center gap-2">Zebra Dinâmica 🦓</p>
-                <p class="text-gray-400 text-[10px] leading-tight mt-0.5">Dobra a pontuação se você acertar a vitória de um time que teve menos de 15% das apostas no grupo.</p>
+                <p class="text-gray-400 text-[10px] leading-tight mt-0.5">Dobra a pontuação se você acertar um resultado (vitória de um time <span class="text-[#10b981] font-bold">ou empate</span>) que teve menos de 15% das apostas no grupo.</p>
               </div>
               <div class="relative">
                 <input type="checkbox" id="toggle-zebra" class="peer sr-only">
@@ -2301,7 +2332,7 @@
   <script src="js/auth.js?v=36"></script>
   <script src="js/api.js?v=36"></script>
   <script src="js/groups.js?v=36"></script>
-  <script src="js/ui.js?v=59"></script>
+  <script src="js/ui.js?v=60"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=46"></script>
   <script src="js/evento.js?v=42"></script>
