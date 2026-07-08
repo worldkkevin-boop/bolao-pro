@@ -934,30 +934,41 @@
     </div>
 
     <div id="view-ranking" class="fade-in hidden pb-40">
-      <div class="flex items-center justify-between mb-4 mt-2">
-        <div class="flex items-center gap-4">
-          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <h1 class="text-xl font-black tracking-tight">Ranking Oficial</h1>
+      <!-- Sub-abas: Ranking · Equipes · Perguntas (padrão novo das telas) -->
+      <div class="grid grid-cols-3 gap-2 mb-4 mt-3">
+        <button id="rtab-ranking" onclick="switchRankingTab('ranking')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-brand-green/40 bg-brand-green/10 text-brand-green">🏆 Ranking</button>
+        <button id="rtab-equipes" onclick="switchRankingTab('equipes')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-white/5 bg-card-bg text-text-muted">👥 Equipes</button>
+        <button id="rtab-perguntas" onclick="switchRankingTab('perguntas')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-white/5 bg-card-bg text-text-muted">💬 Perguntas</button>
+      </div>
+
+      <!-- ABA CLASSIFICAÇÃO -->
+      <div id="ranking-tab-conteudo">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-1.5 bg-brand-green/10 border border-brand-green/20 text-brand-green text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse"></span> Tempo real · grátis
+          </div>
+          <div id="nome-grupo-ranking" class="bg-card-bg text-text-muted text-[11px] font-bold px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest truncate max-w-[45%]">—</div>
         </div>
-        <div id="nome-grupo-ranking" class="bg-brand-green/10 text-brand-green text-[11px] font-bold px-3 py-1.5 rounded-lg border border-brand-green/20 uppercase tracking-widest">—</div>
-      </div>
-      
-      <!-- Seletor de Tipo de Ranking (Geral ou Rodada) -->
-      <div class="mb-4">
-        <select id="seletor-ranking" onchange="exibirRankingSelecionado()" class="w-full bg-card-bg border border-white/5 rounded-2xl py-3 px-4 text-[13px] font-bold text-white outline-none focus:border-brand-green transition-colors">
-          <option value="geral">Ranking Geral</option>
-        </select>
+
+        <!-- Seletor de Tipo de Ranking (Geral ou Rodada) -->
+        <div class="mb-4">
+          <select id="seletor-ranking" onchange="exibirRankingSelecionado()" class="w-full bg-card-bg border border-white/5 rounded-2xl py-3 px-4 text-[13px] font-bold text-white outline-none focus:border-brand-green transition-colors">
+            <option value="geral">Ranking Geral</option>
+          </select>
+        </div>
+
+        <p class="text-[10px] uppercase tracking-widest text-text-muted font-black mb-2 ml-1">Classificação</p>
+        <div id="lista-ranking" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>
+        </div>
+
+        <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
+          <span>📲</span> COMPARTILHAR RANKING
+        </button>
       </div>
 
-      <div id="lista-ranking" class="space-y-3">
-        <p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>
-      </div>
-
-      <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
-        <span>📲</span> COMPARTILHAR RANKING
-      </button>
+      <!-- ABA EM BREVE (Equipes / Perguntas) -->
+      <div id="ranking-tab-embreve" class="hidden"></div>
     </div>
 
     <!-- View: Copa (Classificação dos grupos + Chaveamento) -->
@@ -2418,7 +2429,7 @@
   <script src="js/api.js?v=36"></script>
   <script src="js/groups.js?v=37"></script>
   <script src="js/pontos.js?v=1"></script>
-  <script src="js/ui.js?v=64"></script>
+  <script src="js/ui.js?v=65"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=46"></script>
   <script src="js/evento.js?v=42"></script>
