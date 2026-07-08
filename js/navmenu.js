@@ -8,7 +8,7 @@
 const NAV_EMOJI_ICONE = { trofeu: '🏆', bola: '⚽', estrela: '⭐', coroa: '👑', medalha: '🥇', bandeira: '🚩' };
 
 // Abas que precisam de grupo ativo pra fazer sentido
-const NAV_PRECISA_GRUPO = ['view-jogos', 'view-ranking'];
+const NAV_PRECISA_GRUPO = ['view-jogos', 'view-ranking', 'view-matamata'];
 
 function navIrPara(viewId) {
   navFecharGrupoBar();
@@ -135,6 +135,7 @@ function carregarViewMenu() {
 
   document.getElementById('menu-lista-principal').innerHTML =
     item('🏠', 'Home do grupo', 'Destaques, banners e pote do bolão', "navIrPara('view-grupo-home')", true) +
+    item('🏆', 'Copa 2026', 'Classificação dos grupos + chaveamento real', "navIrPara('view-copa')", false) +
     item('⚙️', 'Painel do Bolão', 'Regras, participantes e configurações', "navIrPara('view-painel')", true) +
     item('📖', 'Regras e dúvidas', 'Tudo sobre a pontuação do grupo', "navIrPara('view-regras')", true) +
     item('🔴', 'Ao Vivo (Modo TV)', 'Placar, zebras e ranking em tempo real', "navIrPara('view-ao-vivo')", true);

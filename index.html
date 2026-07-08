@@ -1003,7 +1003,12 @@
       </div>
     </div>
 
-    <!-- ==================== VIEW ASSISTIR (jogo ao vivo no app) ==================== -->
+    <!-- ============ VIEW: MATA-MATA DO GRUPO (SUPER UPDATE) ============ -->
+    <div id="view-matamata" class="fade-in hidden pb-44">
+      <div id="mm-body"></div>
+      <div id="mm-modal" class="hidden fixed inset-0 z-[95]"></div>
+    </div>
+
     <!-- ============ VIEW: MENU (SUPER UPDATE) ============ -->
     <div id="view-menu" class="fade-in hidden px-4 pb-44 pt-2">
       <h1 class="text-2xl font-black tracking-tight mb-4 mt-2">Menu</h1>
@@ -2268,7 +2273,7 @@
           <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v5a5 5 0 0010 0V4zM17 6h3a1 1 0 011 1c0 2-1.5 3.5-3.5 4M7 6H4a1 1 0 00-1 1c0 2 1.5 3.5 3.5 4"/></svg>
           <span class="text-[10px] font-black">Ranking</span>
         </button>
-        <button onclick="navIrPara('view-copa')" id="nav-view-copa" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+        <button onclick="navIrPara('view-matamata')" id="nav-view-matamata" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
           <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M12 5v14M2 10h3a2 2 0 010 4H2M22 10h-3a2 2 0 000 4h3"/><circle cx="12" cy="12" r="2.2"/></svg>
           <span class="text-[10px] font-black">Mata-mata</span>
         </button>
@@ -2429,14 +2434,15 @@
   <script src="js/api.js?v=36"></script>
   <script src="js/groups.js?v=37"></script>
   <script src="js/pontos.js?v=1"></script>
-  <script src="js/ui.js?v=65"></script>
+  <script src="js/ui.js?v=66"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=46"></script>
   <script src="js/evento.js?v=42"></script>
   <script src="js/copa.js?v=10"></script>
   <script src="js/assistir.js?v=2"></script>
   <script src="js/criarbolao.js?v=2"></script>
-  <script src="js/navmenu.js?v=1"></script>
+  <script src="js/navmenu.js?v=2"></script>
+  <script src="js/matamata.js?v=1"></script>
 
   <!-- Registro do Service Worker -->
   <script>
