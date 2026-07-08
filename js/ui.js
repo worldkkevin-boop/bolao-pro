@@ -543,7 +543,7 @@ function switchView(targetViewId) {
     localStorage.setItem('last_active_view', targetViewId);
   }
 
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir', 'view-criar-bolao'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir', 'view-criar-bolao', 'view-menu'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -579,12 +579,17 @@ function switchView(targetViewId) {
   } else {
     if (gmNavBar) gmNavBar.classList.add('hidden');
     
-    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo' || targetViewId === 'view-criar-bolao') {
+    // Nav V2: some só nas telas imersivas (palpite, Modo TV, wizard); na lista de grupos FICA
+    if (targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo' || targetViewId === 'view-criar-bolao') {
       if (navBar) navBar.classList.add('hidden');
     } else {
       if (navBar) navBar.classList.remove('hidden');
     }
   }
+
+  // Nav V2: barra de grupo + dropdown
+  if (typeof navAtualizarGrupoBar === 'function') navAtualizarGrupoBar();
+  if (typeof navFecharGrupoBar === 'function') navFecharGrupoBar();
 
   if (document.getElementById('nav-' + targetViewId)) {
     document.getElementById('nav-' + targetViewId).classList.add('text-brand-green', 'bg-brand-green/10', 'px-3', 'py-2', 'rounded-xl');
@@ -615,6 +620,8 @@ function switchView(targetViewId) {
     if (typeof carregarViewCopa === 'function') carregarViewCopa();
   } else if (targetViewId === 'view-assistir') {
     if (typeof carregarViewAssistir === 'function') carregarViewAssistir();
+  } else if (targetViewId === 'view-menu') {
+    if (typeof carregarViewMenu === 'function') carregarViewMenu();
   } else if (targetViewId === 'view-desafios') {
     if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
   } else if (targetViewId === 'view-loja') {

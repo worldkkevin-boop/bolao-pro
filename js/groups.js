@@ -46,6 +46,7 @@ async function carregarGrupos() {
     .order('created_at', { ascending: false });
 
   if (errG) { console.error('Erro ao carregar grupos:', errG.message); return; }
+  if (typeof navInvalidarGrupos === 'function') navInvalidarGrupos(); // Nav V2: dropdown refaz a lista
   renderListaGrupos(grupos || []);
 }
 

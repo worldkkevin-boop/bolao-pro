@@ -633,6 +633,7 @@ async function cbCriar() {
     await sbClient.from('group_members').insert([{ group_id: novo.id, user_id: user.id, role: 'owner' }]);
 
     showToast(`🏆 Bolão "${cb.nome.trim()}" criado! Código: ${codigo}`, 'success');
+    if (typeof navInvalidarGrupos === 'function') navInvalidarGrupos();
     switchView('view-inicio');
     if (typeof carregarGrupos === 'function') carregarGrupos();
   } catch (e) {
