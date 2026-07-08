@@ -204,7 +204,7 @@ function _palCardJogo(j) {
       }
     }
     rodape = `
-      <div onclick="event.stopPropagation(); abrirTelaPalpite(${id})" class="mt-3 flex items-center gap-2.5 bg-black/25 border border-white/5 rounded-xl px-3.5 py-2.5 cursor-pointer hover:border-brand-green/30">
+      <div onclick="event.stopPropagation(); palAbrirPalpite(${id})" class="mt-3 flex items-center gap-2.5 bg-black/25 border border-white/5 rounded-xl px-3.5 py-2.5 cursor-pointer hover:border-brand-green/30">
         <span class="text-[10px] font-black text-text-muted uppercase tracking-wider">Seu palpite:</span>
         <img src="${h.logo}" class="w-5 h-3.5 rounded-sm object-cover"><span class="font-black text-[14px]">${meu.score_home}</span>
         <span class="text-[10px] text-text-muted font-bold">vs</span>
@@ -216,13 +216,13 @@ function _palCardJogo(j) {
   } else if (!encerrado) {
     rodape = fechado
       ? `<div class="mt-3 text-center bg-white/5 border border-white/10 rounded-xl py-3 text-[12px] font-bold text-text-muted">🔒 Palpites fechados</div>`
-      : `<button onclick="event.stopPropagation(); abrirTelaPalpite(${id})" class="mt-3 w-full bg-brand-green/90 hover:bg-brand-green text-black font-black py-3 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">Enviar Palpite <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>`;
+      : `<button onclick="event.stopPropagation(); palAbrirPalpite(${id})" class="mt-3 w-full bg-brand-green/90 hover:bg-brand-green text-black font-black py-3 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">Enviar Palpite <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>`;
   } else {
     rodape = `<div class="mt-3 text-center text-[12px] text-text-muted">Você não palpitou neste jogo</div>`;
   }
 
   return `
-    <div onclick="abrirTelaPalpite(${id})" class="bg-card-bg rounded-3xl border border-white/5 p-4 mb-3 cursor-pointer hover:border-brand-green/20 transition-all">
+    <div onclick="palAbrirPalpite(${id})" class="bg-card-bg rounded-3xl border border-white/5 p-4 mb-3 cursor-pointer hover:border-brand-green/20 transition-all">
       <div class="flex items-center justify-between mb-3">
         <span class="text-[12px] font-bold text-zinc-300">🕐 ${hora}</span>
         ${canto}
