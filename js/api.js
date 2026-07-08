@@ -171,6 +171,7 @@ async function carregarJogos() {
 
     if (typeof gerarFiltrosRodadas === 'function') gerarFiltrosRodadas();
     if (typeof filtrarPorRodada === 'function') filtrarPorRodada(rodadaSelecionada);
+    if (typeof renderPalpitesV2 === 'function') renderPalpitesV2(); // Palpites V2 (lista nova)
     if (typeof atualizarDestaquesHomeGrupo === 'function') atualizarDestaquesHomeGrupo();
     if (typeof atualizarSeletorRanking === 'function') atualizarSeletorRanking();
     if (typeof exibirRankingSelecionado === 'function') exibirRankingSelecionado();

@@ -607,6 +607,7 @@ function switchView(targetViewId) {
   } else if (targetViewId === 'view-jogos' && todosOsJogos.length > 0) {
     gerarFiltrosRodadas();
     filtrarPorRodada(rodadaSelecionada);
+    if (typeof renderPalpitesV2 === 'function') renderPalpitesV2(); // Palpites V2 (lista nova)
   } else if (targetViewId === 'view-ranking') {
     if (typeof switchRankingTab === 'function') switchRankingTab('ranking'); // sempre abre na classificação
     if (grupoAtual) {
