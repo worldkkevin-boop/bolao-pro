@@ -4136,6 +4136,8 @@ async function _statusBonusCopa() {
   // Eliminados/campeão pelo mata-mata (quando os jogos existirem)
   const eliminadoKO = new Set();
   let campeao = null;
+  let vice = null;      // perdedor da FINAL (não confundir com "eliminado" de rounds anteriores)
+  let terceiro = null;  // vencedor do jogo de 3º lugar (quem chega nele já perdeu a semi, mas não é "eliminado" pro Q3)
   let koComecou = false; // já há jogo de mata-mata encerrado?
   (fixtures || []).forEach(f => {
     const st = f.fixture && f.fixture.status && f.fixture.status.short;
@@ -4147,7 +4149,12 @@ async function _statusBonusCopa() {
     const vencedor = h.winner === true ? h : (a.winner === true ? a : null);
     if (perdedor) eliminadoKO.add(norm(perdedor.name));
     const round = (f.league && f.league.round) || '';
-    if (/final/i.test(round) && !/semi|3rd|quarter|round of/i.test(round) && vencedor) campeao = norm(vencedor.name);
+    const ehFinal = /final/i.test(round) && !/semi|3rd|quarter|round of/i.test(round);
+    if (ehFinal) {
+      if (vencedor) campeao = norm(vencedor.name);
+      if (perdedor) vice = norm(perdedor.name);
+    }
+    if (/3rd|terceiro/i.test(round) && vencedor) terceiro = norm(vencedor.name);
     // Soma os gols do mata-mata (a classificação não os inclui). Pênaltis não entram no goals.
     const gh = (f.goals && f.goals.home) || 0, ga = (f.goals && f.goals.away) || 0;
     const addGol = (team, n) => { if (!team) return; const k = norm(team.name); if (!golsTime[k]) golsTime[k] = { name: team.name, goals: 0 }; golsTime[k].goals += n; };
@@ -4178,9 +4185,19 @@ async function _statusBonusCopa() {
       return { badge: 'ativo', texto: 'Valendo' };
     }
 
-    // q3 (3º), q4 (vice), q5 (campeão): time precisa ir longe
+    // q3 (3º), q4 (vice), q5 (campeão): time precisa ir longe.
+    // Importante: quem disputa a final de 3º lugar (ou a final) JÁ perdeu um jogo antes
+    // (semifinal) — então já está em "eliminadoKO" mesmo que depois vença esse jogo
+    // específico. Por isso essas 3 perguntas checam o resultado do jogo certo PRIMEIRO,
+    // antes de cair na regra genérica de "eliminado".
     if (qkey === 'q5' && campeao) {
       return campeao === v ? { badge: 'ganhou', texto: 'Campeão! 🏆' } : { badge: 'perdida', texto: 'Perdida' };
+    }
+    if (qkey === 'q4' && vice) {
+      return vice === v ? { badge: 'ganhou', texto: 'Acertou', sub: '🥈 vice-campeão' } : { badge: 'perdida', texto: 'Perdida' };
+    }
+    if (qkey === 'q3' && terceiro) {
+      return terceiro === v ? { badge: 'ganhou', texto: 'Acertou', sub: '🏆 3º lugar' } : { badge: 'perdida', texto: 'Perdida' };
     }
     const eliminado = eliminadoKO.has(v) || (t.groupComplete && t.rank >= 4);
     if (eliminado) return { badge: 'perdida', texto: 'Perdida', sub: 'eliminado' };
@@ -4229,7 +4246,7 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
     // 2. Busca desafios (pontos extras do GM)
     const { data: desafios, error: errD } = await sbClient
       .from('user_desafios')
-      .select('points_awarded, created_at, challenges:challenge_id(title)')
+      .select('points_awarded, created_at, chosen_player, challenges:challenge_id(title)')
       .eq('group_id', grupoAtual.id)
       .eq('user_id', userId);
 
@@ -4298,11 +4315,17 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
       });
     }
 
-    // Processa pontos extras de desafios
+    // Processa pontos extras de desafios (guarda cada um com o motivo, pra não virar
+    // um "+40 pts" misterioso sem explicação de onde veio)
+    const desafiosDetalhados = [];
     if (desafios) {
       desafios.forEach(d => {
         counts.desafios.count++;
         counts.desafios.totalPts += d.points_awarded || 0;
+        desafiosDetalhados.push({
+          label: d.chosen_player || (d.challenges && d.challenges.title) || 'Bônus do GM',
+          pts: d.points_awarded || 0
+        });
       });
     }
 
@@ -4337,7 +4360,10 @@ async function abrirHistoricoUsuario(userId, userName, userFoto) {
       const cat = counts[k];
       if (k === 'desafios') {
         if (cat.count > 0) {
-          html += renderRow(cat.name, null, cat.count, cat.totalPts, true);
+          // Uma linha por bônus (com o motivo), não um total agregado sem explicação
+          desafiosDetalhados.forEach(d => {
+            html += renderRow(d.label, null, 1, d.pts, true);
+          });
           totalPontos += cat.totalPts;
         }
       } else {
