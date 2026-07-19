@@ -14,7 +14,14 @@ const SUPABASE_ANON_KEY = _BOLAO_DEV
 if (_BOLAO_DEV) console.log('%c[BOLÃO DEV] Conectado ao Supabase de teste:', 'color:#f59e0b;font-weight:bold', SUPABASE_URL);
 
 // Número do WhatsApp para suporte (Exemplo: 55 + DDD + Número)
-const SUPORTE_WHATSAPP = '5596991767788'; 
+const SUPORTE_WHATSAPP = '5596991767788';
+
+// ============ MODO MANUTENÇÃO (reforma pra 2.0) ============
+// Enquanto true, só MAINTENANCE_ADMIN_EMAIL entra no app normal — todo mundo mais
+// vê a tela de aviso com o ranking final do Ladaya (só leitura). Reverter: false.
+const MAINTENANCE_MODE = true;
+const MAINTENANCE_ADMIN_EMAIL = 'worldkkevin@gmail.com';
+const MAINTENANCE_LADAYA_GROUP_ID = 'd20f2029-8b59-4c49-b349-0b8cf9fdbf63';
 
 
 let sbClient = null;
