@@ -4128,9 +4128,29 @@ async function _statusBonusCopa() {
   let topScorer = null;
   Object.values(golsTime).forEach(x => { if (!topScorer || x.goals > topScorer.goals) topScorer = { name: x.name, goals: x.goals }; });
 
+  // "< 10" / "10-30" / "> 110" etc. → checa se X gols cai na faixa escolhida
+  const faixaContem = (faixa, gols) => {
+    if (!faixa) return false;
+    const f = faixa.trim();
+    if (f.startsWith('<')) return gols < parseInt(f.replace('<', '').trim(), 10);
+    if (f.startsWith('>')) return gols > parseInt(f.replace('>', '').trim(), 10);
+    const m = f.match(/(\d+)\s*-\s*(\d+)/);
+    if (m) return gols >= parseInt(m[1], 10) && gols <= parseInt(m[2], 10);
+    return false;
+  };
+
   const avaliar = (qkey, valor) => {
-    // Pergunta de gols do campeão: não dá pra cravar até a final → indicador de progresso
+    // Pergunta de gols do campeão: só cravar depois que a Final define o campeão
     if (qkey === 'q1') {
+      if (campeao) {
+        const gc = golsTime[campeao];
+        const golsCampeao = gc ? gc.goals : 0;
+        if (!valor) return { badge: 'aberto', texto: '—' };
+        const acertou = faixaContem(valor, golsCampeao);
+        return acertou
+          ? { badge: 'ganhou', texto: 'Acertou', sub: `${gc ? gc.name : 'campeão'} fez ${golsCampeao} gols` }
+          : { badge: 'perdida', texto: 'Perdida', sub: `saiu ${golsCampeao} gols` };
+      }
       return { badge: 'aberto', texto: 'Em aberto', sub: topScorer ? `maior artilharia: ${topScorer.name} ${topScorer.goals} gols` : '' };
     }
     if (!valor) return { badge: 'aberto', texto: '—' };
