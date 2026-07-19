@@ -21,7 +21,6 @@ const SUPORTE_WHATSAPP = '5596991767788';
 // vê a tela de aviso com o ranking final do Ladaya (só leitura). Reverter: false.
 const MAINTENANCE_MODE = true;
 const MAINTENANCE_ADMIN_EMAIL = 'worldkkevin@gmail.com';
-const MAINTENANCE_LADAYA_GROUP_ID = 'd20f2029-8b59-4c49-b349-0b8cf9fdbf63';
 
 
 let sbClient = null;

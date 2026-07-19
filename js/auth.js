@@ -143,74 +143,53 @@ function entrarNoApp(usuario) {
   if (typeof verificarOnboarding === 'function') verificarOnboarding();
 }
 
-// Tela de manutenção: some com o app normal e mostra só o aviso + ranking (leitura)
-// do grupo Ladaya, calculado com o mesmo motor de pontuação de sempre.
-async function _mostrarModoManutencao() {
+// Ranking final do Ladaya (Copa 2026), já fechado — congelado aqui pra tela de
+// manutenção não depender de banco/API nenhum (calculado uma única vez com o
+// motor de pontuação real: 12/7/6/3, mata-mata x2, zebra dinâmica + bônus das
+// Perguntas Bônus já somado).
+const MAINTENANCE_RANKING_FINAL = [
+  { nome: 'Lucas Ramos', pontos: 482, exatos: 9 },
+  { nome: 'Kevinzinho', pontos: 450, exatos: 13 },
+  { nome: 'Gabrielly Moraes lima', pontos: 419, exatos: 11 },
+  { nome: 'Ray Mundo', pontos: 417, exatos: 10 },
+  { nome: 'Ulielco Souto', pontos: 414, exatos: 9 },
+  { nome: 'romario mraes', pontos: 404, exatos: 11 },
+  { nome: 'Kaio Motta jr', pontos: 388, exatos: 7 },
+  { nome: 'Adilson Cardoso', pontos: 382, exatos: 8 },
+  { nome: 'Chico Percura', pontos: 362, exatos: 12 },
+  { nome: 'Fabio Vianna', pontos: 350, exatos: 7 },
+  { nome: 'DamRock Elfo', pontos: 323, exatos: 6 },
+  { nome: 'Maick Hammer', pontos: 279, exatos: 12 },
+  { nome: 'gabriel moraes', pontos: 274, exatos: 5 },
+  { nome: 'Jorge Serrão', pontos: 270, exatos: 7 },
+  { nome: 'JHON Silva', pontos: 265, exatos: 5 },
+  { nome: 'William Júnior Pessoal', pontos: 254, exatos: 9 },
+  { nome: 'Osvaldo Jr M. Moreira', pontos: 232, exatos: 6 },
+  { nome: 'Robson Silva Rocha', pontos: 157, exatos: 5 }
+];
+
+// Tela de manutenção: some com o app normal e mostra só o aviso + o ranking final
+// do Ladaya. 100% estático (sem chamada nenhuma ao Supabase/API) — não tem como
+// quebrar nem sair desatualizado, já que a Copa acabou e o placar é definitivo.
+function _mostrarModoManutencao() {
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('screen-app').classList.add('hidden');
   document.getElementById('screen-manutencao').classList.remove('hidden');
 
   const listaEl = document.getElementById('manutencao-ranking-lista');
-  if (!listaEl || !sbClient) return;
+  if (!listaEl) return;
 
-  try {
-    const { data: grupoInfo, error: errGrupo } = await sbClient
-      .from('groups').select('*').eq('id', MAINTENANCE_LADAYA_GROUP_ID).single();
-    if (errGrupo || !grupoInfo) throw errGrupo || new Error('grupo não encontrado');
-    grupoAtual = grupoInfo; // calcularPontosPalpite lê as regras daqui
-
-    const { data: members } = await sbClient.from('group_members').select('user_id').eq('group_id', MAINTENANCE_LADAYA_GROUP_ID);
-    const userIds = (members || []).map(m => m.user_id);
-
-    const [{ data: profiles }, { data: userDesafiosData }, rawGuesses] = await Promise.all([
-      sbClient.from('profiles').select('id, full_name, avatar_url').in('id', userIds),
-      sbClient.from('user_desafios').select('user_id, points_awarded').eq('group_id', MAINTENANCE_LADAYA_GROUP_ID),
-      buscarTodosPalpitesGrupo(MAINTENANCE_LADAYA_GROUP_ID)
-    ]);
-    todosOsJogos = await _carregarJogosDoCache(grupoInfo.league_id || 1);
-    const scores = {};
-    userIds.forEach(uid => {
-      const p = (profiles || []).find(x => x.id === uid);
-      scores[uid] = { id: uid, nome: p ? p.full_name : 'Participante', foto: p ? p.avatar_url : null, pontos: 0, acertosExatos: 0 };
-    });
-
-    if (rawGuesses && rawGuesses.length) {
-      const distribuicao = (typeof calcularDistribuicaoPalpites === 'function') ? calcularDistribuicaoPalpites(rawGuesses) : {};
-      rawGuesses.forEach(g => {
-        if (!scores[g.user_id]) return;
-        const jogo = todosOsJogos.find(j => j.fixture.id === g.match_id);
-        if (!jogo) return;
-        const statusTerminado = ['FT', 'AET', 'PEN'].includes(jogo.fixture.status.short);
-        const r = placarValido(jogo);
-        if (statusTerminado && r.home !== null && r.away !== null) {
-          const vencedorReal = r.home > r.away ? 'home' : (r.home < r.away ? 'away' : 'empate');
-          const dist = distribuicao[g.match_id];
-          const pctVencedor = dist ? dist[vencedorReal] : 100;
-          const pts = calcularPontosPalpite(g.score_home, g.score_away, r.home, r.away, jogo.league.round, pctVencedor);
-          scores[g.user_id].pontos += pts;
-          if (g.score_home === r.home && g.score_away === r.away) scores[g.user_id].acertosExatos += 1;
-        }
-      });
-    }
-    (userDesafiosData || []).forEach(d => { if (scores[d.user_id]) scores[d.user_id].pontos += d.points_awarded || 0; });
-
-    const ranking = Object.values(scores).sort((a, b) => b.pontos - a.pontos || b.acertosExatos - a.acertosExatos);
-
-    const medalha = ['🥇', '🥈', '🥉'];
-    listaEl.innerHTML = ranking.map((u, i) => `
-      <div class="flex items-center justify-between bg-card-bg border border-white/5 rounded-xl p-3 mb-2">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="font-black text-[13px] w-7 text-center flex-shrink-0">${medalha[i] || (i + 1) + 'º'}</span>
-          <img src="${u.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(u.nome) + '&background=random&color=fff'}" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
-          <span class="font-bold text-[13px] truncate">${u.nome}</span>
-        </div>
-        <span class="font-black text-brand-green text-[14px] flex-shrink-0">${u.pontos} pts</span>
+  const medalha = ['🥇', '🥈', '🥉'];
+  listaEl.innerHTML = MAINTENANCE_RANKING_FINAL.map((u, i) => `
+    <div class="flex items-center justify-between bg-card-bg border border-white/5 rounded-xl p-3 mb-2">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="font-black text-[13px] w-7 text-center flex-shrink-0">${medalha[i] || (i + 1) + 'º'}</span>
+        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=random&color=fff" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
+        <span class="font-bold text-[13px] truncate">${u.nome}</span>
       </div>
-    `).join('') || '<p class="text-text-muted text-[13px] text-center py-8">Sem palpites ainda.</p>';
-  } catch (e) {
-    console.error('Erro ao montar ranking de manutenção:', e);
-    listaEl.innerHTML = '<p class="text-red-400 text-[13px] text-center py-8">Não consegui carregar o ranking agora.</p>';
-  }
+      <span class="font-black text-brand-green text-[14px] flex-shrink-0">${u.pontos} pts</span>
+    </div>
+  `).join('');
 }
 
 function mostrarInputCodigo() {
