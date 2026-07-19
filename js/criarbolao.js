@@ -12,18 +12,6 @@ const CB_ICONES = [
 
 const CB_PASSOS = ['Identidade', 'Campeonato', 'Equipes', 'Jogos', 'Pontuação', 'Pesos', 'Desempate', 'Revisão'];
 
-const CB_FASES = [
-  { key: 'r1',    rotulo: '1ª Rodada',  match: (f) => f.rodada === 1 },
-  { key: 'r2',    rotulo: '2ª Rodada',  match: (f) => f.rodada === 2 },
-  { key: 'r3',    rotulo: '3ª Rodada',  match: (f) => f.rodada === 3 },
-  { key: 'r32',   rotulo: '16 avos',    match: (f, r) => /round of 32/i.test(r) },
-  { key: 'r16',   rotulo: 'Oitavas',    match: (f, r) => /round of 16/i.test(r) },
-  { key: 'qf',    rotulo: 'Quartas',    match: (f, r) => /quarter/i.test(r) },
-  { key: 'sf',    rotulo: 'Semis',      match: (f, r) => /semi/i.test(r) },
-  { key: '3rd',   rotulo: '3º Lugar',   match: (f, r) => /3rd|third/i.test(r) },
-  { key: 'final', rotulo: 'A Final',    match: (f) => f.final }
-];
-
 const CB_SISTEMAS = {
   mercado: {
     nome: 'O mais justo e equilibrado', desc: 'A maior inovação já vista', icone: '✨', rec: true,
@@ -63,10 +51,18 @@ const CB_DESEMPATE = [
 
 // -------- estado do wizard --------
 let cb = null;
+// Copa do Mundo encerrou (campeão: Espanha) — Brasileirão vira o campeonato
+// disponível pra testar o wizard nessa reforma da 2.0.
+const CB_CAMPEONATO_ATIVO = {
+  leagueId: 71, season: 2026,
+  nome: 'Brasileirão Série A', pais: 'Brasil', periodo: 'JAN – DEZ'
+};
+
 function _cbEstadoInicial() {
   return {
     passo: 1,
     nome: '', icone: 'trofeu',
+    leagueId: CB_CAMPEONATO_ATIVO.leagueId, season: CB_CAMPEONATO_ATIVO.season,
     equipesModo: 'todas', equipesSel: new Set(),
     jogosModo: 'todos', fasesSel: new Set(),
     sistema: 'mercado', cfg: Object.assign({}, PONTOS_V2_DEFAULTS),
@@ -85,7 +81,7 @@ function abrirCriarBolao() {
 
 async function _cbCarregarFixtures() {
   try {
-    const j = await _copaFetch('fixtures?league=1&season=2026');
+    const j = await _copaFetch(`fixtures?league=${cb.leagueId}&season=${cb.season}`);
     const fx = (j && j.response) || [];
     cb._fixtures = fx;
     const map = {};
@@ -104,13 +100,22 @@ function _cbJogosFiltrados() {
     fx = fx.filter(f => cb.equipesSel.has(f.teams.home.id) || cb.equipesSel.has(f.teams.away.id));
   }
   if (cb.jogosModo === 'fases' && cb.fasesSel.size) {
-    fx = fx.filter(f => {
-      const round = (f.league && f.league.round) || '';
-      const fase = faseDoJogoV2(round);
-      return CB_FASES.some(cf => cb.fasesSel.has(cf.key) && cf.match(fase, round));
-    });
+    fx = fx.filter(f => cb.fasesSel.has((f.league && f.league.round) || ''));
   }
   return fx;
+}
+// Rounds distintos, na ordem em que aparecem nos fixtures (funciona tanto pra
+// campeonato de mata-mata quanto liga de pontos corridos — não hardcoda fases).
+function _cbRoundsDisponiveis() {
+  const vistos = new Set();
+  const lista = [];
+  (cb._fixtures || []).forEach(f => {
+    const r = (f.league && f.league.round) || '';
+    if (!r || vistos.has(r)) return;
+    vistos.add(r);
+    lista.push(r);
+  });
+  return lista;
 }
 function _cbContagemFases(fixtures, modo) {
   // agrupa os jogos pelo PESO que teriam no modo escolhido
@@ -193,8 +198,8 @@ function cbPasso1() {
 
 // -------- PASSO 2: Campeonato --------
 function cbPasso2() {
-  const nJogos = cb._fixtures ? cb._fixtures.length : 104;
-  const nTimes = cb._times ? cb._times.length : 48;
+  const nJogos = cb._fixtures ? cb._fixtures.length : 380;
+  const nTimes = cb._times ? cb._times.length : 20;
   return `
   <h2 class="text-3xl font-black mb-1">Campeonato</h2>
   <p class="text-zinc-400 text-sm mb-6">Selecione o campeonato para o seu bolão</p>
@@ -203,24 +208,24 @@ function cbPasso2() {
     <div class="flex items-center gap-4">
       <div class="w-14 h-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-2xl">🏆</div>
       <div class="flex-1">
-        <p class="text-lg font-black">Copa do Mundo</p>
-        <p class="text-zinc-400 text-[12px]">EUA, México e Canadá</p>
+        <p class="text-lg font-black">${CB_CAMPEONATO_ATIVO.nome}</p>
+        <p class="text-zinc-400 text-[12px]">${CB_CAMPEONATO_ATIVO.pais}</p>
       </div>
       <span class="text-[11px] font-bold bg-emerald-500/15 text-emerald-300 px-3 py-1.5 rounded-full">Selecionado</span>
     </div>
     <div class="h-px bg-white/10 my-4"></div>
-    <p class="text-center text-2xl font-black text-emerald-300">2026 <span class="text-zinc-400 text-sm font-bold">· JUN – JUL</span></p>
+    <p class="text-center text-2xl font-black text-emerald-300">${CB_CAMPEONATO_ATIVO.season} <span class="text-zinc-400 text-sm font-bold">· ${CB_CAMPEONATO_ATIVO.periodo}</span></p>
     <div class="h-px bg-white/10 my-4"></div>
     <div class="grid grid-cols-3 gap-2 text-center">
-      <div><p class="font-black">🏁 Começou!</p><p class="text-[11px] text-zinc-500">em andamento</p></div>
+      <div><p class="font-black">🏁 Em andamento</p><p class="text-[11px] text-zinc-500">rolando</p></div>
       <div><p class="font-black">⊙ ${nJogos}</p><p class="text-[11px] text-zinc-500">jogos</p></div>
-      <div><p class="font-black">🚩 ${nTimes}</p><p class="text-[11px] text-zinc-500">seleções</p></div>
+      <div><p class="font-black">🚩 ${nTimes}</p><p class="text-[11px] text-zinc-500">times</p></div>
     </div>
   </div>
 
   <div class="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
     <span class="text-amber-400">ⓘ</span>
-    <p class="text-amber-200/90 text-[13px]">Mais campeonatos em breve! Por enquanto, a Copa do Mundo 2026 é o campeonato disponível para bolões.</p>
+    <p class="text-amber-200/90 text-[13px]">Mais campeonatos em breve! Por enquanto, o ${CB_CAMPEONATO_ATIVO.nome} é o campeonato disponível para bolões.</p>
   </div>`;
 }
 
@@ -253,7 +258,7 @@ function cbToggleEquipe(id) { cb.equipesSel.has(id) ? cb.equipesSel.delete(id) :
 
 // -------- PASSO 4: Jogos --------
 function cbPasso4() {
-  const total = cb._fixtures ? cb._fixtures.length : 104;
+  const total = cb._fixtures ? cb._fixtures.length : 380;
   const filtrados = _cbJogosFiltrados().length;
   return `
   <h2 class="text-3xl font-black mb-1">Seleção de Jogos</h2>
@@ -263,13 +268,13 @@ function cbPasso4() {
   ${_cbCardOpcao('cbJogosModo(\'fases\')', cb.jogosModo === 'fases', '☰', 'Selecionar por fase', 'Filtre quais fases valem ponto')}
 
   ${cb.jogosModo === 'fases' ? `
-    <div class="mt-5 flex flex-wrap gap-2">
-      ${CB_FASES.map(f => `
-        <button onclick="cbToggleFase('${f.key}')"
+    <div class="mt-5 flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+      ${_cbRoundsDisponiveis().map(r => `
+        <button onclick="cbToggleFase('${r.replace(/'/g, "\\'")}')"
           class="px-4 py-2 rounded-full text-[12px] font-bold border active:scale-95
-          ${cb.fasesSel.has(f.key) ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200' : 'border-white/10 bg-white/5 text-zinc-400'}">
-          ${f.rotulo}
-        </button>`).join('')}
+          ${cb.fasesSel.has(r) ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200' : 'border-white/10 bg-white/5 text-zinc-400'}">
+          ${r}
+        </button>`).join('') || '<p class="text-zinc-500 text-sm animate-pulse">Carregando as fases...</p>'}
     </div>` : ''}
 
   <div class="mt-6 rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
@@ -380,7 +385,7 @@ function cbPasso7() {
 function cbPasso8() {
   const ic = (CB_ICONES.find(i => i.id === cb.icone) || CB_ICONES[0]).emoji;
   const nJogos = cb._fixtures ? _cbJogosFiltrados().length : '—';
-  const nEquipes = cb.equipesModo === 'todas' ? (cb._times ? cb._times.length : 48) : cb.equipesSel.size;
+  const nEquipes = cb.equipesModo === 'todas' ? (cb._times ? cb._times.length : 20) : cb.equipesSel.size;
   const linha = (l, v) => `
     <div class="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
       <span class="text-zinc-400 text-[13px]">${l}</span><span class="font-black text-[13px] text-right">${v}</span>
@@ -394,7 +399,7 @@ function cbPasso8() {
       <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-2xl">${ic}</div>
       <p class="text-xl font-black">${cb.nome || '—'}</p>
     </div>
-    ${linha('Campeonato', 'Copa do Mundo 2026')}
+    ${linha('Campeonato', `${CB_CAMPEONATO_ATIVO.nome} ${CB_CAMPEONATO_ATIVO.season}`)}
     ${linha('Equipes', nEquipes + ' seleções')}
     ${linha('Jogos', nJogos + ' jogos')}
     ${linha('Sistema de pontos', CB_SISTEMAS[cb.sistema].nome)}
@@ -609,7 +614,7 @@ async function cbCriar() {
       name: cb.nome.trim(),
       invite_code: codigo,
       owner_id: user.id,
-      league_id: 1,
+      league_id: cb.leagueId,
       max_participants: cb.maxParticipantes,
       privado: cb.privado,
       icone: cb.icone,
