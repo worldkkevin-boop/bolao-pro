@@ -62,7 +62,7 @@ Cada parte sobe de um jeito diferente:
 ### 🔑 Cache busting (NÃO ESQUECER)
 Os scripts em [index.html](index.html) têm versão na query: `js/ui.js?v=34`. **Toda vez que editar um arquivo JS, bump o `?v=`** correspondente — senão o navegador dos usuários serve a versão antiga do cache. (Padrão histórico do projeto.)
 
-Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=33`, `auth v=36`, `api v=36`, `groups v=36`, `ui v=62`, `gm v=32`, `aovivo v=46`, `evento v=42`, `copa v=10`, `assistir v=2`. (gm/index.html: `admin v=49`)
+Versões atuais (índice rápido — confira no index.html antes de bumpar): `config v=37`, `auth v=40`, `api v=37`, `groups v=38`, `ui v=70`, `pontos v=1`, `criarbolao v=3`, `navmenu v=2`, `matamata v=1`, `palpites v=2`, `palpitemodal v=1`, `gm v=32`, `aovivo v=46`, `evento v=42`, `copa v=10`, `assistir v=2`. (gm/index.html: `admin v=49`)
 
 > ℹ️ `telas/telao.html` é página avulsa com **JS inline** (sem `?v=`) — editou, basta `git push` (Vercel serve direto).
 
@@ -84,8 +84,8 @@ js/aovivo.js            "Modo TV Ao Vivo" (view-ao-vivo): dashboard ao vivo
 js/evento.js            Telão de evento (sorteio/captação de leads) — feature separada
 js/copa.js              View "Copa" (view-copa): classificação dos grupos (/standings) + chaveamento do mata-mata (/fixtures). Etapa 1 = só visualização
 js/assistir.js          View "Assistir" (view-assistir): embute a live do YouTube (CazéTV) num iframe pra assistir dentro do app + fallback "Abrir no YouTube"
-js/pontos.js            [SUPER UPDATE · branch] Motor de pontuação V2 "lógica de mercado" — funções puras (ver docs/regras-pontuacao-v2.md)
-js/criarbolao.js        [SUPER UPDATE · branch] Wizard "Criar Bolão" em 8 passos (view-criar-bolao)
+js/pontos.js            Motor de pontuação V2 "lógica de mercado" — funções puras (ver docs/regras-pontuacao-v2.md)
+js/criarbolao.js        Wizard "Criar Bolão" em 8 passos (view-criar-bolao). Campeonato ativo = Brasileirão (CB_CAMPEONATO_ATIVO)
 docs/                   Docs de produto (regras-pontuacao-v2.md = script mestre da pontuação V2)
 sw.js                   Service Worker (PWA)
 manifest.json           Manifesto PWA
@@ -95,7 +95,7 @@ sql/schema.sql          Schema CONSOLIDADO de produção (rebuild/referência; p
 sql/dev-schema.sql      Schema do banco de DEV (VPS self-hosted, RLS off)
 sql/templates/          SQL reutilizáveis (campanha apoiador, bônus de vitória)
 sql/arquivo/            Migrações históricas (já aplicadas em prod; guardadas por referência)
-sql/dev-migration-super-update.sql  [SUPER UPDATE · branch] colunas novas do sistema V2 (rodar SÓ no banco DEV)
+sql/dev-migration-super-update.sql  Colunas novas do sistema V2 (icone/sistema_pontos/config_pontos/peso_modo/filtro_jogos em groups; prob_* em matches; palpite_prorrogacao/palpite_penaltis em guesses). Apesar do nome, com o merge da super-update pro main precisa rodar em PRODUÇÃO também agora (2026-07-19)
 ```
 
 ---
@@ -249,6 +249,14 @@ Pega a **primeira** que se aplica (na ordem abaixo; o GM customiza os valores po
 ## 11. Changelog
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
+
+- **2026-07-19** — **Copa do Mundo 2026 terminou (Espanha campeã, 1x0 na prorrogação sobre a Argentina) — merge da `super-update` no `main` + reset pra 2.0.** Sessão grande de virada de temporada:
+  1. **Fix bônus (Respostas Bônus, `_statusBonusCopa` em js/ui.js):** Q3 (3º lugar) e Q4 (vice) mostravam "Perdida" mesmo quando o jogador acertou, porque quem disputa esses jogos JÁ perdeu uma fase anterior (semifinal) e caía direto na regra genérica de "eliminado". Agora Q3 checa o vencedor do jogo de 3º lugar e Q4 o perdedor da Final antes disso (mesmo padrão que o Q5/Campeão já tinha). Q1 (gols do campeão) também ficava travado em "Em aberto" pra sempre — agora fecha comparando o total de gols do campeão contra a faixa escolhida. A linha "Desafios do GM (Bônus)" no resumo de pontos passou a listar cada crédito com o motivo (`chosen_player`) em vez de um total agregado sem explicação.
+  2. **Banner "Espanha é a Campeã"** na tela inicial (leva pro Ranking).
+  3. **Reset de produção:** apagados os 9 grupos de teste/outros (só o Ladaya ficou — todas as tabelas ligadas a `groups` têm `ON DELETE CASCADE`, então limpou tudo em cascata).
+  4. **Modo manutenção** (`js/config.js`: `MAINTENANCE_MODE`): só `worldkkevin@gmail.com` loga no app normal agora; todo mundo mais vê um aviso de atualização + o **ranking final do Ladaya congelado num array estático** (`MAINTENANCE_RANKING_FINAL` em js/auth.js — calculado uma única vez com o motor real, zero dependência de banco/API pra não ter ponto de falha durante a reforma). Reverter: `MAINTENANCE_MODE = false`.
+  5. **Merge `super-update` → `main`:** a branch "SUPER UPDATE" (nav V2, wizard Criar Bolão, motor V2, Mata-mata, Palpites V2 etc. — ver entradas de 07-07/07-08 abaixo) virou o `main` de vez. Único conflito real foi nas tags de versão dos scripts no `index.html` (resolvido pegando a lista mais completa + bump). Está tudo **atrás do modo manutenção** por enquanto — só o Kevin vê até decidir reabrir pra todo mundo.
+  6. **Wizard "Criar Bolão" (js/criarbolao.js): trocado Copa do Mundo (encerrada) por Brasileirão Série A** (league_id 71, temporada 2026, 380 jogos) pra começar os testes da 2.0 com um campeonato ativo. Corrigido de quebra nessa troca: o filtro "Selecionar por fase" (passo 4) era hardcoded pras fases de mata-mata da Copa — pro Brasileirão (só "Regular Season - N") nada batia e sempre zerava os jogos. Virou dinâmico (`_cbRoundsDisponiveis`): gera os botões a partir dos rounds reais da API, funciona pra qualquer formato de campeonato (liga ou mata-mata).
 
 - **2026-07-03** — **Fix: Modo TV Ao Vivo mostrava "FORA DO AR" com jogo rolando** (js/api.js + js/aovivo.js). B.O. do Kevin: a aba Jogos mostrava Argentina 0x0 Cape Verde **AO VIVO 27'** (fixture 1565179, Copa/league 1), mas o Modo TV (`view-ao-vivo`) dizia "FORA DO AR". **Causa (confirmada testando a API):** o Modo TV buscava os jogos ao vivo só no `/fixtures?live=all` (`buscarDadosAoVivo`), e a API-Football **não estava incluindo a Copa no feed live=all** (naquele momento o `live=all` só retornava um jogo da Estônia, `results:1` — a cobertura "live" da league 1 oscila). Já a aba Jogos lê do **feed da liga** (`/fixtures?league=1&season=2026`), que **traz** o jogo com status `1H 27'`. O feed da liga é superset do live=all pra aquela liga. **Fix:** novo `buscarJogosAoVivoLiga(leagueId)` em api.js busca no feed da liga e filtra os status ao vivo (`1H/2H/HT/ET/P/BT/LIVE/INT/SUSP`); `atualizarTVAoVivo` passou a usar ele no lugar do `live=all` (fallback pra `buscarDadosAoVivo` se a função não existir; o filtro por liga+status a jusante virou só guarda). Custo de cota igual (1 request/ciclo), com placar/elapsed frescos. Bump api v=36, aovivo v=46.
 - **2026-07-01** — **"Widget" de placar ao vivo: notificação ÚNICA por jogo que se atualiza (tag) + `Deno.serve`** (sw.js + supabase/functions/eventos-jogos/index.ts). Kevin perguntou de **widget na tela** (placar ao vivo + próximo jogo/contagem). **Limite documentado:** PWA **não faz widget nativo de tela inicial** nem Live Activity (iOS)/contagem que "ticka" sozinha — isso é app nativo. O mais perto no PWA: uma **notificação que se atualiza no lugar**. Implementado: as 3 notificações do MESMO jogo (começou/gol/fim) agora saem com a **mesma `tag` `jogo-<matchId>`**, então **colapsam numa notificação só** que mostra sempre o placar atual (tipo widget na barra): apito → "🟢 Bola rolando! Brasil 0x0 Japão", gol → "⚽ Brasil 1x0" (com `renotify:true` = re-alerta/vibra), fim → "🏁 ... (valeu o 90')". (1) **sw.js**: o handler `push` passou a repassar `tag`/`renotify`/`silent` do payload (antes ignorava) + `badge`; SW atualiza sozinho no próximo load. (2) **eventos-jogos**: `enviar()` ganhou `opts` (tag/renotify) embutido no payload; as 3 chamadas passam `tag: 'jogo-<id>'` (gol/fim com `renotify`). **Contagem regressiva do próximo jogo:** não dá no PWA (timer nativo) — o que cobre é o lembrete de 20 min que já existe. **Extra técnico:** o deploy quebrou com timeout do bundler do Supabase baixando `deno.land/std@0.168.0/http/server.ts` (flaky do lado deles) → troquei o `import { serve }` + `serve(...)` por **`Deno.serve(...)` nativo** (recomendado, sem a dependência externa). ⚠️ As outras funções (lembrete-jogos, send-push) ainda usam o import antigo — se um dia derem esse mesmo erro de bundle, migrar pra `Deno.serve` também. Deploy refeito e testado com jogo ao vivo real (aoVivo:1, 4 passadas, sem erro). Sem bump de JS (sw.js auto-atualiza; backend).
