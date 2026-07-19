@@ -543,7 +543,7 @@ function switchView(targetViewId) {
     localStorage.setItem('last_active_view', targetViewId);
   }
 
-  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir'];
+  const views = ['view-inicio', 'view-grupo-home', 'view-jogos', 'view-palpite', 'view-ranking', 'view-painel', 'view-regras', 'view-gm-panel', 'view-ao-vivo', 'view-desafios', 'view-loja', 'view-copa', 'view-assistir', 'view-criar-bolao', 'view-menu', 'view-matamata'];
   const navBar = document.getElementById('bottom-nav');
   const gmNavBar = document.getElementById('gm-bottom-nav');
 
@@ -579,12 +579,17 @@ function switchView(targetViewId) {
   } else {
     if (gmNavBar) gmNavBar.classList.add('hidden');
     
-    if (targetViewId === 'view-inicio' || targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo') {
+    // Nav V2: some só nas telas imersivas (palpite, Modo TV, wizard); na lista de grupos FICA
+    if (targetViewId === 'view-palpite' || targetViewId === 'view-ao-vivo' || targetViewId === 'view-criar-bolao') {
       if (navBar) navBar.classList.add('hidden');
     } else {
       if (navBar) navBar.classList.remove('hidden');
     }
   }
+
+  // Nav V2: barra de grupo + dropdown
+  if (typeof navAtualizarGrupoBar === 'function') navAtualizarGrupoBar();
+  if (typeof navFecharGrupoBar === 'function') navFecharGrupoBar();
 
   if (document.getElementById('nav-' + targetViewId)) {
     document.getElementById('nav-' + targetViewId).classList.add('text-brand-green', 'bg-brand-green/10', 'px-3', 'py-2', 'rounded-xl');
@@ -602,7 +607,9 @@ function switchView(targetViewId) {
   } else if (targetViewId === 'view-jogos' && todosOsJogos.length > 0) {
     gerarFiltrosRodadas();
     filtrarPorRodada(rodadaSelecionada);
+    if (typeof renderPalpitesV2 === 'function') renderPalpitesV2(); // Palpites V2 (lista nova)
   } else if (targetViewId === 'view-ranking') {
+    if (typeof switchRankingTab === 'function') switchRankingTab('ranking'); // sempre abre na classificação
     if (grupoAtual) {
       document.getElementById('nome-grupo-ranking').innerText = grupoAtual.name || grupoAtual.nome || 'Grupo';
       atualizarSeletorRanking();
@@ -615,6 +622,10 @@ function switchView(targetViewId) {
     if (typeof carregarViewCopa === 'function') carregarViewCopa();
   } else if (targetViewId === 'view-assistir') {
     if (typeof carregarViewAssistir === 'function') carregarViewAssistir();
+  } else if (targetViewId === 'view-menu') {
+    if (typeof carregarViewMenu === 'function') carregarViewMenu();
+  } else if (targetViewId === 'view-matamata') {
+    if (typeof carregarViewMatamata === 'function') carregarViewMatamata();
   } else if (targetViewId === 'view-desafios') {
     if (typeof carregarDesafiosUsuarioView === 'function') carregarDesafiosUsuarioView();
   } else if (targetViewId === 'view-loja') {
@@ -1441,6 +1452,46 @@ function atualizarSeletorRanking() {
   }
 }
 
+// ===== Sub-abas da view Ranking (Ranking · Equipes · Perguntas) =====
+// Equipes e Perguntas são placeholders "Em breve" nesta fase do super update.
+const _RTAB_EMBREVE = {
+  equipes: {
+    emoji: '👥', titulo: 'Ranking de Equipes',
+    texto: 'Um ranking por seleção: veja quais times renderam mais pontos pra galera do grupo. Tá no forno do Mago. 🧙'
+  },
+  perguntas: {
+    emoji: '💬', titulo: 'Perguntas Especiais',
+    texto: 'Um ranking só de perguntas da Copa (artilheiro, campeão, zebras e muito mais). Enquanto isso, as Respostas Bônus seguem no perfil de cada jogador, no ranking.'
+  }
+};
+
+function switchRankingTab(tab) {
+  const ATIVA = 'flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-brand-green/40 bg-brand-green/10 text-brand-green';
+  const INATIVA = 'flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-white/5 bg-card-bg text-text-muted';
+  ['ranking', 'equipes', 'perguntas'].forEach(a => {
+    const b = document.getElementById('rtab-' + a);
+    if (b) b.className = (a === tab) ? ATIVA : INATIVA;
+  });
+  const cont = document.getElementById('ranking-tab-conteudo');
+  const breve = document.getElementById('ranking-tab-embreve');
+  if (!cont || !breve) return;
+  if (tab === 'ranking') {
+    cont.classList.remove('hidden');
+    breve.classList.add('hidden');
+  } else {
+    cont.classList.add('hidden');
+    breve.classList.remove('hidden');
+    const i = _RTAB_EMBREVE[tab];
+    breve.innerHTML = `
+      <div class="bg-card-bg border border-white/5 rounded-3xl p-8 text-center mt-6">
+        <div class="text-5xl mb-3">${i.emoji}</div>
+        <span class="inline-block bg-amber-400/15 text-amber-300 border border-amber-400/30 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-3">Em breve</span>
+        <h3 class="font-black text-white text-lg mb-2">${i.titulo}</h3>
+        <p class="text-text-muted text-[13px] leading-relaxed max-w-[280px] mx-auto">${i.texto}</p>
+      </div>`;
+  }
+}
+
 async function exibirRankingSelecionado() {
   const container = document.getElementById('lista-ranking');
   if (!container) return;
@@ -1579,25 +1630,13 @@ async function exibirRankingSelecionado() {
     let rankHtml = '';
     rankingList.forEach((user, index) => {
       const posicao = index + 1;
-      
-      let medalhaClass = 'text-white/60 text-sm font-bold';
-      let borderGold = 'border-white/5';
-      let bgGlow = '';
-      let badgePosicao = `${posicao}º`;
 
-      if (posicao === 1) {
-        medalhaClass = 'text-gold text-lg font-black';
-        borderGold = 'glow-gold border-gold/30';
-        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-gold"></div>';
-      } else if (posicao === 2) {
-        medalhaClass = 'text-silver text-lg font-bold';
-        borderGold = 'border-silver/20';
-        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-silver"></div>';
-      } else if (posicao === 3) {
-        medalhaClass = 'text-bronze text-lg font-bold';
-        borderGold = 'border-bronze/20';
-        bgGlow = '<div class="absolute left-0 top-0 bottom-0 w-1 bg-bronze"></div>';
-      }
+      // Badge quadrado de posição (estilo novo): ouro/prata/bronze no top 3
+      let badgeBg = 'bg-white/5 text-white/70 border border-white/10';
+      let borderCard = 'border-white/5';
+      if (posicao === 1)      { badgeBg = 'bg-gold text-black shadow-[0_0_14px_rgba(251,191,36,0.45)]'; borderCard = 'border-gold/30 glow-gold'; }
+      else if (posicao === 2) { badgeBg = 'bg-silver text-black'; borderCard = 'border-silver/20'; }
+      else if (posicao === 3) { badgeBg = 'bg-bronze text-black'; borderCard = 'border-bronze/20'; }
 
       const isFree = grupoAtual.max_participants <= 3;
       const isLockedRow = isFree && index >= 3;
@@ -1606,29 +1645,27 @@ async function exibirRankingSelecionado() {
       const fotoUrl = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome) + '&background=random&color=fff';
       const adminBadge = user.isAdmin ? '<span class="bg-gold/20 text-gold text-[9px] px-1 rounded ml-1 font-bold">ADMIN</span>' : '';
       const apoiadorBadge = user.apoiador ? '<span title="Apoiador do app" class="ml-1">💛</span>' : '';
+      const ehVoce = usuarioAtual && usuarioAtual.id === user.id;
+      const voceBadge = ehVoce ? '<span class="bg-white/10 text-zinc-300 text-[9px] px-1.5 py-0.5 rounded-full ml-1 font-bold">Você</span>' : '';
       // Visual dourado pro apoiador (sem encostar nas bordas de medalha do top 3)
-      if (user.apoiador && posicao > 3) borderGold = 'border-amber-400/40';
-      const ringApoiador = user.apoiador ? 'ring-2 ring-amber-400/70' : '';
-      const nomeCor = user.apoiador ? 'text-amber-300' : 'text-white';
+      if (user.apoiador && posicao > 3) borderCard = 'border-amber-400/40';
+      if (ehVoce && posicao > 3 && !user.apoiador) borderCard = 'border-brand-green/40';
+      const ringApoiador = user.apoiador ? 'ring-2 ring-amber-400/70' : (ehVoce ? 'ring-2 ring-brand-green/50' : '');
+      const nomeCor = user.apoiador ? 'text-amber-300' : (ehVoce ? 'text-brand-green' : 'text-white');
 
       rankHtml += `
-        <div ${rowStyle} onclick="abrirHistoricoUsuario('${user.id}', '${user.nome.replace(/'/g,"\\'")}', '${fotoUrl}')" class="app-card bg-card-bg p-4 flex items-center justify-between relative overflow-hidden border ${borderGold} mb-3 cursor-pointer hover:bg-card-hover hover:border-brand-green/30 active:scale-[0.99] transition-all">
-          ${bgGlow}
-          <div class="flex items-center gap-4 pl-2">
-            <div class="w-6 flex flex-col items-center"><span class="${medalhaClass}">${badgePosicao}</span></div>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a35] ${ringApoiador}">
-                <img src="${fotoUrl}" class="w-full h-full object-cover">
-              </div>
-              <div>
-                <h3 class="font-bold text-[14px] ${nomeCor}">${user.nome}${apoiadorBadge} ${adminBadge}</h3>
-                <p class="text-[10px] text-text-muted mt-0.5">${user.acertosExatos} placares exatos</p>
-              </div>
-            </div>
+        <div ${rowStyle} onclick="abrirHistoricoUsuario('${user.id}', '${user.nome.replace(/'/g,"\\'")}', '${fotoUrl}')" class="app-card bg-card-bg rounded-2xl p-3.5 flex items-center gap-3.5 relative overflow-hidden border ${borderCard} mb-2.5 cursor-pointer hover:bg-card-hover hover:border-brand-green/30 active:scale-[0.99] transition-all">
+          <div class="w-9 h-9 rounded-xl ${badgeBg} flex items-center justify-center font-black text-[15px] shrink-0">${posicao}</div>
+          <div class="w-11 h-11 rounded-full overflow-hidden bg-[#2a2a35] ${ringApoiador} shrink-0">
+            <img src="${fotoUrl}" class="w-full h-full object-cover">
           </div>
-          <div class="text-right">
-            <div class="text-lg font-black text-white">${user.pontos}</div>
-            <div class="text-[9px] text-text-muted font-bold uppercase tracking-wider">Pts</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-[14px] truncate ${nomeCor}">${user.nome}${apoiadorBadge}${voceBadge} ${adminBadge}</h3>
+            <p class="text-[10px] text-text-muted mt-0.5">🎯 ${user.acertosExatos} placar${user.acertosExatos === 1 ? '' : 'es'} exato${user.acertosExatos === 1 ? '' : 's'}</p>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="flex items-center justify-end gap-1"><span class="text-[13px]">🏆</span><span class="text-xl font-black ${posicao === 1 ? 'text-gold' : 'text-white'}">${user.pontos}</span></div>
+            <div class="text-[9px] text-text-muted font-bold uppercase tracking-wider">pontos ›</div>
           </div>
         </div>
       `;

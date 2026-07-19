@@ -46,6 +46,7 @@ async function carregarGrupos() {
     .order('created_at', { ascending: false });
 
   if (errG) { console.error('Erro ao carregar grupos:', errG.message); return; }
+  if (typeof navInvalidarGrupos === 'function') navInvalidarGrupos(); // Nav V2: dropdown refaz a lista
   renderListaGrupos(grupos || []);
 }
 
@@ -57,17 +58,24 @@ function renderListaGrupos(grupos) {
   }
   container.innerHTML = '';
   grupos.forEach(g => {
+    // Ativo = grupo atualmente selecionado (o que a barra do nav mostra)
+    const ativo = (typeof grupoAtual !== 'undefined' && grupoAtual && grupoAtual.id === g.id);
+    const emoji = (typeof NAV_EMOJI_ICONE !== 'undefined' && NAV_EMOJI_ICONE[g.icone]) || null;
     container.innerHTML += `
-      <div onclick="entrarNoGrupo('${g.id}', '${g.name.replace(/'/g,"&#39;")}', '${g.invite_code}', '${g.owner_id}', ${g.league_id || 1})" class="bg-card-bg rounded-[1.25rem] p-4 cursor-pointer hover:bg-card-hover transition-colors border border-white/5 relative overflow-hidden mb-3">
-        <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-green"></div>
-        <div class="flex items-center gap-3 pl-2">
-          <div class="w-11 h-11 rounded-xl bg-app-bg flex items-center justify-center text-brand-green border border-white/5 flex-shrink-0 overflow-hidden relative">
-            <svg id="fallback-icon-${g.id}" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <img id="img-icon-${g.id}" src="https://hkiqozqqcymbhfobydoq.supabase.co/storage/v1/object/public/grupos-icons/${g.id}.jpg?t=${Date.now()}" class="w-full h-full object-cover absolute inset-0 hidden" onload="document.getElementById('fallback-icon-${g.id}').classList.add('hidden'); this.classList.remove('hidden');" onerror="this.src='';">
+      <div onclick="entrarNoGrupo('${g.id}', '${g.name.replace(/'/g,"&#39;")}', '${g.invite_code}', '${g.owner_id}', ${g.league_id || 1})"
+        class="bg-card-bg rounded-2xl p-4 cursor-pointer transition-all border ${ativo ? 'border-brand-green/50 ring-1 ring-brand-green/20' : 'border-white/5 hover:border-brand-green/25'} relative overflow-hidden mb-3 active:scale-[0.99]">
+        <div class="absolute left-0 top-0 bottom-0 w-1 ${ativo ? 'bg-brand-green' : 'bg-white/10'}"></div>
+        <div class="flex items-center gap-3.5 pl-2">
+          <div class="w-12 h-12 rounded-xl bg-app-bg flex items-center justify-center text-brand-green border border-white/5 flex-shrink-0 overflow-hidden relative text-xl">
+            ${emoji ? emoji : `<svg id="fallback-icon-${g.id}" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <img id="img-icon-${g.id}" src="https://hkiqozqqcymbhfobydoq.supabase.co/storage/v1/object/public/grupos-icons/${g.id}.jpg?t=${Date.now()}" class="w-full h-full object-cover absolute inset-0 hidden" onload="document.getElementById('fallback-icon-${g.id}').classList.add('hidden'); this.classList.remove('hidden');" onerror="this.src='';">`}
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-[15px] truncate">${g.name}</h3>
-            <p class="text-[12px] text-text-muted font-medium">#${g.invite_code}</p>
+            <h3 class="font-black text-[15px] truncate">${g.name}</h3>
+            <div class="flex items-center gap-2 mt-0.5">
+              ${ativo ? '<span class="bg-brand-green/15 text-brand-green text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">Ativo</span>' : ''}
+              <p class="text-[12px] text-text-muted font-medium">#${g.invite_code}</p>
+            </div>
           </div>
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-text-muted flex-shrink-0"><path d="M9 5l7 7-7 7"></path></svg>
         </div>

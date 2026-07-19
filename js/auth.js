@@ -134,6 +134,8 @@ function entrarNoApp(usuario) {
     }
   } else {
     processarConvitePendente();
+    // Nav V2: garante que o shell (abas + barra de grupo) aparece mesmo sem grupo salvo
+    if (typeof switchView === 'function') switchView('view-inicio');
   }
 
   if (typeof verificarBannerPWA === 'function') verificarBannerPWA();

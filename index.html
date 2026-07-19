@@ -333,18 +333,17 @@
       </div>
     </div>
 
-    <div id="view-inicio" class="fade-in block">
+    <div id="view-inicio" class="fade-in block pb-40">
 
-      <!-- Profile strip -->
-      <div class="flex items-center justify-between mb-4 mt-2 bg-card-bg rounded-2xl p-4 border border-white/5">
-        <div class="flex items-center gap-3 min-w-0">
-          <img id="avatar-google" src="" alt="foto" class="w-11 h-11 rounded-full object-cover border-2 border-brand-green flex-shrink-0">
-          <div class="min-w-0">
-            <p id="nome-usuario" class="font-bold text-[15px] leading-tight truncate">—</p>
-            <p id="email-usuario" class="text-[12px] text-text-muted leading-tight truncate">—</p>
-          </div>
-        </div>
-        <button onclick="deslogar()" class="text-red-400 text-[13px] font-bold hover:text-red-300 transition-colors flex-shrink-0 ml-3">Sair</button>
+      <!-- Título (perfil mora no Menu agora; strip antiga fica escondida só pros elementos que o auth.js preenche) -->
+      <div class="mt-3 mb-5">
+        <h1 class="text-3xl font-black tracking-tight">Meus Grupos</h1>
+        <p class="text-text-muted text-[14px] mt-1">Selecione um grupo para jogar o bolão</p>
+      </div>
+      <div class="hidden">
+        <img id="avatar-google" src="" alt="foto">
+        <p id="nome-usuario">—</p>
+        <p id="email-usuario">—</p>
       </div>
 
       <!-- Espanha Campeã da Copa 2026 -->
@@ -373,30 +372,6 @@
           Salve o app na tela inicial para jogar igual a um aplicativo real! <span class="underline font-bold text-white">Como fazer?</span>
         </div>
       </div>
-
-      <!-- Ações -->
-      <div class="grid grid-cols-2 gap-3 mb-7">
-        <button onclick="abrirModal('modal-criar-grupo'); atualizarOpcaoMataMata()" class="bg-brand-green text-black font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:opacity-90 transition-opacity active:scale-95">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-          Criar Grupo
-        </button>
-        <button onclick="abrirModal('modal-entrar-grupo')" class="bg-card-bg border border-white/5 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-[13px] hover:bg-card-hover transition-colors active:scale-95">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          Entrar
-        </button>
-      </div>
-
-      <!-- Mural de Apoiadores -->
-      <button onclick="abrirMural()" class="w-full bg-gradient-to-r from-amber-400/15 to-transparent border border-amber-400/25 rounded-2xl p-4 mb-6 flex items-center justify-between hover:border-amber-400/50 transition-all active:scale-[0.98]">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">💛</span>
-          <div class="text-left">
-            <h3 class="font-black text-[14px] text-white">Mural de Apoiadores</h3>
-            <p class="text-[11px] text-text-muted">Quem ajuda a manter o app no ar 🙏</p>
-          </div>
-        </div>
-        <span class="text-amber-400 font-black text-lg">›</span>
-      </button>
 
       <!-- Botão do GM (Apenas para worldkkevin@gmail.com) -->
       <div id="gm-panel-button-container" class="hidden mb-6">
@@ -430,10 +405,46 @@
       </div>
 
       <!-- Lista de grupos -->
-      <h2 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Meus grupos</h2>
       <div id="lista-grupos">
         <p class="text-text-muted text-[13px] text-center py-8">Carregando...</p>
       </div>
+
+      <!-- Mais opções -->
+      <div class="flex items-center gap-3 mt-7 mb-4">
+        <div class="h-px flex-1 bg-white/10"></div>
+        <span class="text-[11px] font-bold text-text-muted uppercase tracking-widest">Mais opções</span>
+        <div class="h-px flex-1 bg-white/10"></div>
+      </div>
+
+      <button onclick="abrirCriarBolao()" class="w-full bg-card-bg border border-white/5 rounded-2xl p-4 mb-3 flex items-center gap-4 hover:border-brand-green/30 transition-all active:scale-[0.98] text-left">
+        <div class="w-11 h-11 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center text-brand-green flex-shrink-0">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-[15px] text-white">Criar novo bolão</h3>
+          <p class="text-[12px] text-text-muted">Convide seus amigos</p>
+        </div>
+      </button>
+
+      <button onclick="abrirModal('modal-entrar-grupo')" class="w-full bg-card-bg border border-amber-400/20 rounded-2xl p-4 mb-3 flex items-center gap-4 hover:border-amber-400/40 transition-all active:scale-[0.98] text-left">
+        <div class="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-xl flex-shrink-0">🎟️</div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-[15px] text-white">Fui convidado</h3>
+          <p class="text-[12px] text-text-muted">Entrar com código</p>
+        </div>
+      </button>
+
+      <!-- Mural de Apoiadores -->
+      <button onclick="abrirMural()" class="w-full bg-gradient-to-r from-amber-400/15 to-transparent border border-amber-400/25 rounded-2xl p-4 mb-3 flex items-center justify-between hover:border-amber-400/50 transition-all active:scale-[0.98]">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">💛</span>
+          <div class="text-left">
+            <h3 class="font-black text-[14px] text-white">Mural de Apoiadores</h3>
+            <p class="text-[11px] text-text-muted">Quem ajuda a manter o app no ar 🙏</p>
+          </div>
+        </div>
+        <span class="text-amber-400 font-black text-lg">›</span>
+      </button>
 
       <!-- Loja Pro -->
       <div class="mt-6 mb-2">
@@ -674,7 +685,7 @@
     </div>
 
     <!-- View: Home do Grupo (Dashboard) -->
-    <div id="view-grupo-home" class="fade-in hidden p-4 pb-24">
+    <div id="view-grupo-home" class="fade-in hidden p-4 pb-40">
       
       <!-- Top header de voltar para os grupos gerais -->
       <div class="flex items-center gap-4 mb-6 mt-2">
@@ -857,23 +868,19 @@
       </div>
     </div>
 
-    <div id="view-jogos" class="fade-in hidden">
-      <div class="flex items-center justify-between mb-4 mt-2">
-        <div class="flex items-center gap-4">
-          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <h1 class="text-xl font-black tracking-tight">Partidas</h1>
-        </div>
-        <button id="toggle-fase-grupos" onclick="toggleFaseGrupos()" class="bg-card-bg text-brand-green text-xs px-3 py-1 rounded-md font-bold border border-brand-green/20 flex items-center gap-1 active:scale-95 transition-transform">Fase de Grupos</button>
-      </div>
-      
-      <!-- Filtro de Rodadas (Horizontal Scrollable) -->
-      <div id="filtros-rodada" class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <!-- Gerado dinamicamente -->
-      </div>
+    <div id="view-jogos" class="fade-in hidden pb-40">
+      <!-- PALPITES V2 (SUPER UPDATE): carrossel de dias + cards por data -->
+      <div id="palpites-v2"></div>
 
-      <div id="lista-jogos"></div>
+      <!-- Renderização legada (mantida escondida: desenharCardsNaTela/gerarFiltrosRodadas ainda apontam pra cá) -->
+      <div id="jogos-legacy" class="hidden">
+        <div class="flex items-center justify-between mb-4 mt-2">
+          <h1 class="text-xl font-black tracking-tight">Partidas</h1>
+          <button id="toggle-fase-grupos" onclick="toggleFaseGrupos()" class="bg-card-bg text-brand-green text-xs px-3 py-1 rounded-md font-bold border border-brand-green/20 flex items-center gap-1 active:scale-95 transition-transform">Fase de Grupos</button>
+        </div>
+        <div id="filtros-rodada" class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide"></div>
+        <div id="lista-jogos"></div>
+      </div>
     </div>
 
     <div id="view-palpite" class="fade-in hidden p-2 pb-10">
@@ -958,35 +965,46 @@
       </div>
     </div>
 
-    <div id="view-ranking" class="fade-in hidden">
-      <div class="flex items-center justify-between mb-4 mt-2">
-        <div class="flex items-center gap-4">
-          <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <h1 class="text-xl font-black tracking-tight">Ranking Oficial</h1>
+    <div id="view-ranking" class="fade-in hidden pb-40">
+      <!-- Sub-abas: Ranking · Equipes · Perguntas (padrão novo das telas) -->
+      <div class="grid grid-cols-3 gap-2 mb-4 mt-3">
+        <button id="rtab-ranking" onclick="switchRankingTab('ranking')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-brand-green/40 bg-brand-green/10 text-brand-green">🏆 Ranking</button>
+        <button id="rtab-equipes" onclick="switchRankingTab('equipes')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-white/5 bg-card-bg text-text-muted">👥 Equipes</button>
+        <button id="rtab-perguntas" onclick="switchRankingTab('perguntas')" class="flex items-center justify-center gap-1.5 py-3 rounded-2xl border text-[12px] font-black transition-all border-white/5 bg-card-bg text-text-muted">💬 Perguntas</button>
+      </div>
+
+      <!-- ABA CLASSIFICAÇÃO -->
+      <div id="ranking-tab-conteudo">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-1.5 bg-brand-green/10 border border-brand-green/20 text-brand-green text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse"></span> Tempo real · grátis
+          </div>
+          <div id="nome-grupo-ranking" class="bg-card-bg text-text-muted text-[11px] font-bold px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest truncate max-w-[45%]">—</div>
         </div>
-        <div id="nome-grupo-ranking" class="bg-brand-green/10 text-brand-green text-[11px] font-bold px-3 py-1.5 rounded-lg border border-brand-green/20 uppercase tracking-widest">—</div>
-      </div>
-      
-      <!-- Seletor de Tipo de Ranking (Geral ou Rodada) -->
-      <div class="mb-4">
-        <select id="seletor-ranking" onchange="exibirRankingSelecionado()" class="w-full bg-card-bg border border-white/5 rounded-2xl py-3 px-4 text-[13px] font-bold text-white outline-none focus:border-brand-green transition-colors">
-          <option value="geral">Ranking Geral</option>
-        </select>
+
+        <!-- Seletor de Tipo de Ranking (Geral ou Rodada) -->
+        <div class="mb-4">
+          <select id="seletor-ranking" onchange="exibirRankingSelecionado()" class="w-full bg-card-bg border border-white/5 rounded-2xl py-3 px-4 text-[13px] font-bold text-white outline-none focus:border-brand-green transition-colors">
+            <option value="geral">Ranking Geral</option>
+          </select>
+        </div>
+
+        <p class="text-[10px] uppercase tracking-widest text-text-muted font-black mb-2 ml-1">Classificação</p>
+        <div id="lista-ranking" class="space-y-3">
+          <p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>
+        </div>
+
+        <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
+          <span>📲</span> COMPARTILHAR RANKING
+        </button>
       </div>
 
-      <div id="lista-ranking" class="space-y-3">
-        <p class="text-text-muted text-[13px] text-center py-8">Carregando ranking...</p>
-      </div>
-
-      <button onclick="compartilharRankingWhatsApp()" class="mt-4 flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-2xl transition-all">
-        <span>📲</span> COMPARTILHAR RANKING
-      </button>
+      <!-- ABA EM BREVE (Equipes / Perguntas) -->
+      <div id="ranking-tab-embreve" class="hidden"></div>
     </div>
 
     <!-- View: Copa (Classificação dos grupos + Chaveamento) -->
-    <div id="view-copa" class="fade-in hidden p-4 pb-24">
+    <div id="view-copa" class="fade-in hidden p-4 pb-40">
       <div class="flex items-center justify-between mb-4 mt-2">
         <div class="flex items-center gap-4">
           <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
@@ -1017,7 +1035,75 @@
       </div>
     </div>
 
-    <!-- ==================== VIEW ASSISTIR (jogo ao vivo no app) ==================== -->
+    <!-- ============ VIEW: MATA-MATA DO GRUPO (SUPER UPDATE) ============ -->
+    <div id="view-matamata" class="fade-in hidden pb-44">
+      <div id="mm-body"></div>
+    </div>
+    <!-- Modal compartilhado (mata-mata, peso dos jogos etc.) — fora das views pra funcionar em qualquer aba -->
+    <div id="mm-modal" class="hidden fixed inset-0 z-[95]"></div>
+    <!-- Overlay Fazer Palpite V2 (js/palpitemodal.js) -->
+    <div id="pal-modal" class="hidden fixed inset-0 z-[96]"></div>
+
+    <!-- ============ VIEW: MENU (SUPER UPDATE) ============ -->
+    <div id="view-menu" class="fade-in hidden px-4 pb-44 pt-2">
+      <h1 class="text-2xl font-black tracking-tight mb-4 mt-2">Menu</h1>
+
+      <!-- Perfil -->
+      <div class="bg-card-bg rounded-2xl border border-white/5 p-4 flex items-center gap-3.5 mb-5">
+        <img id="menu-avatar" src="" class="w-14 h-14 rounded-full object-cover ring-2 ring-brand-green/40">
+        <div class="flex-1 min-w-0">
+          <p id="menu-nome" class="font-black text-[16px] truncate">—</p>
+          <p id="menu-email" class="text-[12px] text-text-muted truncate">—</p>
+        </div>
+        <span class="text-2xl">🧙</span>
+      </div>
+
+      <!-- Apoiar (nossa cara) -->
+      <button onclick="abrirDoacao()" class="w-full bg-gradient-to-r from-amber-400/20 to-transparent border border-amber-400/30 rounded-2xl p-4 mb-2 flex items-center gap-3.5 active:scale-[0.98] transition-transform">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/15 flex items-center justify-center text-xl shrink-0">💛</div>
+        <div class="flex-1 text-left">
+          <p class="font-black text-[14px] text-amber-300">Apoiar o app</p>
+          <p class="text-[11px] text-text-muted">Ajude a manter O Mago no ar e ganhe perks</p>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-amber-400/60"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <div id="menu-lista-principal" class="mb-5"></div>
+
+      <p class="text-[10px] uppercase tracking-widest text-text-muted font-black mb-2 ml-1">Extras</p>
+      <div id="menu-lista-extras" class="mb-6"></div>
+
+      <button onclick="deslogar()" class="w-full border border-red-500/40 bg-red-500/5 text-red-400 font-black py-3.5 rounded-2xl mb-5 active:scale-[0.98] transition-transform">
+        ⇥ Sair da Conta
+      </button>
+
+      <p class="text-center text-[11px] text-text-muted">
+        <a href="https://www.instagram.com/appbolaopro/" target="_blank" rel="noopener" class="underline">@appbolaopro</a> · Bolão Pro — O Mago 🧙<br>
+        <span id="menu-versao" class="opacity-60"></span>
+      </p>
+    </div>
+
+    <!-- ============ VIEW: CRIAR BOLÃO (wizard 8 passos — SUPER UPDATE) ============ -->
+    <div id="view-criar-bolao" class="hidden fixed inset-0 z-[90] flex flex-col bg-gradient-to-b from-[#0a1a13] via-[#081410] to-[#06100c]">
+      <!-- header -->
+      <div class="shrink-0 px-4 pt-5 pb-3" style="padding-top: max(1.25rem, env(safe-area-inset-top));">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="cbSair()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-emerald-300 border border-white/10">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-lg font-black tracking-tight">Criar Bolão</h1>
+          <div class="w-9"></div>
+        </div>
+        <div id="cb-dots" class="flex items-center px-1"></div>
+        <p id="cb-rotulo-passo" class="text-center text-[12px] text-zinc-400 mt-2"></p>
+      </div>
+      <!-- corpo -->
+      <div id="cb-body" class="flex-1 overflow-y-auto px-5 pb-6 max-w-md w-full mx-auto"></div>
+      <!-- footer -->
+      <div id="cb-footer" class="shrink-0 flex gap-3 px-5 pt-3 max-w-md w-full mx-auto" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom));"></div>
+      <!-- modais do wizard -->
+      <div id="cb-modal" class="hidden fixed inset-0 z-[95]"></div>
+    </div>
+
     <div id="view-assistir" class="fade-in hidden p-4 pb-24">
       <div class="flex items-center gap-4 mb-4 mt-2">
         <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
@@ -1050,7 +1136,7 @@
       </div>
     </div>
 
-    <div id="view-painel" class="fade-in hidden">
+    <div id="view-painel" class="fade-in hidden pb-40">
       <!-- Cabeçalho Premium -->
       <div class="flex items-center justify-between mb-6 mt-2">
         <div class="flex items-center gap-4">
@@ -1314,7 +1400,7 @@
       </div>
     </div>
 
-    <div id="view-regras" class="fade-in hidden p-4 pb-28">
+    <div id="view-regras" class="fade-in hidden p-4 pb-40">
       <div class="flex items-center justify-between mb-6 mt-2">
         <div class="flex items-center gap-4">
           <button onclick="switchView('view-grupo-home')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-card-bg text-brand-green border border-white/5">
@@ -2199,30 +2285,46 @@
       </div>
     </div>
 
-    <div id="bottom-nav" class="nav-fixed hidden bg-app-bg/95 backdrop-blur-md border-t border-white/5 pt-3 pb-6 px-2 flex justify-between items-end z-50">
-      <button onclick="switchView('view-grupo-home')" id="nav-view-grupo-home" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white flex-1 transition-all">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        <span class="text-[10px] font-bold">Painel</span>
-      </button>
-      <button onclick="switchView('view-jogos')" id="nav-view-jogos" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white flex-1 transition-all">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span class="text-[10px] font-bold">Jogos</span>
-      </button>
+    <!-- ============ NAV V2 (SUPER UPDATE): barra de grupo + 5 abas ============ -->
+    <div id="bottom-nav" class="nav-fixed hidden px-3 z-50 flex flex-col gap-2 pointer-events-none" style="padding-bottom: max(0.9rem, env(safe-area-inset-bottom));">
 
-      <!-- Botão central dourado: Copa -->
-      <button onclick="switchView('view-copa')" id="nav-view-copa" class="flex flex-col items-center justify-center flex-1 transition-all">
-        <span class="-mt-9 w-14 h-14 rounded-full bg-gradient-to-br from-amber-300 to-yellow-600 flex items-center justify-center text-2xl shadow-[0_0_22px_rgba(251,191,36,0.55)] border-4 border-app-bg active:scale-95 transition-transform">🏆</span>
-        <span class="text-[10px] font-black text-amber-400 mt-1">Copa</span>
-      </button>
+      <!-- Barra de troca de grupo (dropdown abre pra cima) -->
+      <div class="relative pointer-events-auto">
+        <div id="nav-grupo-lista" class="hidden absolute bottom-full mb-2 left-0 right-0 max-h-64 overflow-y-auto rounded-2xl bg-card-bg/95 backdrop-blur-md border border-white/10 shadow-2xl p-2"></div>
+        <button onclick="navToggleGrupoBar()" id="nav-grupo-bar"
+          class="w-full flex items-center gap-3 rounded-2xl bg-card-bg/95 backdrop-blur-md border border-brand-green/20 px-3 py-2.5 shadow-lg active:scale-[0.99] transition-transform">
+          <div id="nav-grupo-icone" class="w-9 h-9 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center text-lg shrink-0">⚽</div>
+          <div class="flex-1 min-w-0 text-left">
+            <p id="nav-grupo-nome" class="font-black text-[14px] truncate">Escolher grupo</p>
+            <p id="nav-grupo-cod" class="text-[10px] text-text-muted font-bold truncate"></p>
+          </div>
+          <svg id="nav-grupo-seta" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-text-muted transition-transform"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+      </div>
 
-      <button onclick="switchView('view-ranking')" id="nav-view-ranking" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white flex-1 transition-all">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-2.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span class="text-[10px] font-bold">Ranking</span>
-      </button>
-      <button onclick="switchView('view-painel')" id="nav-view-painel" class="flex flex-col items-center justify-center gap-1 text-text-muted hover:text-white flex-1 transition-all">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-        <span class="text-[10px] font-bold">Ajustes</span>
-      </button>
+      <!-- As 5 abas -->
+      <div class="pointer-events-auto flex items-center justify-between rounded-3xl bg-card-bg/95 backdrop-blur-md border border-white/10 shadow-2xl px-2 py-2">
+        <button onclick="navIrPara('view-ranking')" id="nav-view-ranking" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+          <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v5a5 5 0 0010 0V4zM17 6h3a1 1 0 011 1c0 2-1.5 3.5-3.5 4M7 6H4a1 1 0 00-1 1c0 2 1.5 3.5 3.5 4"/></svg>
+          <span class="text-[10px] font-black">Ranking</span>
+        </button>
+        <button onclick="navIrPara('view-matamata')" id="nav-view-matamata" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+          <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M12 5v14M2 10h3a2 2 0 010 4H2M22 10h-3a2 2 0 000 4h3"/><circle cx="12" cy="12" r="2.2"/></svg>
+          <span class="text-[10px] font-black">Mata-mata</span>
+        </button>
+        <button onclick="navIrPara('view-jogos')" id="nav-view-jogos" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+          <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M9 3h6a1 1 0 011 1v1h3a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1h3V4a1 1 0 011-1z"/><path d="M14 11l-4.5 4.5M9 11h.01M14 15.5h.01"/></svg>
+          <span class="text-[10px] font-black">Palpites</span>
+        </button>
+        <button onclick="navIrPara('view-inicio')" id="nav-view-inicio" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+          <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          <span class="text-[10px] font-black">Grupos</span>
+        </button>
+        <button onclick="navIrPara('view-menu')" id="nav-view-menu" class="flex flex-col items-center justify-center gap-0.5 text-text-muted flex-1 py-1 transition-all">
+          <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <span class="text-[10px] font-black">Menu</span>
+        </button>
+      </div>
     </div>
 
     <!-- Menu inferior exclusivo do GM (Painel Administrativo) -->
@@ -2362,16 +2464,22 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script src="js/config.js?v=35"></script>
-  <script src="js/auth.js?v=38"></script>
-  <script src="js/api.js?v=36"></script>
-  <script src="js/groups.js?v=36"></script>
-  <script src="js/ui.js?v=64"></script>
+  <script src="js/config.js?v=36"></script>
+  <script src="js/auth.js?v=39"></script>
+  <script src="js/api.js?v=37"></script>
+  <script src="js/groups.js?v=38"></script>
+  <script src="js/pontos.js?v=1"></script>
+  <script src="js/ui.js?v=70"></script>
   <script src="js/gm.js?v=32"></script>
   <script src="js/aovivo.js?v=46"></script>
   <script src="js/evento.js?v=42"></script>
   <script src="js/copa.js?v=10"></script>
   <script src="js/assistir.js?v=2"></script>
+  <script src="js/criarbolao.js?v=2"></script>
+  <script src="js/navmenu.js?v=2"></script>
+  <script src="js/matamata.js?v=1"></script>
+  <script src="js/palpites.js?v=2"></script>
+  <script src="js/palpitemodal.js?v=1"></script>
 
   <!-- Registro do Service Worker -->
   <script>
