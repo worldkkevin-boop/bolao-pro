@@ -35,6 +35,18 @@ function _palMeuPalpite(matchId) {
 function _palJogoEncerrado(j) { return _PAL_FIM.includes(j.fixture.status.short); }
 function _palJogoAoVivo(j) { return _PAL_VIVO.includes(j.fixture.status.short); }
 
+// Rodada "atual": a de um jogo ao vivo (prioridade), senão a do próximo jogo a
+// rolar, senão (tudo encerrado) a do último jogo. `jogos` precisa vir ordenado
+// cronologicamente. Funciona pra liga ("Regular Season - N") e mata-mata.
+function _palRodadaAtual(jogos) {
+  const aoVivo = jogos.find(j => _palJogoAoVivo(j));
+  if (aoVivo) return (aoVivo.league && aoVivo.league.round) || null;
+  const proximo = jogos.find(j => !_palJogoEncerrado(j) && !_palJogoAoVivo(j));
+  if (proximo) return (proximo.league && proximo.league.round) || null;
+  const ultimo = jogos.slice().reverse().find(j => _palJogoEncerrado(j));
+  return ultimo ? ((ultimo.league && ultimo.league.round) || null) : null;
+}
+
 // ---------- render principal ----------
 function renderPalpitesV2() {
   const el = document.getElementById('palpites-v2');
@@ -98,21 +110,33 @@ function renderPalpitesV2() {
   });
   html += `</div>`;
 
-  // ---------- toggle Próximos / Finalizados ----------
-  const TG_A = 'flex-1 py-2.5 rounded-full text-[13px] font-black bg-brand-green/15 text-brand-green transition-all';
-  const TG_I = 'flex-1 py-2.5 rounded-full text-[13px] font-bold text-text-muted transition-all';
+  // ---------- toggle Próximos / Rodada atual / Finalizados ----------
+  const rodadaAtual = _palRodadaAtual(jogos);
+  const TG_A = 'flex-1 py-2.5 rounded-full text-[12.5px] font-black bg-brand-green/15 text-brand-green transition-all';
+  const TG_I = 'flex-1 py-2.5 rounded-full text-[12.5px] font-bold text-text-muted transition-all';
   html += `
-    <div class="flex bg-card-bg border border-white/5 rounded-full p-1 mb-5 max-w-[280px] mx-auto">
+    <div class="flex bg-card-bg border border-white/5 rounded-full p-1 mb-5 max-w-[360px] mx-auto">
       <button onclick="palSetFiltro('proximos')" class="${_palFiltro === 'proximos' ? TG_A : TG_I}">Próximos</button>
+      ${rodadaAtual ? `<button onclick="palSetFiltro('rodada')" class="${_palFiltro === 'rodada' ? TG_A : TG_I}">📍 Rodada atual</button>` : ''}
       <button onclick="palSetFiltro('finalizados')" class="${_palFiltro === 'finalizados' ? TG_A : TG_I}">Finalizados</button>
     </div>`;
 
   // ---------- jogos filtrados + agrupados por data ----------
-  const filtrados = jogos.filter(j => _palFiltro === 'finalizados' ? _palJogoEncerrado(j) : !_palJogoEncerrado(j));
-  if (_palFiltro === 'finalizados') filtrados.reverse(); // mais recentes primeiro
+  let filtrados;
+  if (_palFiltro === 'finalizados') {
+    filtrados = jogos.filter(j => _palJogoEncerrado(j));
+    filtrados.reverse(); // mais recentes primeiro
+  } else if (_palFiltro === 'rodada' && rodadaAtual) {
+    filtrados = jogos.filter(j => (j.league && j.league.round) === rodadaAtual);
+  } else {
+    filtrados = jogos.filter(j => !_palJogoEncerrado(j));
+  }
 
   if (!filtrados.length) {
-    html += `<p class="text-text-muted text-[13px] text-center py-10">${_palFiltro === 'finalizados' ? 'Nenhum jogo finalizado ainda.' : 'Nenhum jogo por vir — Copa encerrada! 🏆'}</p>`;
+    const msg = _palFiltro === 'finalizados' ? 'Nenhum jogo finalizado ainda.'
+      : _palFiltro === 'rodada' ? 'Nenhum jogo nessa rodada.'
+      : 'Nenhum jogo por vir — campeonato encerrado! 🏆';
+    html += `<p class="text-text-muted text-[13px] text-center py-10">${msg}</p>`;
     el.innerHTML = html; return;
   }
 
@@ -167,8 +191,8 @@ function _palCardJogo(j) {
   }
 
   const flag = (t) => nomeIndef(t.name)
-    ? `<div class="w-14 h-10 rounded-lg bg-zinc-300/20 border border-white/10"></div>`
-    : `<img src="${t.logo}" class="w-14 h-10 rounded-lg object-cover shadow-lg">`;
+    ? `<div class="w-14 h-14 rounded-2xl bg-zinc-300/20 border border-white/10"></div>`
+    : `<div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2"><img src="${t.logo}" class="w-full h-full object-contain drop-shadow"></div>`;
 
   // centro: placar real (encerrado/vivo) ou VS
   let centro = `<span class="text-text-muted font-black italic text-lg opacity-60">VS</span>`;
@@ -206,9 +230,9 @@ function _palCardJogo(j) {
     rodape = `
       <div onclick="event.stopPropagation(); palAbrirPalpite(${id})" class="mt-3 flex items-center gap-2.5 bg-black/25 border border-white/5 rounded-xl px-3.5 py-2.5 cursor-pointer hover:border-brand-green/30">
         <span class="text-[10px] font-black text-text-muted uppercase tracking-wider">Seu palpite:</span>
-        <img src="${h.logo}" class="w-5 h-3.5 rounded-sm object-cover"><span class="font-black text-[14px]">${meu.score_home}</span>
+        <img src="${h.logo}" class="w-5 h-5 object-contain"><span class="font-black text-[14px]">${meu.score_home}</span>
         <span class="text-[10px] text-text-muted font-bold">vs</span>
-        <span class="font-black text-[14px]">${meu.score_away}</span><img src="${a.logo}" class="w-5 h-3.5 rounded-sm object-cover">
+        <span class="font-black text-[14px]">${meu.score_away}</span><img src="${a.logo}" class="w-5 h-5 object-contain">
         ${!fechado ? '<span class="text-brand-green text-[13px]">✏️</span>' : ''}
         ${ptsBadge}
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="text-text-muted ${ptsBadge ? '' : 'ml-auto'}"><path d="M9 5l7 7-7 7"/></svg>
