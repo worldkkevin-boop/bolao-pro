@@ -189,10 +189,12 @@ Tabelas referenciadas no código (colunas confirmadas; "?" = a confirmar no banc
 
 ## 8. Agendamentos (pg_cron) & extensões
 
+> ⚠️ **DESATIVADOS em 2026-07-27** (`select cron.unschedule(...)` rodado no SQL Editor — ver [desativar-notificacoes.sql](sql/arquivo/desativar-notificacoes.sql)). Motivo: não estavam sendo usados, só gastando cota da API-Football à toa. As Edge Functions (`lembrete-jogos`, `eventos-jogos`) continuam existindo e deployadas — só pararam de ser CHAMADAS automaticamente. Pra religar: rodar de novo o `select cron.schedule(...)` dos arquivos de migração abaixo.
+
 - Extensões: `pg_cron` + `pg_net` (habilitadas no projeto).
-- Job **`lembrete-jogos`**: `*/5 * * * *` → chama a Edge Function via `net.http_post` com header `x-cron-secret`.
-- Job **`eventos-jogos`**: `* * * * *` (1 min) → chama a Edge Function `eventos-jogos` via `net.http_post` com o MESMO `x-cron-secret`. Migração: [supabase-migration-eventos-jogos.sql](sql/arquivo/supabase-migration-eventos-jogos.sql).
-- Útil: `select * from cron.job;` · histórico: `select * from cron.job_run_details order by start_time desc limit 20;`
+- Job **`lembrete-jogos`** *(desativado)*: `*/5 * * * *` → chama a Edge Function via `net.http_post` com header `x-cron-secret`.
+- Job **`eventos-jogos`** *(desativado)*: `* * * * *` (1 min) → chama a Edge Function `eventos-jogos` via `net.http_post` com o MESMO `x-cron-secret`. Migração: [supabase-migration-eventos-jogos.sql](sql/arquivo/supabase-migration-eventos-jogos.sql).
+- Útil: `select * from cron.job;` (deve vir vazio agora) · histórico: `select * from cron.job_run_details order by start_time desc limit 20;`
 - Migração que cria isso: [supabase-migration-lembrete-jogos.sql](sql/arquivo/supabase-migration-lembrete-jogos.sql) (contém o valor do `CRON_SECRET`).
 
 ---
@@ -250,6 +252,7 @@ Pega a **primeira** que se aplica (na ordem abaixo; o GM customiza os valores po
 
 > Formato: `AAAA-MM-DD — o que mudou (arquivos)`
 
+- **2026-07-27** — **Notificações desativadas (economia de recursos)** (`sql/arquivo/desativar-notificacoes.sql`, rodado no SQL Editor). Kevin não está usando as notificações agora e elas ficavam gastando cota da API-Football à toa (`eventos-jogos` batia a cada 1 min). `cron.unschedule('lembrete-jogos')` + `cron.unschedule('eventos-jogos')` — confirmado `select * from cron.job` vazio. Edge Functions continuam deployadas (não foi preciso mexer nelas); reversível rodando de novo os `cron.schedule(...)` das migrações originais. Ver seção 8.
 - **2026-07-19** — **Copa do Mundo 2026 terminou (Espanha campeã, 1x0 na prorrogação sobre a Argentina) — merge da `super-update` no `main` + reset pra 2.0.** Sessão grande de virada de temporada:
   1. **Fix bônus (Respostas Bônus, `_statusBonusCopa` em js/ui.js):** Q3 (3º lugar) e Q4 (vice) mostravam "Perdida" mesmo quando o jogador acertou, porque quem disputa esses jogos JÁ perdeu uma fase anterior (semifinal) e caía direto na regra genérica de "eliminado". Agora Q3 checa o vencedor do jogo de 3º lugar e Q4 o perdedor da Final antes disso (mesmo padrão que o Q5/Campeão já tinha). Q1 (gols do campeão) também ficava travado em "Em aberto" pra sempre — agora fecha comparando o total de gols do campeão contra a faixa escolhida. A linha "Desafios do GM (Bônus)" no resumo de pontos passou a listar cada crédito com o motivo (`chosen_player`) em vez de um total agregado sem explicação.
   2. **Banner "Espanha é a Campeã"** na tela inicial (leva pro Ranking).
